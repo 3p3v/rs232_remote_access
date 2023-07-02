@@ -3,6 +3,7 @@ version: '3.1'
 services:
   db:
     image: mysql
+    container_name: db
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
@@ -17,6 +18,7 @@ services:
 
   adminer:
     image: adminer
+    container_name: adminer
     restart: always
     ports:
       - 8080:8080
@@ -25,12 +27,13 @@ services:
 
   mosquitto:
     image: iegomez/mosquitto-go-auth
-    # container_name: mosquitto
+    container_name: mosquitto
     volumes:
-      - /praca_inzynierska/server/mosquitto/config:/mosquitto/config
-      - /praca_inzynierska/server/mosquitto/config:/mosquitto/conf.d
+      - /praca_inzynierska/server/mosquitto/config:/etc/mosquitto/
+      - /praca_inzynierska/server/mosquitto/conf.d:/etc/mosquitto/conf.d
       - /praca_inzynierska/server/mosquitto/data:/mosquitto/data
       - /praca_inzynierska/server/mosquitto/log:/mosquitto/log
+      # - /praca_inzynierska/server/mosquitto/shared:/mosquitto/shared
     ports:
       - 1883:1883
       - 9001:9001   
