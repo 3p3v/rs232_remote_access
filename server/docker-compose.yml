@@ -14,7 +14,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - /praca_inzynierska/server/db:/var/lib/mysql
+      - /praca_inzynierska/server/db/db/:/var/lib/mysql
 
   adminer:
     image: adminer
@@ -29,11 +29,10 @@ services:
     image: iegomez/mosquitto-go-auth
     container_name: mosquitto
     volumes:
-      - /praca_inzynierska/server/mosquitto/config:/etc/mosquitto/
-      - /praca_inzynierska/server/mosquitto/conf.d:/etc/mosquitto/conf.d
+      - /praca_inzynierska/server/mosquitto/resources/config:/etc/mosquitto/
+      - /praca_inzynierska/server/mosquitto/resources/conf.d:/etc/mosquitto/conf.d
       - /praca_inzynierska/server/mosquitto/data:/mosquitto/data
       - /praca_inzynierska/server/mosquitto/log:/mosquitto/log
-      # - /praca_inzynierska/server/mosquitto/shared:/mosquitto/shared
     ports:
       - 1883:1883
       - 9001:9001   
