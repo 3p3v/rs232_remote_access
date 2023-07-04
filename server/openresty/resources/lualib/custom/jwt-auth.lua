@@ -5,7 +5,7 @@ local cjson = require "cjson"
 local key = "secret"
 
 if ngx.var.request_method ~= "OPTIONS" and not string.match(ngx.var.uri, "login") then
-  local jwtToken = ngx.var.http_Authorization
+  local jwtToken = ngx.var.http_authorization
   if jwtToken == nil then
     ngx.status = ngx.HTTP_UNAUTHORIZED
     ngx.header.content_type = "application/json; charset=utf-8"
