@@ -14,7 +14,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - /praca_inzynierska/server/db/db/:/var/lib/mysql
+      - /praca_inzynierska/server/db/:/var/lib/mysql
 
   adminer:
     image: adminer
@@ -37,5 +37,17 @@ services:
       - 1883:1883
       - 9001:9001   
 
+  openresty:
+    image: 3p3v/openresty-jwt
+    container_name: openresty
+    volumes:
+      - /praca_inzynierska/server/openresty/resources/config:/usr/local/openresty/nginx/conf/
+      - /praca_inzynierska/server/openresty/resources/conf.d:/etc/nginx/conf.d
+      - /praca_inzynierska/server/openresty/logs/:/usr/local/openresty/logs/
+      - /praca_inzynierska/server/openresty/resources/lualib/custom/:/usr/local/openresty/lualib/custom/
+    ports:
+      - 443:443
+      - 80:80
+      - 8888:8888
 
 
