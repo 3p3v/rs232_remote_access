@@ -1,8 +1,7 @@
 local jwt = require "resty.jwt"
--- local validators = require "resty.jwt-validators"
+local validators = require "resty.jwt-validators"
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
-local bcrypt = require( "bcrypt" )
 
 -- specify response encoding
 ngx.header.content_type = "application/json; charset=utf-8"
@@ -10,13 +9,33 @@ ngx.header.content_type = "application/json; charset=utf-8"
 -- specify key
 local key = "secret"
 
+-- read token
+local jwtToken = ngx.var.http_authorization
+
+-- check if user sent token
+if jwtToken == nil then
+  ngx.status = ngx.HTTP_UNAUTHORIZED
+  ngx.say("{\"error\": \"Forbidden\"}")
+  ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
+
+-- check expiration
+local claim_spec = {
+  exp = validators.is_not_expired()-- To check expiry
+}
+local jwt_obj = jwt:verify(key, jwtToken, claim_spec)
+if not jwt_obj["verified"] then
+  ngx.status = ngx.HTTP_UNAUTHORIZED
+  ngx.say("{\"error\": \"INVALID_JWT\"}")
+  ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
+
 -- init database
 local db, err = mysql:new()
 if not db then
     ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     return
 end
-
 db:set_timeout(1000) -- 1 sec
 
 -- connect to database
@@ -29,40 +48,14 @@ local ok, err, errcode, sqlstate = db:connect{
     charset = "utf8",
     max_packet_size = 1024 * 1024,
 }
-
 if not ok then
     ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     return
 end
 
--- get username and password from request body
-ngx.req.read_body()
-local encoded_body = ngx.req.get_body_data()
-local request_body = cjson.decode(encoded_body)
-local username = request_body.username
-local password = request_body.password
+-- get username from token
+local username = jwt_obj.payload.username
 
--- get credentials from database
-local res, err, errcode, sqlstate =
-    db:query("select username, password from users where username = \'" .. username .. "\' limit 1")
-if not res then
-    ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
-    return
-end
-
--- user not found
-if cjson.encode(res) == "{}" then
-    ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    return
-end
-
--- validate password
-local bcrypted_password = res[1].password
-local valid = bcrypt.verify( password, bcrypted_password )
-if not valid then
-    ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    return
-end
 
 -- generate jwt
 local time = ngx.now() + 15 * 60
