@@ -14,8 +14,13 @@
         var password = $('#password');
         var ok = $('#ok');
         ok.click(function() {
-            if(username == "" || password == nil) {
-                alert("Credentials were not given!");//username.val());
+            // no input
+            if(username.val() == "" || password.val() == "") {
+                alert("Credentials were not given!");
+            } 
+            // send request to get token
+            else {
+
             }
         });
     });
