@@ -16,7 +16,7 @@
     //     if(code == 200)
     //     {
     //         // request def
-    //         window.location.replace("http://" + location.host + "/main.html")
+    //         window.location.replace("https://" + location.host + "/main.html")
     //     }
     // });
 
@@ -26,7 +26,7 @@
     //     if(code == 200)
     //     {
     //         // request def
-    //         window.location.replace("http://" + location.host + "/main.html")
+    //         window.location.replace("https://" + location.host + "/main.html")
     //     }
     // })
 
@@ -46,7 +46,7 @@
                 if(code == 200)
                 {
                     // request def
-                    window.location.replace("http://" + location.host + "/main.html")
+                    window.location.replace("https://" + location.host + "/main.html")
                 }
                 else if(code == 401)
                 {
@@ -58,6 +58,16 @@
                 }
             }
         });
+
+        // window.addEventListener("load", async function(event) {
+        //     const code = await auth_check(username.val(), password.val());
+
+        //     if(code == 200)
+        //     {
+        //         // request def
+        //         window.location.replace("https://" + location.host + "/main.html")
+        //     }
+        // });
     });
 </script>
 

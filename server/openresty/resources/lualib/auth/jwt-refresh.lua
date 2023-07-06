@@ -10,7 +10,7 @@ ngx.header.content_type = "application/json; charset=utf-8"
 local key = "secret"
 
 -- read token
-local jwtToken = ngx.var.http_authorization
+local jwtToken = ngx.var.cookie_Authorization
 
 -- check if user sent token
 if jwtToken == nil then

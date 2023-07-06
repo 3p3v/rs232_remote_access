@@ -1,7 +1,7 @@
 async function auth_sign(username, password)
 {
     // create uri
-    var uri = "http://" + location.host + "/auth/sign";
+    var uri = "https://" + location.host + "/auth/sign";
 
     // request def
     const resp = await fetch(uri, {
@@ -21,7 +21,7 @@ async function auth_sign(username, password)
 async function auth_check(username, password)
 {
     // create uri
-    var uri = "http://" + location.host + "/auth/check";
+    var uri = "https://" + location.host + "/auth/check";
 
     // request def
     const resp = await fetch(uri, {
