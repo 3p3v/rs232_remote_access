@@ -5,11 +5,11 @@ local cjson = require "cjson"
 local key = "secret"
 
 -- if ngx.var.request_method ~= "OPTIONS" and not string.match(ngx.var.uri, "login") then
-local jwtToken = ngx.var.http_authorization
+local jwtToken = ngx.var.cookie_Authorization
 if jwtToken == nil then
   ngx.status = ngx.HTTP_UNAUTHORIZED
   ngx.header.content_type = "application/json; charset=utf-8"
-  ngx.say("{\"error\": \"Forbidden\"}")
+  -- ngx.say("{\"error\": \"Forbidden\"}")
   ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 local claim_spec = {
@@ -19,7 +19,7 @@ local jwt_obj = jwt:verify(key, jwtToken, claim_spec)
 if not jwt_obj["verified"] then
   ngx.status = ngx.HTTP_UNAUTHORIZED
   ngx.header.content_type = "application/json; charset=utf-8"
-  ngx.say("{\"error\": \"INVALID_JWT\"}")
+  -- ngx.say("{\"error\": \"INVALID_JWT\"}")
   ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 

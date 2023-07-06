@@ -1,27 +1,39 @@
-function sign(callback, username, password)
+async function auth_sign(username, password)
 {
     // create uri
-    var uri = location.host + "/auth/jwt/sign";
+    var uri = "http://" + location.host + "/auth/sign";
 
     // request def
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() { 
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-        {
-            callback(xmlHttp.responseText);
-        }
-        else if(xmlHttp.readyState == 4 && xmlHttp.status == 401) 
-        {
+    const resp = await fetch(uri, {
+      method: 'post', // Default is 'get'
+      body: JSON.stringify({ "username": username, "password": password}),
+      mode: 'cors',
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    })
 
-        }
-        else
-        {
-            return -1;
-        }
+    console.log(resp.status);
 
-        return xmlHttp.status;
-    } 
-        
-    xmlHttp.open("GET", uri, true); // true for asynchronous 
-    xmlHttp.send(null);
+    return resp.status;
+}
+
+async function auth_check(username, password)
+{
+    // create uri
+    var uri = "http://" + location.host + "/auth/check";
+
+    // request def
+    const resp = await fetch(uri, {
+      method: 'post', // Default is 'get'
+      // body: JSON.stringify({ "username": username, "password": password}),
+      mode: 'cors',
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    })
+
+    console.log(resp.status);
+
+    return resp.status;
 }

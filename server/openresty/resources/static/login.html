@@ -8,19 +8,54 @@
     <link href="assets/css/style.css" rel="stylesheet" type="text/css"/>
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="assets/js/jwt_handler.js"></script>
 <script type="text/javascript">
+    // window.addEventListener("load", async function(event) {
+    //     const code = await auth_check(username.val(), password.val());
+
+    //     if(code == 200)
+    //     {
+    //         // request def
+    //         window.location.replace("http://" + location.host + "/main.html")
+    //     }
+    // });
+
+    // $(document).onload(async function() {
+    //     const code = await auth_check(username.val(), password.val());
+
+    //     if(code == 200)
+    //     {
+    //         // request def
+    //         window.location.replace("http://" + location.host + "/main.html")
+    //     }
+    // })
+
     $(document).ready(function() {
         var username = $('#username');
         var password = $('#password');
         var ok = $('#ok');
-        ok.click(function() {
+        ok.click( async function() {
             // no input
             if(username.val() == "" || password.val() == "") {
                 alert("Credentials were not given!");
             } 
             // send request to get token
             else {
+                const code = await auth_sign(username.val(), password.val());
 
+                if(code == 200)
+                {
+                    // request def
+                    window.location.replace("http://" + location.host + "/main.html")
+                }
+                else if(code == 401)
+                {
+                    alert("Credentials don't match");
+                }
+                else
+                {
+                    alert("Error, code:" + code);
+                }
             }
         });
     });
@@ -40,12 +75,12 @@
                 <form class="login-form">
                     <input type="text" placeholder="username" id="username"/>
                     <input type="password" placeholder="password" id="password"/>
-                    <button id="ok">login</button>
+                    <button type="button" id="ok" >login</button> <!-- onclick="login_button()" -->
                     <!-- <p class="message">Not registered? <a href="#">Create an account</a></p> -->
                 </form>
             </div>
         </div>
     </main>
     
-    <!-- <script src="assets/js/main.js"></script> -->
+    
 </body></html>

@@ -83,8 +83,11 @@ if not ok then
 end
 
 -- return token
-local response_body = cjson.encode({
-    authorization = jwt_token
-})
-ngx.say(response_body)
+-- local response_body = cjson.encode({
+--     authorization = jwt_token
+-- })
+ngx.header["Set-Cookie"] = "authorization=" .. jwt_token .. "; path=/"
+ngx.say(cjson.encode({
+    message = "Succesfully obtained token"
+}))
 ngx.exit(ngx.HTTP_OK)
