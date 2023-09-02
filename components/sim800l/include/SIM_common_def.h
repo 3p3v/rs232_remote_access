@@ -17,6 +17,7 @@ typedef enum SIM_error
     SIM_timeoutErr = -5,            /* Error receiving message, timeout detected */
     SIM_respErr = -6,
     SIM_noResp = -7,
+    SIM_noErrCode = -8
     // SIM_registered = -7,
     // SIM_roamingRegistered = -8,
     // SIM_serverErr = -9
@@ -28,6 +29,12 @@ typedef struct SIM_response_params
     char *ptr;
     unsigned char len; 
 } SIM_response_params;
+
+typedef struct SIM_response_params
+{
+    char *name_ptr;
+    SIM_error err; 
+} SIM_err_map;
 
 typedef struct SIM_resp
 {

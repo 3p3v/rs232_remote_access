@@ -2057,3 +2057,11 @@
 5109	5475	7153637860895883	C:/Users/ADAM/praca_inzynierska_device/build/.bin_timestamp	73cd3f4a036842da
 5477	5693	0	esp-idf/esptool_py/CMakeFiles/app_check_size	35aa7286e4e6c367
 5477	5693	0	C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/esptool_py/CMakeFiles/app_check_size	35aa7286e4e6c367
+69	539	7147747323525212	bootloader-prefix/src/bootloader-stamp/bootloader-build	ffc6439b23b4eb08
+69	539	7147747323525212	bootloader/bootloader.elf	ffc6439b23b4eb08
+69	539	7147747323525212	bootloader/bootloader.bin	ffc6439b23b4eb08
+69	539	7147747323525212	bootloader/bootloader.map	ffc6439b23b4eb08
+69	539	7147747323525212	C:/Users/ADAM/praca_inzynierska_device/build/bootloader-prefix/src/bootloader-stamp/bootloader-build	ffc6439b23b4eb08
+69	539	7147747323525212	C:/Users/ADAM/praca_inzynierska_device/build/bootloader/bootloader.elf	ffc6439b23b4eb08
+69	539	7147747323525212	C:/Users/ADAM/praca_inzynierska_device/build/bootloader/bootloader.bin	ffc6439b23b4eb08
+69	539	7147747323525212	C:/Users/ADAM/praca_inzynierska_device/build/bootloader/bootloader.map	ffc6439b23b4eb08

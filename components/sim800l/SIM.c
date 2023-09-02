@@ -471,7 +471,7 @@ SIM_error SIM_readCPIN(const SIM_int *sim, SIM_resp *resp)
       return err;
 
 #ifdef SIM_CHECK_OK
-   err = SIM_receive(sim, 5000);
+   err = SIM_receive(sim, 100);
    if (err != SIM_ok)
       return err;
 #endif
@@ -479,7 +479,7 @@ SIM_error SIM_readCPIN(const SIM_int *sim, SIM_resp *resp)
    if (resp != NULL)
    {
 #ifndef SIM_CHECK_OK
-      err = SIM_receive(sim, 5000);
+      err = SIM_receive(sim, 100);
       if (err != SIM_ok)
          return err;
 #endif
@@ -494,14 +494,14 @@ SIM_error SIM_readCPIN(const SIM_int *sim, SIM_resp *resp)
 
 /* AT+CSQ Signal Quality Report; */
 /* returns "rrsi" and "ber" */
-SIM_error SIM_readCSQ(const SIM_int *sim, SIM_resp *resp)
+SIM_error SIM_execCSQ(const SIM_int *sim, SIM_resp *resp)
 {
    SIM_error err = SIM_sendAT_short(sim, "CSQ");
    if (err != SIM_ok)
       return err;
 
 #ifdef SIM_CHECK_OK
-   err = SIM_receive(sim, 5000);
+   err = SIM_receive(sim, 100);
    if (err != SIM_ok)
       return err;
 #endif
@@ -509,12 +509,163 @@ SIM_error SIM_readCSQ(const SIM_int *sim, SIM_resp *resp)
    if (resp != NULL)
    {
 #ifndef SIM_CHECK_OK
-      err = SIM_receive(sim, 5000);
+      err = SIM_receive(sim, 100);
       if (err != SIM_ok)
          return err;
 #endif
 
       err = SIM_retrieve(sim, resp);
+      if (err != SIM_ok)
+         return err;
+   }
+
+   return err;
+}
+
+/* AT+CGATT Attach or Detach from GPRS Service */
+SIM_error SIM_readCGATT(const SIM_int *sim, SIM_resp *resp)
+{
+   SIM_error err = SIM_sendAT_short(sim, "CGATT?");
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   err = SIM_receive(sim, 100);
+   if (err != SIM_ok)
+      return err;
+#endif
+
+   if (resp != NULL)
+   {
+#ifndef SIM_CHECK_OK
+      err = SIM_receive(sim, 100);
+      if (err != SIM_ok)
+         return err;
+#endif
+
+      err = SIM_retrieve(sim, resp);
+      if (err != SIM_ok)
+         return err;
+   }
+
+   return err;
+}
+
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+SIM_error SIM_writeCSTT(const SIM_int *sim, const char *apn, const char *username, const char *password)
+{
+   char *params[] = {apn, NULL, NULL};
+   
+   if (username && password)
+   {
+      params[1] = username;
+      params[2] = password;
+   }
+
+   SIM_error err = SIM_sendAT(sim, "CSTT", params);
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   err = SIM_receive(sim, 100);
+   if (err != SIM_ok)
+      return err;
+#endif
+
+   return err;
+}
+
+/* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
+SIM_error SIM_execCIICR(const SIM_int *sim)
+{
+   SIM_error err = SIM_sendAT_short(sim, "CIICR");
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   err = SIM_receive(sim, 100);
+   if (err != SIM_ok)
+      return err;
+#endif
+
+   return err;
+}
+
+/* AT+CIFSR Get Local IP Address */
+SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
+{
+   SIM_error err = SIM_sendAT_short(sim, "CIFSR");
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   err = SIM_receive(sim, 85000);
+   if (err != SIM_ok)
+      return err;
+#endif
+
+   if (resp != NULL)
+   {
+#ifndef SIM_CHECK_OK
+      err = SIM_receive(sim, 85000);
+      if (err != SIM_ok)
+         return err;
+#endif
+
+      err = SIM_retrieve(sim, resp);
+      if (err != SIM_ok)
+         return err;
+
+      err = SIM_retrieveData(sim, resp, 0);
+      if (err != SIM_ok)
+         return err;
+   }
+
+   return err;
+}
+
+/* AT+CIPSTART Start Up TCP or UDP Connection */
+SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const char n, char *mode, char *address, const unsigned int port)
+{
+   char n_str[6] = {};
+   char port_str[6] = {};
+   sprintf(port_str, "%u", (unsigned int)port);
+   char *params[] = {NULL, mode, address, port_str, NULL};
+
+   if (n > 0 || n < 6)
+   {
+      sprintf(n_str, "%u", (unsigned int)n);
+      params[0] = n_str;
+   }
+   
+   SIM_error err = SIM_sendAT(sim, "CIPSTART", params);
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   err = SIM_receiveRaw(sim, 75000);
+   if (err != SIM_ok)
+      return err;
+
+   err = SIM_retrieveErr_find(sim);
+   if (err != SIM_ok)
+      return err;
+#endif
+
+   if (resp != NULL)
+   {
+#ifndef SIM_CHECK_OK
+      err = SIM_receiveRaw(sim, 75000);
+      if (err != SIM_ok)
+         return err;
+
+      err = SIM_retrieveErr_find(sim);
+      if (err != SIM_ok)
+         return err;
+#endif
+      SIM_err_map *c_err[] = {{"CONNECT OK", SIM_ok}, {"CONNECT FAIL", SIM_err}};
+
+      err = SIM_retrieveCustomErr_find(sim, c_err);
       if (err != SIM_ok)
          return err;
    }

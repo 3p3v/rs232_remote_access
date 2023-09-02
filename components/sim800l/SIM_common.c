@@ -138,7 +138,7 @@ SIM_error SIM_receiveRaw(SIM_int *sim, SIM_time time)
    return err;
 }
 
-/* Get error code */
+/* Get error code, error code must be located at the end of the message */
 SIM_error SIM_retrieveErr(const SIM_int *sim) // TODO fix
 {
    if (sim->rec_len >= 4 && strstr(sim->buf + sim->rec_len - 4, "OK"))
@@ -146,7 +146,38 @@ SIM_error SIM_retrieveErr(const SIM_int *sim) // TODO fix
    else if (sim->rec_len >= 7 && strstr(sim->buf + sim->rec_len - 7, "ERROR"))
       return SIM_err;
    else  
-      return SIM_recErr;
+      return SIM_noErrCode;
+}
+
+/* Get error code, can be located anywhere */
+SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
+{
+   if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
+      return SIM_ok;
+   else if (sim->rec_len >= 7 && strstr(sim->buf, "\r\nERROR\r\n"))
+      return SIM_err;
+   else  
+      return SIM_noErrCode;
+}
+
+/* Find custom error message, can be located anywhere */
+SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_map *err)
+{
+   int i = 0;
+   
+   for(;;)
+   {
+      if (err[i].name_ptr == NULL)
+      {
+         return SIM_noResp;
+      }
+      else if (strstr(err[i].name_ptr, sim->buf))
+      {
+         return err[i].err;
+      }
+      
+      i++;
+   }
 }
 
 /* Get ptr to response, returns length of the response */
