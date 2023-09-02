@@ -30,10 +30,10 @@ typedef struct SIM_response_params
     unsigned char len; 
 } SIM_response_params;
 
-typedef struct SIM_response_params
+typedef struct SIM_err_map
 {
-    char *name_ptr;
-    SIM_error err; 
+    const char *name;
+    const SIM_error err; 
 } SIM_err_map;
 
 typedef struct SIM_resp

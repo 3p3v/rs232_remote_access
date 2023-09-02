@@ -663,7 +663,7 @@ SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const char n, char *mo
       if (err != SIM_ok)
          return err;
 #endif
-      SIM_err_map *c_err[] = {{"CONNECT OK", SIM_ok}, {"CONNECT FAIL", SIM_err}};
+      SIM_err_map c_err[] = {{.name = "CONNECT OK", .err = SIM_ok}};
 
       err = SIM_retrieveCustomErr_find(sim, c_err);
       if (err != SIM_ok)
