@@ -31,8 +31,8 @@ void app_main(void)
 
     SIM_resp resp;
     SIM_respNull(&resp);
-    SIM_execCIFSR(&sim, &resp);
-    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+    ESP_LOGI("SIM" ,"%i", SIM_execCIFSR(&sim, &resp));
+    ESP_LOGI("SIM" ,"%i, %s", resp.data_len, resp.data);
     SIM_writeCIPSTART(&sim, &resp, SIM_con_def, "TCP", "16.171.43.227", 2014);
     ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
 

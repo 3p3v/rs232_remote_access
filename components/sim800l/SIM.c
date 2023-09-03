@@ -612,13 +612,15 @@ SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
          return err;
 #endif
 
-      err = SIM_retrieve(sim, resp);
+      err = SIM_retrieve(sim, resp); //TODO 
       if (err != SIM_noResp)
          return err;
 
       err = SIM_retrieveData(sim, resp, 0);
-      if (err != SIM_ok)
+      if (err > 0)
          return err;
+      else
+         return SIM_ok;
    }
 
    return err;

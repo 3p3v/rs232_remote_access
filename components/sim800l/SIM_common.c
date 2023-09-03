@@ -359,9 +359,14 @@ SIM_data_len SIM_retrieveParams(SIM_resp *resp)
 SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len) // TODO
 {
    if (resp->resp != NULL)
+   {
       resp->data = strstr(sim->buf, "\r\n") + 4;
+   }
    else  
+   {
+      const char *ptr = 
       resp->data = sim->buf;
+   }
 
    if (resp->data + resp->data_len > sim->buf + sim->rec_len)
    {
@@ -378,7 +383,13 @@ SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned
       }
       else
       {
-         resp->data_len = sim->rec_len - 6;
+         resp->data_len = sim->rec_len - (resp->data - sim->buf);
+         
+         if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
+         {
+            resp->data_len -= 6;
+         }
+
          return resp->data_len;
       }
 
