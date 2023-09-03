@@ -39,7 +39,7 @@ static char* SIM_util_strchar(const SIM_resp *resp, const char *start, const cha
  * Given array of params must contain
  * a NULL ptr after the last parameter.
  */
-SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params)
+SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params) //TODO check length
 {
    SIM_util_atcpy(sim->at, type);
    
@@ -86,6 +86,8 @@ SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params)
    memcpy(temp + len2, new_line, strlen(new_line));
    len2 += strlen(new_line);
 
+   temp[len2] = '\0';
+
    return LL_SIM_sendData(sim, temp);
 }
 
@@ -108,6 +110,8 @@ SIM_error SIM_sendAT_short(const SIM_int *sim, const char *type)
 
    memcpy(temp + len2, new_line, strlen(new_line));
    len2 += strlen(new_line);
+
+   temp[len2] = '\0';
 
    return LL_SIM_sendData(sim, temp);
 }
@@ -149,7 +153,7 @@ SIM_error SIM_retrieveErr(const SIM_int *sim) // TODO fix
       return SIM_noErrCode;
 }
 
-/* Get error code, can be located anywhere */
+/* Get error code, can be located anywhere, starts searching from the top */
 SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
 {
    if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
@@ -160,18 +164,38 @@ SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
       return SIM_noErrCode;
 }
 
-/* Find custom error message, can be located anywhere */
+/* Find custom error message, error code must be located at the end of the message */
+SIM_error SIM_retrieveCustomErr(const SIM_int *sim, const SIM_err_map *err)
+{
+   int i = 0;
+   
+   for(;;)
+   {
+      if (err[i].name == NULL)
+      {
+         return SIM_noResp;
+      }
+      else if (strstr(err[i].name, sim->buf))
+      {
+         return err[i].err;
+      }
+      // ESP_LOGI("DDD", "%i", i);
+      i++;
+   }
+}
+
+/* Find custom error message, can be located anywhere, starts searching from the top */
 SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_map *err)
 {
    int i = 0;
    
    for(;;)
    {
-      if (err[i].name_ptr == NULL)
+      if (err[i].name == NULL)
       {
          return SIM_noResp;
       }
-      else if (strstr(err[i].name_ptr, sim->buf))
+      else if (strstr(sim->buf, err[i].name))
       {
          return err[i].err;
       }
@@ -188,13 +212,17 @@ SIM_error SIM_retrieveResp(const SIM_int *sim, SIM_resp *resp)
    ret[0] = '+';
    strcat(ret, sim->at);
    strcat(ret, ":");
-   char *start = strstr((sim->buf + 0), ret) + strlen(ret) + 1; //const ???
+   char *start = strstr((sim->buf + 0), ret); //const ???
    
    if (start == NULL) 
    {
       resp->resp = NULL;
       resp->resp_len = 0;
       return SIM_noResp;
+   }
+   else
+   {
+      start += strlen(ret) + 1;
    }
 
    // Find endl
@@ -328,7 +356,7 @@ SIM_data_len SIM_retrieveParams(SIM_resp *resp)
 // }
 
 /* Get ptr to data part of the response, returs length of data */
-SIM_error SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len) // TODO
+SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len) // TODO
 {
    if (resp->resp != NULL)
       resp->data = strstr(sim->buf, "\r\n") + 4;
@@ -370,7 +398,7 @@ SIM_error SIM_receive(SIM_int *sim, SIM_time time)
 
 SIM_error SIM_retrieve(const SIM_int *sim, SIM_resp *resp)
 {
-   memset(resp, 0, sizeof(resp));
+   memset(resp, 0, sizeof(*resp));
    
    SIM_error err = SIM_retrieveResp(sim, resp);
    ESP_LOGI("SIM", "SIM_retrieveResp: %i", err);

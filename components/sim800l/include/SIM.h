@@ -73,5 +73,25 @@ SIM_error SIM_writeCFUN(const SIM_int *sim, SIM_resp *resp,const unsigned char f
 /* AT+CPOWD Power off */
 SIM_error SIM_writeCPOWD(const SIM_int *sim, SIM_resp *resp, const unsigned char n);
 
+/* AT+CPIN Enter PIN */
+SIM_error SIM_readCPIN(const SIM_int *sim, SIM_resp *resp);
 
+/* AT+CSQ Signal Quality Report; */
+/* returns "rrsi" and "ber" */
+SIM_error SIM_execCSQ(const SIM_int *sim, SIM_resp *resp);
+
+/* AT+CGATT Attach or Detach from GPRS Service */
+SIM_error SIM_readCGATT(const SIM_int *sim, SIM_resp *resp);
+
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+SIM_error SIM_writeCSTT(const SIM_int *sim, const char *apn, const char *username, const char *password);
+
+/* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
+SIM_error SIM_execCIICR(const SIM_int *sim);
+
+/* AT+CIFSR Get Local IP Address */
+SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp);
+
+/* AT+CIPSTART Start Up TCP or UDP Connection */
+SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port);
 

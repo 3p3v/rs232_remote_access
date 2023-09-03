@@ -17,7 +17,10 @@ typedef enum SIM_error
     SIM_timeoutErr = -5,            /* Error receiving message, timeout detected */
     SIM_respErr = -6,
     SIM_noResp = -7,
-    SIM_noErrCode = -8
+    SIM_noErrCode = -8,
+    SIM_connectOk = -9,
+    SIM_alreadyConnect = -10,
+    SIM_connectFail = -11
     // SIM_registered = -7,
     // SIM_roamingRegistered = -8,
     // SIM_serverErr = -9
@@ -65,3 +68,13 @@ typedef int SIM_data_len;
 
 typedef int SIM_time;
 
+typedef enum SIM_con_num 
+{
+    SIM_con_def = 0,
+    SIM_con_1,
+    SIM_con_2,
+    SIM_con_3,
+    SIM_con_4,
+    SIM_con_5,
+    SIM_con_6
+} SIM_con_num;

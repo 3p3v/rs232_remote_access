@@ -243,7 +243,7 @@ SIM_error SIM_setConType(SIM_int* sim, const char *type)
 SIM_error SIM_setAP(SIM_int* sim, const char *ap)
 {
     SIM_resp resp;
-    SIM_error err = writeSAPBR(sim, &resp, 3, 1, "APN", ap);
+    SIM_error err = SIM_writeSAPBR(sim, &resp, 3, 1, "APN", ap);
 
     return err;
 }

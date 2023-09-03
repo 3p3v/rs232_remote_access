@@ -20,7 +20,7 @@ SIM_error SIM_retrieveResp(const SIM_int *sim, SIM_resp *resp);
 // SIM_data_len SIM_retriveParam(const char *resp, SIM_data_len resp_len, const unsigned char param_num, char *out);
 SIM_error SIM_retrieveParams(SIM_resp *resp);
 /*  */
-SIM_error SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len);
+SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len);
 /*  */
 SIM_error SIM_receive(SIM_int *sim, SIM_time time);
 /*  */

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <SIM_cmd.h>
+#include <SIM.h>
 #include <esp_log.h>
 
 void app_main(void)
@@ -19,9 +20,23 @@ void app_main(void)
 
     // SIM_receiveRaw(&sim);
     SIM_handshake(&sim, 10);
-    SIM_checkNetReg(&sim);
-
     ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+    SIM_checkNetReg(&sim);
+    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+
+    SIM_writeCSTT(&sim, "internet", NULL, NULL);
+    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+    SIM_execCIICR(&sim);
+    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+
+    SIM_resp resp;
+    SIM_respNull(&resp);
+    SIM_execCIFSR(&sim, &resp);
+    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+    SIM_writeCIPSTART(&sim, &resp, SIM_con_def, "TCP", "16.171.43.227", 2014);
+    ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+
+    // ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
     for(int i = 0; i < sim.rec_len; i++)
         printf("Letter: %i\r\n", (int)sim.buf[i]);
 

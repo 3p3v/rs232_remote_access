@@ -58,7 +58,7 @@ SIM_error SIM_readCREG(const SIM_int *sim, SIM_resp *resp)
       return err;
 
 #ifdef SIM_CHECK_OK
-   err = SIM_receive(sim, 100);
+   err = SIM_receive(sim, 1000);
    if (err != SIM_ok)
       return err;
 
@@ -68,7 +68,7 @@ SIM_error SIM_readCREG(const SIM_int *sim, SIM_resp *resp)
    if (resp != NULL)
    {
 #ifndef SIM_CHECK_OK
-      err = SIM_receive(sim, 10);
+      err = SIM_receive(sim, 1000);
       if (err != SIM_ok)
          return err;
 #endif
@@ -567,7 +567,7 @@ SIM_error SIM_writeCSTT(const SIM_int *sim, const char *apn, const char *usernam
       return err;
 
 #ifdef SIM_CHECK_OK
-   err = SIM_receive(sim, 100);
+   err = SIM_receive(sim, 1000);
    if (err != SIM_ok)
       return err;
 #endif
@@ -583,7 +583,7 @@ SIM_error SIM_execCIICR(const SIM_int *sim)
       return err;
 
 #ifdef SIM_CHECK_OK
-   err = SIM_receive(sim, 100);
+   err = SIM_receive(sim, 10000);
    if (err != SIM_ok)
       return err;
 #endif
@@ -600,7 +600,7 @@ SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
 
 #ifdef SIM_CHECK_OK
    err = SIM_receive(sim, 85000);
-   if (err != SIM_ok)
+   if (err != SIM_noErrCode)
       return err;
 #endif
 
@@ -613,7 +613,7 @@ SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
 #endif
 
       err = SIM_retrieve(sim, resp);
-      if (err != SIM_ok)
+      if (err != SIM_noResp)
          return err;
 
       err = SIM_retrieveData(sim, resp, 0);
@@ -625,18 +625,24 @@ SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
 }
 
 /* AT+CIPSTART Start Up TCP or UDP Connection */
-SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const char n, char *mode, char *address, const unsigned int port)
+SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port)
 {
    char n_str[6] = {};
    char port_str[6] = {};
    sprintf(port_str, "%u", (unsigned int)port);
-   char *params[] = {NULL, mode, address, port_str, NULL};
+   char *params[5] = {NULL, NULL, NULL, NULL, NULL};
+   unsigned char num = 0;
 
-   if (n > 0 || n < 6)
+   if (n != SIM_con_def)
    {
-      sprintf(n_str, "%u", (unsigned int)n);
+      sprintf(n_str, "%i", (int)n);
       params[0] = n_str;
+      num++;
    }
+
+   params[0 + num] = mode;
+   params[1 + num] = address;
+   params[2 + num] = port_str;
    
    SIM_error err = SIM_sendAT(sim, "CIPSTART", params);
    if (err != SIM_ok)
@@ -663,10 +669,12 @@ SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const char n, char *mo
       if (err != SIM_ok)
          return err;
 #endif
-      SIM_err_map c_err[] = {{.name = "CONNECT OK", .err = SIM_ok}};
+      SIM_err_map c_err[] = {{.name = "CONNECT OK", .err = SIM_connectOk},
+                             {.name = "ALREADY CONNECT", .err = SIM_alreadyConnect},
+                             {.name = "CONNECT FAIL", .err = SIM_connectFail}};
 
       err = SIM_retrieveCustomErr_find(sim, c_err);
-      if (err != SIM_ok)
+      if (err != SIM_connectOk)
          return err;
    }
 
