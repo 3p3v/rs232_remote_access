@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      .active {
+        border-radius: 25px;
+        background: #73AD21;
+        border: 2px solid black;
+        margin: auto;
+        padding: 20px;
+        width: 200px;
+        height: auto;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+      /* #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; } */
+    </style>
+  </head>
+  <body>
+    <div id="devices"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        function buttonEvent(div, button1, button2, deviceName, deviceState)
+        {
+            /* send state ON */
+            socket.emit('device interaction', {name: deviceName, state: deviceState});
+
+            // button1.disabled = true;
+            // button2.disabled = false;
+            // div.replaceChild(button1);
+            // div.replaceChild(button2);
+
+            /* wait for ack */
+            socket.on('device interaction', function(ans){
+                if(ans.name == deviceName && ans.state == deviceState)
+                {
+                    button1.disabled = true;
+                    button2.disabled = false;
+                    div.replaceChild(button1);
+                    div.replaceChild(button2);
+                }
+            });
+        }
+
+        var devices = document.getElementById('devices');
+
+        socket.on('device list', function(result) {
+            result.forEach(element => {
+                /* create new DIV */
+                var div = document.createElement('div');
+                div.className = 'active';
+                div.innerHTML = '<h2>' + element.name + '</h2>' + '<h2>' + element.type + '</h2>' + '<h5>' + element.description + '</h5>' + '<h3>' + element.status + '</h3>';
+                
+                /* create ON and OFF buttons, TODO make function for creating button */
+                var buttonON = document.createElement('button');
+                var buttonOFF = document.createElement('button');
+
+                /* set button interactions */
+                buttonON.innerHTML = "ON";
+                buttonOFF.innerHTML = "OFF";
+
+                buttonON.onclick = function(){buttonEvent(div, buttonON, buttonOFF, element.name, 'ON')};
+                buttonOFF.onclick = function(){buttonEvent(div, buttonOFF, buttonON, element.name, 'OFF')};
+
+                if(element.state == "ON")
+                {
+                    buttonON.disabled = true;
+                    buttonOFF.disabled = false;
+                }
+                else
+                {
+                    buttonON.disabled = false;
+                    buttonOFF.disabled = true;
+                }
+
+                //button.type = 'submit';
+                //button.name = 'submitnButton';
+                div.appendChild(buttonON);
+                //button.type = 'submit';
+                //button.name = 'submitnButton';
+                div.appendChild(buttonOFF);
+
+                devices.appendChild(div);
+
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+        });
+    </script>
+  </body>
+</html>
