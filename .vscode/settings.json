@@ -13,6 +13,6 @@
     ],
     "idf.pythonBinPathWin": "C:\\Users\\ADAM\\.espressif\\python_env\\idf5.0_py3.8_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "C:\\Users\\ADAM\\.espressif",
-    "idf.flashType": "UART",
-    "idf.portWin": "COM9"
+    "idf.flashType": "JTAG",
+    "idf.portWin": "COM12"
 }

@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 
-void SIM_respNull(SIM_resp *resp)
+void SIM_respNULL(SIM_resp *resp)
 {
     resp->resp = NULL;
     resp->resp_len = 0;
@@ -10,6 +10,14 @@ void SIM_respNull(SIM_resp *resp)
     memset(resp->params, '\0', SIM_MAX_PARAMS * sizeof(char*));
     resp->data = NULL;
     resp->data_len = 0;
+}
+
+void SIM_paramsNULL(char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN])
+{
+    for(int i = 0; i < SIM_MAX_PARAMS; i++)
+    {
+        params[i][0] = '\0';
+    }
 }
 
 unsigned char SIM_atoi_uint8_t(const char *param, unsigned char param_len)
@@ -32,3 +40,4 @@ int SIM_atoi_int32_t(const char *param, unsigned char param_len)
     memcpy(param_str, param, param_len);
     return atoi(param_str);
 }
+

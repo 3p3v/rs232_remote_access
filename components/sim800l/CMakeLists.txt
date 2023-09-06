@@ -6,7 +6,8 @@
 set(COMPONENT_REQUIRES driver)
 set(COMPONENT_PRIV_REQUIRES )
 
-set(COMPONENT_SRCS "LL_SIM.c" "SIM_common.c" "SIM_cmd.c" "SIM.c" "SIM_common_def.c")
-set(COMPONENT_ADD_INCLUDEDIRS "include")
+set(COMPONENT_SRCS "LL_SIM.c" "SIM_common.c" "SIM_cmd.c" "SIM.c" "SIM_common_def.c" 
+                   "SIM/TCPIP/SIM_TCPIP.c")
+set(COMPONENT_ADD_INCLUDEDIRS "include" "SIM/TCPIP/include")
 
 register_component()

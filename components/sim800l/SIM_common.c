@@ -35,14 +35,25 @@ static char* SIM_util_strchar(const SIM_resp *resp, const char *start, const cha
    //    return NULL;
 }
 
+SIM_error SIM_at(SIM_intf *sim, SIM_cmd *cmd)
+{
+    SIM_error err = SIM_ok;
+
+    // Send command
+    SIM_sendAT(sim, cmd->at, cmd->params);
+
+    // Give handlers to the listener and wait for the end of en execution
+    return SIM_sub(sim, cmd);
+}
+
+
+
 /* Send AT command with any params.
  * Given array of params must contain
  * a NULL ptr after the last parameter.
  */
-SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params) //TODO check length
-{
-   SIM_util_atcpy(sim->at, type);
-   
+SIM_error SIM_sendAT(const SIM_intf *sim, const char *type, const char **params) //TODO check length
+{   
    const char *beg = "AT+";
    const char *end = "=";
    const char *new_line = "\r\n";
@@ -51,7 +62,7 @@ SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params) 
 
    for (int i = 0; i < SIM_MAX_PARAMS; i++)
    {
-      if (*(params + i) == NULL)
+      if (*(*(params + i) + 0) == '\0')
          break;
       
       len += strlen(*(params + i)) + 1;
@@ -71,7 +82,7 @@ SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params) 
 
    for (int i = 0; i < SIM_MAX_PARAMS; i++)
    {
-      if (*(params + i) == NULL)
+      if (*(*(params + i) + 0) == '\0')
          break;
 
       memcpy(temp + len2, *(params + i), strlen(*(params + i)));
@@ -91,81 +102,77 @@ SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params) 
    return LL_SIM_sendData(sim, temp);
 }
 
-SIM_error SIM_sendAT_short(const SIM_int *sim, const char *type)
-{
-   SIM_util_atcpy(sim->at, type);
-   
-   const char *beg = "AT+";
-   const char *new_line = "\r\n";
+// SIM_error SIM_sendAT_short(const SIM_intf *sim, const char *type)
+// {
+//    const char *beg = "AT+";
+//    const char *new_line = "\r\n";
 
-   // int len = strlen(type) + strlen(beg) + strlen(new_line);
-   // char temp[len + 1] = {};
-   char *temp = sim->buf;
+//    // int len = strlen(type) + strlen(beg) + strlen(new_line);
+//    // char temp[len + 1] = {};
+//    char *temp = sim->buf;
 
-   memcpy(temp, beg, strlen(beg));
-   int len2 = strlen(beg);
+//    memcpy(temp, beg, strlen(beg));
+//    int len2 = strlen(beg);
 
-   memcpy(temp + len2, type, strlen(type));
-   len2 += strlen(type);
+//    memcpy(temp + len2, type, strlen(type));
+//    len2 += strlen(type);
 
-   memcpy(temp + len2, new_line, strlen(new_line));
-   len2 += strlen(new_line);
+//    memcpy(temp + len2, new_line, strlen(new_line));
+//    len2 += strlen(new_line);
 
-   temp[len2] = '\0';
+//    temp[len2] = '\0';
 
-   return LL_SIM_sendData(sim, temp);
-}
+//    return LL_SIM_sendData(sim, temp);
+// }
 
-SIM_error SIM_sendAT_null(const SIM_int *sim)
-{
-   strcpy(sim->at, "\0");
+// SIM_error SIM_sendAT_null(const SIM_intf *sim)
+// {
+//    return LL_SIM_sendData(sim, "AT\r\n");
+// }
 
-   return LL_SIM_sendData(sim, "AT\r\n");
-}
+// SIM_error SIM_receiveRaw(SIM_intf *sim, SIM_time time)
+// {
+//    // Download answer
+//    SIM_data_len err = LL_SIM_receiveRaw(sim, time);
+//    // Secure string against out of bounds exceptions
+//    if (err >= 0)
+//    {
+//       sim->rec_len = err;
+//       *(sim->buf + sim->buf_len) = '\0';
 
-SIM_error SIM_receiveRaw(SIM_int *sim, SIM_time time)
-{
-   // Download answer
-   SIM_data_len err = LL_SIM_receiveRaw(sim, time);
-   // Secure string against out of bounds exceptions
-   if (err >= 0)
-   {
-      sim->rec_len = err;
-      *(sim->buf + sim->buf_len) = '\0';
+//       *(sim->buf + sim->rec_len) = '\0';
 
-      *(sim->buf + sim->rec_len) = '\0';
+//       return SIM_ok;
+//    }
 
-      return SIM_ok;
-   }
-
-   sim->buf_len = 0;
-   return err;
-}
+//    sim->buf_len = 0;
+//    return err;
+// }
 
 /* Get error code, error code must be located at the end of the message */
-SIM_error SIM_retrieveErr(const SIM_int *sim) // TODO fix
+SIM_error SIM_retrieveErr(char *buf, unsigned int rec_len) // TODO fix
 {
-   if (sim->rec_len >= 4 && strstr(sim->buf + sim->rec_len - 4, "OK"))
+   if (rec_len >= 4 && strstr(buf + rec_len - 4, "OK"))
       return SIM_ok;
-   else if (sim->rec_len >= 7 && strstr(sim->buf + sim->rec_len - 7, "ERROR"))
+   else if (rec_len >= 7 && strstr(buf + rec_len - 7, "ERROR"))
       return SIM_err;
    else  
       return SIM_noErrCode;
 }
 
 /* Get error code, can be located anywhere, starts searching from the top */
-SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
-{
-   if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
-      return SIM_ok;
-   else if (sim->rec_len >= 7 && strstr(sim->buf, "\r\nERROR\r\n"))
-      return SIM_err;
-   else  
-      return SIM_noErrCode;
-}
+// SIM_error SIM_retrieveErr_find(const SIM_intf *sim) // TODO fix
+// {
+//    if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
+//       return SIM_ok;
+//    else if (sim->rec_len >= 7 && strstr(sim->buf, "\r\nERROR\r\n"))
+//       return SIM_err;
+//    else  
+//       return SIM_noErrCode;
+// }
 
 /* Find custom error message, error code must be located at the end of the message */
-// SIM_error SIM_retrieveCustomErr(const SIM_int *sim, const SIM_err_pair *err)
+// SIM_error SIM_retrieveCustomErr(const SIM_intf *sim, const SIM_err_pair *err)
 // {
 //    int i = 0;
    
@@ -185,79 +192,79 @@ SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
 // }
 
 /* Find custom error message, can be located anywhere, starts searching from the top */
-SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_pair *err)
-{
-   int i = 0;
+// SIM_error SIM_retrieveCustomErr_find(const SIM_intf *sim, const SIM_err_pair *err)
+// {
+//    int i = 0;
    
-   for(;;)
-   {
-      if ((err + i)->name == NULL)
-      {
-         return SIM_noResp;
-      }
-      else if (strstr(sim->buf, err[i].name))
-      {
-         return err[i].err;
-      }
+//    for(;;)
+//    {
+//       if ((err + i)->name == NULL)
+//       {
+//          return SIM_noResp;
+//       }
+//       else if (strstr(sim->buf, err[i].name))
+//       {
+//          return err[i].err;
+//       }
       
-      i++;
-   }
-}
+//       i++;
+//    }
+// }
 
 /* Get ptr to response, returns length of the response */
-SIM_error SIM_retrieveCustomResp(const SIM_int *sim, SIM_resp *resp, const char *resp_name)
-{
-   // Find line starting with "+"
-   char ret[SIM_MAX_AT_STR_LEN + 2] = {};
-   strcat(ret, resp_name);
-   char *start = strstr((sim->buf + 0), ret); //const ???
+// SIM_error SIM_retrieveCustomResp(const SIM_intf *sim, SIM_resp *resp, const char *resp_name)
+// {
+//    // Find line starting with "+"
+//    char ret[SIM_MAX_AT_STR_LEN + 2] = {};
+//    strcat(ret, resp_name);
+//    char *start = strstr((sim->buf + 0), ret); //const ???
 
-   if (start == NULL) 
-   {
-      resp->resp_name = NULL;
-      resp->resp_name_len = 0;
-      resp->resp = NULL;
-      resp->resp_len = 0;
-      return SIM_noResp;
-   }
-   else
-   {
-      resp->resp_name = start;
-      resp->resp_name_len = strlen(resp_name);
-      start += strlen(ret) + 1;
-   }
+//    if (start == NULL) 
+//    {
+//       resp->resp_name = NULL;
+//       resp->resp_name_len = 0;
+//       resp->resp = NULL;
+//       resp->resp_len = 0;
+//       return SIM_noResp;
+//    }
+//    else
+//    {
+//       resp->resp_name = start;
+//       resp->resp_name_len = strlen(resp_name);
+//       start += strlen(ret) + 1;
+//    }
 
-   // Find endl
-   const char *endl = strstr((start + 0), "\r\n");
+//    // Find endl
+//    const char *endl = strstr((start + 0), "\r\n");
 
-   if (start < endl) //endl && start < endl
-   {
-      resp->resp_len = (endl - start) + 2; // + 2 to add endl
-      resp->resp = start;
-      return SIM_ok;
-   }
-   else
-   {
-      resp->resp_name = NULL;
-      resp->resp_name_len = 0;
-      resp->resp_len = 0;
-      resp->resp = NULL;
-      if (start && !endl)
-         return SIM_bufferFullErr;
-      else
-         return SIM_recErr;
-   }
-}
+//    if (start < endl) //endl && start < endl
+//    {
+//       resp->resp_len = (endl - start) + 2; // + 2 to add endl
+//       resp->resp = start;
+//       return SIM_ok;
+//    }
+//    else
+//    {
+//       resp->resp_name = NULL;
+//       resp->resp_name_len = 0;
+//       resp->resp_len = 0;
+//       resp->resp = NULL;
+//       if (start && !endl)
+//          return SIM_bufferFullErr;
+//       else
+//          return SIM_recErr;
+//    }
+// }
 
 /* Get ptr to response, returns length of the response */
-SIM_error SIM_retrieveResp(const SIM_int *sim, SIM_resp *resp)
+SIM_error SIM_retrieveResp(char *buf, unsigned int rec_len, SIM_resp *resp)
 {
    // Find line starting with "+"
    char ret[SIM_MAX_AT_STR_LEN + 2] = {};
    ret[0] = '+';
-   strcat(ret, sim->at);
+   strcat(ret, resp->at);
    strcat(ret, ":");
-   char *start = strstr((sim->buf + 0), ret); //const ???
+   char *start = strstr((buf + 0), ret); //const ???
    
    if (start == NULL) 
    {
@@ -401,19 +408,19 @@ SIM_data_len SIM_retrieveParams(SIM_resp *resp)
 // }
 
 /* Get ptr to data part of the response, returs length of data */
-SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len) // TODO
+SIM_data_len SIM_retrieveData(char *buf, unsigned int rec_len, SIM_resp *resp, const unsigned int data_len) // TODO
 {
    if (resp->resp != NULL)
    {
-      resp->data = strstr(sim->buf, "\r\n") + 4;
+      resp->data = strstr(buf, "\r\n") + 4;
    }
    else  
    {
       const char *ptr = 
-      resp->data = sim->buf;
+      resp->data = buf;
    }
 
-   if (resp->data + resp->data_len > sim->buf + sim->rec_len)
+   if (resp->data + resp->data_len > buf + rec_len)
    {
       resp->data = NULL;
       resp->data_len = 0;
@@ -428,9 +435,9 @@ SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned
       }
       else
       {
-         resp->data_len = sim->rec_len - (resp->data - sim->buf);
+         resp->data_len = rec_len - (resp->data - buf);
          
-         if (sim->rec_len >= 4 && strstr(sim->buf, "\r\nOK\r\n"))
+         if (rec_len >= 4 && strstr(buf, "\r\nOK\r\n"))
          {
             resp->data_len -= 6;
          }
@@ -441,22 +448,22 @@ SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned
    }
 }
 
-SIM_error SIM_receive(SIM_int *sim, SIM_time time)
-{
-   SIM_error err = SIM_receiveRaw(sim, time);
-   if (err != SIM_ok)
-      return err;
+// SIM_error SIM_receive(SIM_intf *sim, SIM_time time)
+// {
+//    SIM_error err = SIM_receiveRaw(sim, time);
+//    if (err != SIM_ok)
+//       return err;
 
-   err = SIM_retrieveErr(sim);
+//    err = SIM_retrieveErr(sim);
    
-   return err;
-}
+//    return err;
+// }
 
-SIM_error SIM_retrieve(const SIM_int *sim, SIM_resp *resp)
+SIM_error SIM_retrieve(char *buf, unsigned int rec_len, SIM_resp *resp)
 {
    memset(resp, 0, sizeof(*resp));
    
-   SIM_error err = SIM_retrieveResp(sim, resp);
+   SIM_error err = SIM_retrieveResp(buf, rec_len, resp);
    ESP_LOGI("SIM", "SIM_retrieveResp: %i", err);
    if (err != SIM_ok)
       return err;

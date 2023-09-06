@@ -1,8 +1,8 @@
 // #include "SIM_common_def.h"
 #include "SIM.h"
 
-SIM_error SIM_handshake(SIM_int* sim, int x);
-SIM_error SIM_checkNetReg(SIM_int* sim);
+// SIM_error SIM_handshake(SIM_int* sim, int x);
+// SIM_error SIM_checkNetReg(SIM_int* sim);
 // #define SIM800L_DEF_URL_LEN 100
 
 // typedef enum {

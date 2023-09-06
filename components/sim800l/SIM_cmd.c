@@ -3,6 +3,118 @@
 #include <driver/uart.h>
 #include <esp_log.h>
 
+
+// SIM_error SIM_handshake(SIM_int* sim, int x)
+// {
+//     SIM_error err = SIM_ok;
+    
+//     for(int i = 0; i < x; i++){
+//         err = SIM_execAT(sim);
+//         if(err == SIM_ok)
+//             return SIM_ok;
+//     }
+
+//     return SIM_err;
+// }
+
+// SIM_error SIM_getSIMInfo(SIM_int* sim)
+// {
+//     SIM_resp resp;
+//     SIM_error err = SIM_execCCID(sim, &resp);
+
+//     if(err != SIM_ok)
+//         return err;
+    
+//     return err;
+// }
+
+// SIM_error SIM_checkNetReg(SIM_int* sim)
+// {
+//     SIM_resp resp;
+//     SIM_error err = SIM_readCREG(sim, &resp);
+
+//     if(err != SIM_ok)
+//         return err;
+
+//     if (resp.params_num < 2)
+//         return SIM_recErr;
+    
+//     SIM_CREG_stat stat = (SIM_CREG_stat)SIM_atoi_uint8_t(resp.params[2].ptr, resp.params[2].len);
+
+//     switch(stat)
+//     {
+//         case SIM_CREG_stat_regHomeNet:
+//         case SIM_CREG_stat_regRoam:
+//         {
+//             return SIM_ok;
+//         }
+//         default:
+//         {
+//             return SIM_respErr;
+//         }
+//     }
+// }
+
+// SIM_error SIM_setConType(SIM_int* sim, const char *type)
+// {
+//     SIM_resp resp;
+//     SIM_error err = SIM_writeSAPBR(sim, &resp, 3, 1, "CONTYPE", type);
+
+//     return err;
+// }
+
+// SIM_error SIM_setAP(SIM_int* sim, const char *ap)
+// {
+//     SIM_resp resp;
+//     SIM_error err = SIM_writeSAPBR(sim, &resp, 3, 1, "APN", ap);
+
+//     return err;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // // Sim800lBB::Sim800lBB(const char * url)
 // //     :conFlags(0), sleep(true) {
 // //     memcpy(defaultUrl, url, strlen(url));
@@ -181,72 +293,7 @@
 //     return execAT();
 // }
 
-SIM_error SIM_handshake(SIM_int* sim, int x)
-{
-    SIM_error err = SIM_ok;
-    
-    for(int i = 0; i < x; i++){
-        err = SIM_execAT(sim);
-        if(err == SIM_ok)
-            return SIM_ok;
-    }
-
-    return SIM_err;
-}
-
-SIM_error SIM_getSIMInfo(SIM_int* sim)
-{
-    SIM_resp resp;
-    SIM_error err = SIM_execCCID(sim, &resp);
-
-    if(err != SIM_ok)
-        return err;
-    
-    return err;
-}
-
-SIM_error SIM_checkNetReg(SIM_int* sim)
-{
-    SIM_resp resp;
-    SIM_error err = SIM_readCREG(sim, &resp);
-
-    if(err != SIM_ok)
-        return err;
-
-    if (resp.params_num < 2)
-        return SIM_recErr;
-    
-    SIM_CREG_stat stat = (SIM_CREG_stat)SIM_atoi_uint8_t(resp.params[2].ptr, resp.params[2].len);
-
-    switch(stat)
-    {
-        case SIM_CREG_stat_regHomeNet:
-        case SIM_CREG_stat_regRoam:
-        {
-            return SIM_ok;
-        }
-        default:
-        {
-            return SIM_respErr;
-        }
-    }
-}
-
-SIM_error SIM_setConType(SIM_int* sim, const char *type)
-{
-    SIM_resp resp;
-    SIM_error err = SIM_writeSAPBR(sim, &resp, 3, 1, "CONTYPE", type);
-
-    return err;
-}
-
-SIM_error SIM_setAP(SIM_int* sim, const char *ap)
-{
-    SIM_resp resp;
-    SIM_error err = SIM_writeSAPBR(sim, &resp, 3, 1, "APN", ap);
-
-    return err;
-}
+// 
 
 // SIM_error Sim800lBB::sendHTTPPOST(const char *url, const char * data, char * output)
 // {

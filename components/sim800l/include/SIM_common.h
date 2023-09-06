@@ -3,27 +3,54 @@
 #include "SIM_common_def.h"
 #include "LL_SIM.h"
 
-typedef LL_SIM_int SIM_int;
+/* Subscribe to the listener, wait for error code */
+SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
+{
+    SIM_error err;
 
-SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params);
-// SIM_error SIM_sendAT(const SIM_int *sim, const char *type, const char **params);
-SIM_error SIM_sendAT_short(const SIM_int *sim, const char *type);
-SIM_error SIM_sendAT_null(const SIM_int *sim);
-/* Receives raw data from SIM800L, uses SIM_int sim buffer*/
-SIM_error SIM_receiveRaw(SIM_int *sim, SIM_time time);
-SIM_error SIM_retrieveErr(const SIM_int *sim);
-SIM_error SIM_retrieveErr_find(const SIM_int *sim);
+    sim->cmds[sim->cmds_num]->cmd = cmd;
+    /* EDIT */
+    *sim->cmds[sim->cmds_num]->queue = xQueueCreate(5, sizeof(SIM_error));
+    /********/
+    sim->cmds_num++;
+
+    err = LL_SIM_wait(sim, cmd->timeout);
+
+    // 'delete' cmd from listener
+    sim->cmds_num--;
+
+    return err;
+}
+
+// void SIM_unsub(SIM_intf *sim)
+// {
+//     sim->cmds_num--;
+//     sim->cmds[sim->cmds_num].buf = NULL;
+//     sim->cmds[sim->cmds_num].buf_len = NULL;
+// }
+
+SIM_error SIM_at(SIM_intf *sim, SIM_cmd *cmd);
+
+
+
+SIM_error SIM_sendAT(const SIM_intf *sim, const char *type, const char **params);
+// SIM_error SIM_sendAT(const SIM_intf *sim, const char *type, const char **params);
+SIM_error SIM_sendAT_short(const SIM_intf *sim, const char *type);
+SIM_error SIM_sendAT_null(const SIM_intf *sim);
+/* Receives raw data from SIM800L, uses SIM_intf sim buffer*/
+
+SIM_error SIM_retrieveErr(char *buf, unsigned int rec_len);
+SIM_error SIM_retrieveErr_find(const SIM_intf *sim);
 /* Find custom error message, can be located anywhere */
-SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_pair *err);
+SIM_error SIM_retrieveCustomErr_find(const SIM_intf *sim, const SIM_err_pair *err);
 /* Get ptr and length of raw response from raw data */
-SIM_error SIM_retrieveResp(const SIM_int *sim, SIM_resp *resp);
-SIM_error SIM_retrieveCustomResp(const SIM_int *sim, SIM_resp *resp, const char *resp_name);
+SIM_error SIM_retrieveResp(char *buf, unsigned int rec_len, SIM_resp *resp);
+SIM_error SIM_retrieveCustomResp(const SIM_intf *sim, SIM_resp *resp, const char *resp_name);
 // SIM_data_len SIM_retriveParam(const char *resp, SIM_data_len resp_len, const unsigned char param_num, char *out);
 SIM_error SIM_retrieveParams(SIM_resp *resp);
 /*  */
-SIM_data_len SIM_retrieveData(const SIM_int *sim, SIM_resp *resp, const unsigned int data_len);
+SIM_data_len SIM_retrieveData(char *buf, unsigned int rec_len, SIM_resp *resp, const unsigned int data_len);
 /*  */
-SIM_error SIM_receive(SIM_int *sim, SIM_time time);
+// SIM_error SIM_receive(SIM_intf *sim, SIM_time time);
 /*  */
-SIM_error SIM_retrieve(const SIM_int *sim, SIM_resp *resp);
-
+SIM_error SIM_retrieve(char *buf, unsigned int rec_len, SIM_resp *resp);
