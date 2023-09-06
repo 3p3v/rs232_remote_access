@@ -4,23 +4,7 @@
 #include "LL_SIM.h"
 
 /* Subscribe to the listener, wait for error code */
-SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
-{
-    SIM_error err;
-
-    sim->cmds[sim->cmds_num]->cmd = cmd;
-    /* EDIT */
-    *sim->cmds[sim->cmds_num]->queue = xQueueCreate(5, sizeof(SIM_error));
-    /********/
-    sim->cmds_num++;
-
-    err = LL_SIM_wait(sim, cmd->timeout);
-
-    // 'delete' cmd from listener
-    sim->cmds_num--;
-
-    return err;
-}
+SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd);
 
 // void SIM_unsub(SIM_intf *sim)
 // {

@@ -81,7 +81,7 @@ SIM_error SIM_readCPIN(const SIM_intf *sim, SIM_resp *resp);
 SIM_error SIM_execCSQ(const SIM_intf *sim, SIM_resp *resp);
 
 /* AT+CGATT Attach or Detach from GPRS Service */
-SIM_error SIM_readCGATT(const SIM_intf *sim, SIM_resp *resp);
+// SIM_error SIM_readCGATT(const SIM_intf *sim, SIM_resp *resp);
 
 /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
 SIM_error SIM_writeCSTT(const SIM_intf *sim, const char *apn, const char *username, const char *password);

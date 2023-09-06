@@ -5,8 +5,8 @@
 /* AT+CGATT Attach or Detach from GPRS Service */
 #define SIM_READCGATT_TIMEOUT 100
 
+/* AT+CGATT Attach or Detach from GPRS Service */
 void SIM_readCGATT(SIM_cmd *cmd);
-
 SIM_error SIM_readCGATT_handler(char *buf, unsigned int rec_len, SIM_resp *resp);
 
 // /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */

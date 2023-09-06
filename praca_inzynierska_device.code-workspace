@@ -88,5 +88,9 @@
 			"sim_common_def.h": "c",
 			"sim_common.h": "c"
 		}
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": []
 	}
 }

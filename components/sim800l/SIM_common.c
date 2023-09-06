@@ -46,7 +46,23 @@ SIM_error SIM_at(SIM_intf *sim, SIM_cmd *cmd)
     return SIM_sub(sim, cmd);
 }
 
+SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
+{
+    SIM_error err;
 
+    sim->cmds[sim->cmds_num]->cmd = cmd;
+    /* EDIT */
+    *sim->cmds[sim->cmds_num]->queue = xQueueCreate(5, sizeof(SIM_error));
+    /********/
+    sim->cmds_num++;
+
+    err = LL_SIM_wait(sim, cmd->timeout);
+
+    // 'delete' cmd from listener
+    sim->cmds_num--;
+
+    return err;
+}
 
 /* Send AT command with any params.
  * Given array of params must contain

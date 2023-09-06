@@ -2,11 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "preRun",
+            "type": "shell",
+            "windows": {
+                "command": "clear ; cd 'C:/Users/ADAM/.espressif/tools/openocd-esp32/v0.11.0-esp32-20221026/openocd-esp32/bin' ; ./openocd -c 'set ESP_RTOS none' -f board/esp32-wrover-kit-3.3v.cfg ; exit"
+            }
+        },
+        {
             "label": "Build - Build project",
             "type": "shell",
             "command": "${config:idf.pythonBinPath} ${config:idf.espIdfPath}/tools/idf.py build",
             "windows": {
-                "command": "${config:idf.pythonBinPathWin} ${config:idf.espIdfPathWin}\\tools\\idf.py build",
+                "command": "${config:idf.pythonBinPathWin} ${config:idf.espIdfPathWin}/\tools\\idf.py build",
                 "options": {
                     "env": {
                         "PATH": "${env:PATH};${config:idf.customExtraPaths}"
