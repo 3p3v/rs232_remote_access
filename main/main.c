@@ -32,13 +32,15 @@ void app_main(void)
     SIM_resp resp;
     SIM_respNull(&resp);
     ESP_LOGI("SIM" ,"%i", SIM_execCIFSR(&sim, &resp));
-    ESP_LOGI("SIM" ,"%i, %s", resp.data_len, resp.data);
-    SIM_writeCIPSTART(&sim, &resp, SIM_con_def, "TCP", "16.171.43.227", 2014);
+    // ESP_LOGI("SIM" ,"%i, %s", resp.data_len, resp.data);
+    SIM_writeCIPSTART(&sim, &resp, SIM_con_def, "TCP", "3p3v.pl", 2014);
     ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
+    SIM_writeCIPSEND(&sim, &resp, "test\r\n\032");
 
+    // sim_write
     // ESP_LOGI("SIM" ,"%i", SIM_retrieveErr(&sim));
-    for(int i = 0; i < sim.rec_len; i++)
-        printf("Letter: %i\r\n", (int)sim.buf[i]);
+    // for(int i = 0; i < sim.rec_len; i++)
+    //     printf("Letter: %i\r\n", (int)sim.buf[i]);
 
     printf("END\r\n");
 }

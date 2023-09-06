@@ -95,3 +95,5 @@ SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp);
 /* AT+CIPSTART Start Up TCP or UDP Connection */
 SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port);
 
+/* AT+CIPSEND Send Data Through TCP or UDP Connection */
+SIM_error SIM_writeCIPSEND(SIM_int *sim, SIM_resp *resp, const char *data);

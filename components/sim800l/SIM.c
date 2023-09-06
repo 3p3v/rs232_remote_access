@@ -671,7 +671,7 @@ SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, c
       if (err != SIM_ok)
          return err;
 #endif
-      SIM_err_map c_err[] = {{.name = "CONNECT OK", .err = SIM_connectOk},
+      SIM_err_pair c_err[] = {{.name = "CONNECT OK", .err = SIM_connectOk},
                              {.name = "ALREADY CONNECT", .err = SIM_alreadyConnect},
                              {.name = "CONNECT FAIL", .err = SIM_connectFail}};
 
@@ -679,6 +679,57 @@ SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, c
       if (err != SIM_connectOk)
          return err;
    }
+
+   return err;
+}
+
+/* AT+CIPSEND Send Data Through TCP or UDP Connection */
+SIM_error SIM_writeCIPSEND(SIM_int *sim, SIM_resp *resp, const char *data)
+{
+   SIM_error err = SIM_sendAT_short(sim, "CIPSEND");
+   if (err != SIM_ok)
+      return err;
+
+#ifdef SIM_CHECK_OK
+   // err = SIM_receiveRaw(sim, 1000);
+   // if (err != SIM_ok)
+   //    return err;
+
+   SIM_err_pair c_st[] = {{.name = ">", .err = SIM_ok},
+                         {.name = NULL, .err = SIM_ok}};
+
+   err = LL_SIM_receiveRaw_checkCustomErr(sim, 30000, SIM_retrieveCustomErr_find, c_st);
+   // err = SIM_retrieveCustomErr_find(sim, c_st);
+      if (err < 0)
+         return err;
+
+   LL_SIM_sendData(sim, data);
+
+//    err = SIM_retrieveErr_find(sim);
+//    if (err != SIM_ok)
+//       return err;
+#endif
+
+//    if (resp != NULL)
+//    {
+// #ifndef SIM_CHECK_OK
+//       err = SIM_receiveRaw(sim, 645000);
+//       if (err != SIM_ok)
+//          return err;
+
+//       err = SIM_retrieveErr_find(sim);
+//       if (err != SIM_ok)
+//          return err;
+// #endif
+//       SIM_err_pair c_err[] = {{.name = "CONNECT OK", .err = SIM_connectOk},
+//                              {.name = "ALREADY CONNECT", .err = SIM_alreadyConnect},
+//                              {.name = "CONNECT FAIL", .err = SIM_connectFail},
+//                              NULL};
+
+//       err = SIM_retrieveCustomErr_find(sim, c_err);
+//       if (err != SIM_connectOk)
+//          return err;
+//    }
 
    return err;
 }

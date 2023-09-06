@@ -65,6 +65,8 @@ LL_SIM_error LL_SIM_deinit(const LL_SIM_int* sim);
 LL_SIM_error LL_SIM_sendData(const LL_SIM_int* sim, const char *data);
 /* Receive raw response from SIM800l */
 SIM_data_len LL_SIM_receiveRaw(const LL_SIM_int* sim, SIM_time time);
+SIM_data_len LL_SIM_receiveRaw_checkCustomErr(const LL_SIM_int* sim, SIM_time time, SIM_error (*check)(const LL_SIM_int *, const SIM_err_pair *), const SIM_err_pair *err);
+SIM_data_len LL_SIM_receiveRaw_checkErr(const LL_SIM_int* sim, SIM_time time, SIM_error (*check)(const LL_SIM_int *));
 void LL_SIM_delay(int ms);
 
 /* Set DRT pin high/low */

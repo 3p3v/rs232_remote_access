@@ -165,33 +165,33 @@ SIM_error SIM_retrieveErr_find(const SIM_int *sim) // TODO fix
 }
 
 /* Find custom error message, error code must be located at the end of the message */
-SIM_error SIM_retrieveCustomErr(const SIM_int *sim, const SIM_err_map *err)
-{
-   int i = 0;
+// SIM_error SIM_retrieveCustomErr(const SIM_int *sim, const SIM_err_pair *err)
+// {
+//    int i = 0;
    
-   for(;;)
-   {
-      if (err[i].name == NULL)
-      {
-         return SIM_noResp;
-      }
-      else if (strstr(err[i].name, sim->buf))
-      {
-         return err[i].err;
-      }
-      // ESP_LOGI("DDD", "%i", i);
-      i++;
-   }
-}
+//    for(;;)
+//    {
+//       if (err[i].name == NULL)
+//       {
+//          return SIM_noResp;
+//       }
+//       else if (strstr(err[i].name, sim->buf))
+//       {
+//          return err[i].err;
+//       }
+//       // ESP_LOGI("DDD", "%i", i);
+//       i++;
+//    }
+// }
 
 /* Find custom error message, can be located anywhere, starts searching from the top */
-SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_map *err)
+SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_pair *err)
 {
    int i = 0;
    
    for(;;)
    {
-      if (err[i].name == NULL)
+      if ((err + i)->name == NULL)
       {
          return SIM_noResp;
       }
@@ -201,6 +201,51 @@ SIM_error SIM_retrieveCustomErr_find(const SIM_int *sim, const SIM_err_map *err)
       }
       
       i++;
+   }
+}
+
+/* Get ptr to response, returns length of the response */
+SIM_error SIM_retrieveCustomResp(const SIM_int *sim, SIM_resp *resp, const char *resp_name)
+{
+   // Find line starting with "+"
+   char ret[SIM_MAX_AT_STR_LEN + 2] = {};
+   strcat(ret, resp_name);
+   char *start = strstr((sim->buf + 0), ret); //const ???
+
+   if (start == NULL) 
+   {
+      resp->resp_name = NULL;
+      resp->resp_name_len = 0;
+      resp->resp = NULL;
+      resp->resp_len = 0;
+      return SIM_noResp;
+   }
+   else
+   {
+      resp->resp_name = start;
+      resp->resp_name_len = strlen(resp_name);
+      start += strlen(ret) + 1;
+   }
+
+   // Find endl
+   const char *endl = strstr((start + 0), "\r\n");
+
+   if (start < endl) //endl && start < endl
+   {
+      resp->resp_len = (endl - start) + 2; // + 2 to add endl
+      resp->resp = start;
+      return SIM_ok;
+   }
+   else
+   {
+      resp->resp_name = NULL;
+      resp->resp_name_len = 0;
+      resp->resp_len = 0;
+      resp->resp = NULL;
+      if (start && !endl)
+         return SIM_bufferFullErr;
+      else
+         return SIM_recErr;
    }
 }
 

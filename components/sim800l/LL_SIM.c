@@ -205,6 +205,202 @@ SIM_data_len LL_SIM_receiveRaw(const LL_SIM_int* sim, SIM_time time)
     return (int)SIM_recErr; 
 }
 
+SIM_data_len LL_SIM_receiveRaw_checkCustomErr(const LL_SIM_int* sim, SIM_time time, SIM_error (*check)(const LL_SIM_int *, const SIM_err_pair *), const SIM_err_pair *err)
+{
+    uart_event_t event;
+    // size_t buffered_size;
+    int startTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
+    while(((xTaskGetTickCount() * portTICK_PERIOD_MS) - startTime) < time) {
+        if (xQueueReceive(sim->uartQueue, (void *)&event, time / portTICK_PERIOD_MS))
+        {
+            bzero(sim->buf, sim->buf_len);
+            ESP_LOGI(TAG, "uart[%d] event:", sim->uart);
+            switch (event.type)
+            {
+            // Event of UART receving data
+            case UART_DATA: {
+                ESP_LOGI(TAG, "[UART DATA]: %d", event.size); //TODO delete??
+                int len = uart_read_bytes(sim->uart, sim->buf, event.size, portMAX_DELAY);
+                ESP_LOGI(TAG, "[UART DATA]: %d", len);
+                printf("%s", sim->buf); //TODO delete
+                if (len > 0) {
+                    if(check(sim, err) == SIM_ok)
+                        return len;
+                    else
+                        break;
+                }
+                else if (len == 0) 
+                    return SIM_recErr;
+                else 
+                    return SIM_hardwareErr;
+                break;
+            }
+            // Event of HW FIFO overflow detected
+            case UART_FIFO_OVF:
+                ESP_LOGI(TAG, "hw fifo overflow");
+                uart_flush_input(sim->uart);
+                xQueueReset(sim->uartQueue);
+                break;
+            // Event of UART ring buffer full
+            case UART_BUFFER_FULL:
+                ESP_LOGI(TAG, "ring buffer full");
+                uart_flush_input(sim->uart);
+                xQueueReset(sim->uartQueue);
+                //TODO resize buffer
+                return SIM_bufferFullErr;
+                break;
+            // Event of UART RX break detected
+            case UART_BREAK:
+                ESP_LOGI(TAG, "uart rx break");
+                break;
+            // Event of UART parity check error
+            case UART_PARITY_ERR:
+                ESP_LOGI(TAG, "uart parity error");
+                break;
+            // Event of UART frame error
+            case UART_FRAME_ERR:
+                ESP_LOGI(TAG, "uart frame error");
+                break;
+            case UART_DATA_BREAK:
+                ESP_LOGI(TAG, "uart data break");
+                break;
+            case UART_EVENT_MAX:
+                ESP_LOGI(TAG, "uart event max");
+                break;
+            // UART_PATTERN_DET
+            case UART_PATTERN_DET:
+            {
+                // uart_get_buffered_data_len(uart, &buffered_size);
+                // int pos = uart_pattern_pop_pos(uart);
+                // ESP_LOGI(TAG, "[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos, buffered_size);
+                // if (pos == -1)
+                // {
+                //     uart_flush_input(uart);
+                // }
+                // else
+                // {
+                //     uart_read_bytes(uart, receivedData, pos, 100 / portTICK_PERIOD_MS);
+                //     uint8_t pat[PATTERN_CHR_NUM + 1];
+                //     memset(pat, 0, sizeof(pat));
+                //     uart_read_bytes(uart, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
+                //     ESP_LOGI(TAG, "read data: %s", receivedData);
+                //     ESP_LOGI(TAG, "read pat : %s", pat);
+                // }
+                break;
+            }
+            // Others
+            default:
+                ESP_LOGI(TAG, "uart event type: %d", event.type);
+                // break;
+            } 
+        } else {
+            ESP_LOGI(TAG, "timeout");
+            return (int)SIM_timeoutErr; 
+        }
+    }
+
+    return (int)SIM_recErr; 
+}
+
+SIM_data_len LL_SIM_receiveRaw_checkErr(const LL_SIM_int* sim, SIM_time time, SIM_error (*check)(const LL_SIM_int *))
+{
+    uart_event_t event;
+    // size_t buffered_size;
+    int startTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
+    while(((xTaskGetTickCount() * portTICK_PERIOD_MS) - startTime) < time) {
+        if (xQueueReceive(sim->uartQueue, (void *)&event, time / portTICK_PERIOD_MS))
+        {
+            bzero(sim->buf, sim->buf_len);
+            ESP_LOGI(TAG, "uart[%d] event:", sim->uart);
+            switch (event.type)
+            {
+            // Event of UART receving data
+            case UART_DATA: {
+                ESP_LOGI(TAG, "[UART DATA]: %d", event.size); //TODO delete??
+                int len = uart_read_bytes(sim->uart, sim->buf, event.size, portMAX_DELAY);
+                ESP_LOGI(TAG, "[UART DATA]: %d", len);
+                printf("%s", sim->buf); //TODO delete
+                if (len > 0) {
+                    if(check(sim) == SIM_ok)
+                        return len;
+                    else
+                        break;
+                }
+                else if (len == 0) 
+                    return SIM_recErr;
+                else 
+                    return SIM_hardwareErr;
+                break;
+            }
+            // Event of HW FIFO overflow detected
+            case UART_FIFO_OVF:
+                ESP_LOGI(TAG, "hw fifo overflow");
+                uart_flush_input(sim->uart);
+                xQueueReset(sim->uartQueue);
+                break;
+            // Event of UART ring buffer full
+            case UART_BUFFER_FULL:
+                ESP_LOGI(TAG, "ring buffer full");
+                uart_flush_input(sim->uart);
+                xQueueReset(sim->uartQueue);
+                //TODO resize buffer
+                return SIM_bufferFullErr;
+                break;
+            // Event of UART RX break detected
+            case UART_BREAK:
+                ESP_LOGI(TAG, "uart rx break");
+                break;
+            // Event of UART parity check error
+            case UART_PARITY_ERR:
+                ESP_LOGI(TAG, "uart parity error");
+                break;
+            // Event of UART frame error
+            case UART_FRAME_ERR:
+                ESP_LOGI(TAG, "uart frame error");
+                break;
+            case UART_DATA_BREAK:
+                ESP_LOGI(TAG, "uart data break");
+                break;
+            case UART_EVENT_MAX:
+                ESP_LOGI(TAG, "uart event max");
+                break;
+            // UART_PATTERN_DET
+            case UART_PATTERN_DET:
+            {
+                // uart_get_buffered_data_len(uart, &buffered_size);
+                // int pos = uart_pattern_pop_pos(uart);
+                // ESP_LOGI(TAG, "[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos, buffered_size);
+                // if (pos == -1)
+                // {
+                //     uart_flush_input(uart);
+                // }
+                // else
+                // {
+                //     uart_read_bytes(uart, receivedData, pos, 100 / portTICK_PERIOD_MS);
+                //     uint8_t pat[PATTERN_CHR_NUM + 1];
+                //     memset(pat, 0, sizeof(pat));
+                //     uart_read_bytes(uart, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
+                //     ESP_LOGI(TAG, "read data: %s", receivedData);
+                //     ESP_LOGI(TAG, "read pat : %s", pat);
+                // }
+                break;
+            }
+            // Others
+            default:
+                ESP_LOGI(TAG, "uart event type: %d", event.type);
+                // break;
+            } 
+        } else {
+            ESP_LOGI(TAG, "timeout");
+            return (int)SIM_timeoutErr; 
+        }
+    }
+
+    return (int)SIM_recErr; 
+}
+
 void LL_SIM_delay(int ms) {
     vTaskDelay(ms / portTICK_PERIOD_MS);
 }
