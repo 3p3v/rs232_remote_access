@@ -23,7 +23,12 @@ typedef enum SIM_error
     SIM_connectOk = -9,
     SIM_alreadyConnect = -10,
     SIM_connectFail = -11,
-    SIM_unknown = -12
+    SIM_closed = -12,
+    SIM_closedOk = -13,
+    SIM_sendOk = -14,
+    SIM_receive = -15,
+    SIM_sendFail = -16,
+    SIM_unknown = -99
     // SIM_registered = -7,
     // SIM_roamingRegistered = -8,
     // SIM_serverErr = -9
@@ -44,22 +49,33 @@ typedef struct SIM_err_pair
     const SIM_error err; 
 } SIM_err_pair;
 
+typedef struct SIM_errMsgEnd_pair
+{
+    char *ptr;
+    SIM_error err; 
+} SIM_errMsgEnd_pair;
+
 typedef struct SIM_resp
 {
-    const char *at;
-    char *resp_name;
+    char at[SIM_MAX_AT_STR_LEN];
+    char *resp_name;    //TODO delete??
     char *resp_name_len;
     char *resp;
     unsigned char resp_len;
     unsigned char params_num;
     SIM_resp_params params[SIM_MAX_PARAMS];
+    char *send_data;
+    unsigned int send_data_len;
     char *data;
     unsigned int data_len;
+    char *msg_end;
+    SIM_error err;
 } SIM_resp;
 
 typedef enum SIM_cmd_type
 {
     SIM_cmd_single_use = 0,
+    SIM_cmd_multiple_launch
 } SIM_cmd_type;
 
 typedef unsigned int SIM_time;
@@ -84,18 +100,18 @@ typedef struct SIM_cmd
     char at[SIM_MAX_AT_STR_LEN];
     char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
     unsigned char params_num;
-    SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(char *, unsigned int, SIM_resp *);
+    SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(char *, unsigned int, SIM_resp *, void *);
     unsigned char handlers_num;
     SIM_resp resp;
     SIM_cmd_type type;
     SIM_time timeout;
-    SIM_error err;
+    // SIM_error err;
 } SIM_cmd;
 
 
 
 /* Reset response to NULL */
-void SIM_respNULL(SIM_resp* resp);
+void SIM_respNULL(SIM_resp* resp, const char *at_resp_name);
 void SIM_paramsNULL(char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN]);
 
 /* cstring parameters to numbers */

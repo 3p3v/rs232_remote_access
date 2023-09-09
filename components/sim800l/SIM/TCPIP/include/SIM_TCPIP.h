@@ -5,84 +5,41 @@
 /* AT+CGATT Attach or Detach from GPRS Service */
 #define SIM_READCGATT_TIMEOUT 100
 
-/* AT+CGATT Attach or Detach from GPRS Service */
 void SIM_readCGATT(SIM_cmd *cmd);
-SIM_error SIM_readCGATT_handler(char *buf, unsigned int rec_len, SIM_resp *resp);
+// SIM_error SIM_readCGATT_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-// /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
-// SIM_error SIM_writeCSTT(const SIM_int *sim, const char *apn, const char *username, const char *password)
-// {
-//     char *params[] = {apn, NULL, NULL};
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+#define SIM_WRITECSTT_TIMEOUT 1000
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+void SIM_writeCSTT(SIM_cmd *cmd, const char *apn, const char *username, const char *password);
+// SIM_error SIM_writeCSTT_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-//     if (username && password)
-//     {
-//         params[1] = username;
-//         params[2] = password;
-//     }
+/* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
+#define SIM_EXECCIICR_TIMEOUT 10000
+/* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
+void SIM_execCIICR(SIM_cmd *cmd);
+// SIM_error SIM_execCIICR_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-//     SIM_error err = SIM_sendAT(sim, "CSTT", params);
-//     if (err != SIM_ok)
-//         return err;
+/* AT+CIFSR Get Local IP Address */
+#define SIM_EXECCIFSR_TIMEOUT 85000
+/* AT+CIFSR Get Local IP Address */
+void SIM_execCIFSR(SIM_cmd *cmd);
+// SIM_error SIM_execCIFSR_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-// #ifdef SIM_CHECK_OK
-//     err = SIM_receive(sim, 1000);
-//     if (err != SIM_ok)
-//         return err;
-// #endif
+/* AT+CIPSTART Start Up TCP or UDP Connection */
+#define SIM_WRITECIPSTART_TIMEOUT 75000
+/* AT+CIPSTART Start Up TCP or UDP Connection */
+void SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *address, const unsigned int port);
+// SIM_error SIM_writeCIPSTART_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-//     return err;
-// }
+/* AT+CIPSEND Send Data Through TCP or UDP Connection */
+#define SIM_WRITECIPSEND_TIMEOUT 1000
+/* AT+CIPSEND Send Data Through TCP or UDP Connection */
+void SIM_execCIPSEND(SIM_cmd *cmd, char *send_data, char *send_data_len);
+// SIM_error SIM_execCIPSEND_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
-// /* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
-// SIM_error SIM_execCIICR(const SIM_int *sim)
-// {
-//     SIM_error err = SIM_sendAT_short(sim, "CIICR");
-//     if (err != SIM_ok)
-//         return err;
 
-// #ifdef SIM_CHECK_OK
-//     err = SIM_receive(sim, 10000);
-//     if (err != SIM_ok)
-//         return err;
-// #endif
-
-//     return err;
-// }
-
-// /* AT+CIFSR Get Local IP Address */
-// SIM_error SIM_execCIFSR(const SIM_int *sim, SIM_resp *resp)
-// {
-//     SIM_error err = SIM_sendAT_short(sim, "CIFSR");
-//     if (err != SIM_ok)
-//         return err;
-
-// #ifdef SIM_CHECK_OK
-//     err = SIM_receive(sim, 85000);
-//     if (err != SIM_noErrCode)
-//         return err;
-// #endif
-
-//     if (resp != NULL)
-//     {
-// #ifndef SIM_CHECK_OK
-//         err = SIM_receive(sim, 85000);
-//         if (err != SIM_ok)
-//             return err;
-// #endif
-
-//         err = SIM_retrieve(sim, resp); // TODO
-//         if (err != SIM_noResp)
-//             return err;
-
-//         err = SIM_retrieveData(sim, resp, 0);
-//         if (err > 0)
-//             return err;
-//         else
-//             return SIM_ok;
-//     }
-
-//     return err;
-// }
+void SIM_listenTCP(SIM_cmd *cmd, const SIM_con_num n);
 
 // /* AT+CIPSTART Start Up TCP or UDP Connection */
 // SIM_error SIM_writeCIPSTART(SIM_int *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port)

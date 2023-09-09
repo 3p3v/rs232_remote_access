@@ -2,14 +2,20 @@
 #include <stddef.h>
 #include <string.h>
 
-void SIM_respNULL(SIM_resp *resp)
+void SIM_respNULL(SIM_resp* resp, const char *at_resp_name)
 {
-    resp->resp = NULL;
-    resp->resp_len = 0;
-    resp->params_num = 0;
-    memset(resp->params, '\0', SIM_MAX_PARAMS * sizeof(char*));
-    resp->data = NULL;
-    resp->data_len = 0;
+    memset(resp, 0, sizeof(*resp));
+    strcpy(resp->at, at_resp_name);
+    if (resp->at[strlen(resp->at) - 1] == '?')
+        resp->at[strlen(resp->at) - 1] = '\0';
+
+    resp->err = SIM_unknown;
+    // resp->resp = NULL;
+    // resp->resp_len = 0;
+    // resp->params_num = 0;
+    // memset(resp->params, '\0', SIM_MAX_PARAMS * sizeof(char*));
+    // resp->data = NULL;
+    // resp->data_len = 0;
 }
 
 void SIM_paramsNULL(char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN])

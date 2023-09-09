@@ -80,20 +80,20 @@ SIM_error SIM_readCPIN(const SIM_intf *sim, SIM_resp *resp);
 /* returns "rrsi" and "ber" */
 SIM_error SIM_execCSQ(const SIM_intf *sim, SIM_resp *resp);
 
-/* AT+CGATT Attach or Detach from GPRS Service */
+// /* AT+CGATT Attach or Detach from GPRS Service */
 // SIM_error SIM_readCGATT(const SIM_intf *sim, SIM_resp *resp);
 
-/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
-SIM_error SIM_writeCSTT(const SIM_intf *sim, const char *apn, const char *username, const char *password);
+// /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+// SIM_error SIM_writeCSTT(const SIM_intf *sim, const char *apn, const char *username, const char *password);
 
-/* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
-SIM_error SIM_execCIICR(const SIM_intf *sim);
+// /* AT+CIICR Bring Up Wireless Connection with GPRS or CSD */
+// SIM_error SIM_execCIICR(const SIM_intf *sim);
 
-/* AT+CIFSR Get Local IP Address */
-SIM_error SIM_execCIFSR(const SIM_intf *sim, SIM_resp *resp);
+// /* AT+CIFSR Get Local IP Address */
+// SIM_error SIM_execCIFSR(const SIM_intf *sim, SIM_resp *resp);
 
-/* AT+CIPSTART Start Up TCP or UDP Connection */
-SIM_error SIM_writeCIPSTART(SIM_intf *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port);
+// /* AT+CIPSTART Start Up TCP or UDP Connection */
+// SIM_error SIM_writeCIPSTART(SIM_intf *sim, SIM_resp *resp, const SIM_con_num n, char *mode, char *address, const unsigned int port);
 
-/* AT+CIPSEND Send Data Through TCP or UDP Connection */
-SIM_error SIM_writeCIPSEND(SIM_intf *sim, SIM_resp *resp, const char *data);
+// /* AT+CIPSEND Send Data Through TCP or UDP Connection */
+// SIM_error SIM_writeCIPSEND(SIM_intf *sim, SIM_resp *resp, const char *data);

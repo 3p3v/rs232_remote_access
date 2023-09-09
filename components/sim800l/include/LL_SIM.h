@@ -27,25 +27,30 @@
 #define LL_SIM_MIN_PRE_IDLE 0
 
 /* Buffers */
-// #define LL_SIM_DEF_BUF_SIZE 240
-#define LL_SIM_DEF_CMDS_NUM 240
 #define LL_SIM_DEF_TX_BUF_SIZE 240
+// #define LL_SIM_DEF_BUF_SIZE 240
+
+#define LL_SIM_DEF_CMDS_NUM 10
+#define LL_SIM_DEF_CMD_QUEUE_SIZE  5
+
 
 typedef struct SIM_cmd_grip
 {
     SIM_cmd *cmd;
-    QueueHandle_t *queue;
+    QueueHandle_t queue;
 } SIM_cmd_grip;
 
 typedef struct LL_SIM_intf
 {
     /* Must not be deleted */
+    /* Buffer used for receiving raw messages from SIM800L module */
     char *buf;
     unsigned int buf_len;
     /* Length of last received message from SIM800L module */
     unsigned int rec_len;
-    /* Buffer used for receiving raw messages from SIM800L module */
-    SIM_cmd_grip *cmds[LL_SIM_DEF_CMDS_NUM]; // [LL_SIM_DEF_BUF_SIZE];
+    /*  */
+    unsigned char unread_num;
+    SIM_cmd_grip cmds[LL_SIM_DEF_CMDS_NUM]; // [LL_SIM_DEF_BUF_SIZE];
     unsigned int cmds_num;
     /* Length of last received message from SIM800L module */
     // SIM_response resp;
@@ -59,6 +64,8 @@ typedef struct LL_SIM_intf
     uart_port_t uart;
     // uart_config_t uartConf;
     QueueHandle_t uartQueue;
+    SemaphoreHandle_t add_cmd_mutex;
+    SemaphoreHandle_t write_mutex;
 } LL_SIM_intf;
 typedef LL_SIM_intf SIM_intf;
 

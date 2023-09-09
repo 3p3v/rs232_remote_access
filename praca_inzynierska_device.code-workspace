@@ -86,7 +86,8 @@
 			"cinttypes": "cpp",
 			"typeinfo": "cpp",
 			"sim_common_def.h": "c",
-			"sim_common.h": "c"
+			"sim_common.h": "c",
+			"stdio.h": "c"
 		}
 	},
 	"launch": {

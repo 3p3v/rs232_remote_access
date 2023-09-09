@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <SIM_cmd.h>
 #include <SIM.h>
 #include <esp_log.h>
@@ -6,8 +7,10 @@
 
 void app_main(void)
 {
+    SIM_error err;
     SIM_intf sim;
     LL_SIM_def(&sim);
+    printf("END1\r\n");
     char arr[100] = {};
     sim.buf = arr;
     sim.buf_len = 100;
@@ -15,8 +18,29 @@ void app_main(void)
     LL_SIM_listen(&sim);
 
     SIM_cmd cmd;
+
     SIM_readCGATT(&cmd);
-    SIM_at(&sim, &cmd);
+    err = SIM_run(&sim, &cmd);
+
+    SIM_writeCSTT(&cmd, "internet", NULL, NULL);
+    err = SIM_run(&sim, &cmd);
+
+    SIM_execCIICR(&cmd);
+    err = SIM_run(&sim, &cmd);
+
+    SIM_execCIFSR(&cmd);
+    err = SIM_run(&sim, &cmd);
+
+    SIM_cmd cmd_tcp;
+    SIM_listenTCP(&cmd_tcp, 0);
+    err = SIM_run_multiple_launch(&sim, &cmd_tcp);
+
+    SIM_writeCIPSTART(&cmd, SIM_con_def, "TCP", "3p3v.pl", 2014);
+    err = SIM_run(&sim, &cmd);
+
+    const char *data = "Test c-string.\r\n" ;
+    SIM_execCIPSEND(&cmd, data, strlen(data));
+    err = SIM_run(&sim, &cmd);
 
     // for(int i = 0; i < 10; i++)
     // {
