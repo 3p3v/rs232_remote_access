@@ -202,7 +202,7 @@ SIM_errMsgEnd_pair SIM_retrieveErr(char *buf, unsigned int rec_len) // TODO fix
 {
    SIM_errMsgEnd_pair err;
    
-   err.ptr = strstr(buf + rec_len - 4, "\r\nOK\r\n");
+   err.ptr = strstr(buf + rec_len - 6, "\r\nOK\r\n");
    if (rec_len >= 4 && err.ptr)
    {
       err.err = SIM_ok;
@@ -210,7 +210,7 @@ SIM_errMsgEnd_pair SIM_retrieveErr(char *buf, unsigned int rec_len) // TODO fix
       return err;
    }
 
-   err.ptr = strstr(buf + rec_len - 7, "\r\nERROR\r\n");
+   err.ptr = strstr(buf + rec_len - 9, "\r\nERROR\r\n");
    if (rec_len >= 7 && err.ptr)
    {
       err.err = SIM_err;

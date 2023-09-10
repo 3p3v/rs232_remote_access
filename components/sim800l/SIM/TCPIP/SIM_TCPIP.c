@@ -144,9 +144,9 @@ static SIM_error SIM_writeCIPSTART_handler(char *buf, unsigned int rec_len, SIM_
     if (err.err != SIM_ok && err.err != SIM_err)
         return SIM_noErrCode;
 
-    SIM_err_pair c_st[] = {{.name = "CONNECT OK", .err = SIM_connectOk},
-                           {.name = "ALREADY CONNECT", .err = SIM_alreadyConnect},
-                           {.name = "CONNECT FAIL", .err = SIM_connectFail},
+    SIM_err_pair c_st[] = {{.name = "\r\nCONNECT OK\r\n", .err = SIM_connectOk},
+                           {.name = "\r\nALREADY CONNECT\r\n", .err = SIM_alreadyConnect},
+                           {.name = "\r\nCONNECT FAIL\r\n", .err = SIM_connectFail},
                            {.name = NULL, .err = SIM_noErrCode}};
 
     SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr_find(buf, rec_len, c_st);
@@ -184,8 +184,8 @@ void SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *addr
 static SIM_error SIM_execCIPSEND_handler2(char *buf, unsigned int rec_len, SIM_resp *resp, void *sim)
 {
 
-    SIM_err_pair c_st[] = {{.name = "SEND OK", .err = SIM_sendOk},
-                           {.name = "SEND FAIL", .err = SIM_sendFail},
+    SIM_err_pair c_st[] = {{.name = "\r\nSEND OK\r\n", .err = SIM_sendOk},
+                           {.name = "\r\nSEND FAIL\r\n", .err = SIM_sendFail},
                            {.name = NULL, .err = SIM_noErrCode}};
 
     SIM_errMsgEnd_pair err = SIM_retrieveCustomErr_find(buf, rec_len, c_st);
@@ -209,17 +209,21 @@ static SIM_error SIM_execCIPSEND_handler1(char *buf, unsigned int rec_len, SIM_r
     //                        {.name = NULL, .err = SIM_ok}};
 
     // SIM_error err = SIM_retrieveCustomErr_find(buf, rec_len, c_st);
-    SIM_error err = SIM_noErrCode;
-    if (buf[rec_len - 2] == '>')
-        err = SIM_ok;
+    SIM_err_pair c_st[] = {{.name = "> ", .err = SIM_ok},
+                           {.name = "\r\nERROR\r\n", .err = SIM_err},
+                           {.name = NULL, .err = SIM_noErrCode}};
 
-    if (err == SIM_ok)
-        err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data);
+    SIM_errMsgEnd_pair err = SIM_retrieveCustomErr_find(buf, rec_len, c_st);
+    resp->err = err.err;
+    resp->msg_end = err.ptr;
 
-    if (err == SIM_ok)
-        err = LL_SIM_sendData((SIM_intf *)sim, "\032");
+    if (err.err == SIM_ok)
+        err.err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data);
 
-    return err;
+    if (err.err == SIM_ok)
+        err.err = LL_SIM_sendData((SIM_intf *)sim, "\032");
+
+    return err.err;
 }
 
 void SIM_execCIPSEND(SIM_cmd *cmd, char *send_data, char *send_data_len)
@@ -261,17 +265,25 @@ static SIM_error SIM_listenTCP_cipmux0_handler(char *buf, unsigned int rec_len, 
 
     beg = buf;
 
-    if (strstr(beg, "CLOSED\r\n"))
+
+    SIM_err_pair c_st[] = {{.name = "ERROR\r\n", .err = SIM_closed},
+                           {.name = NULL, .err = SIM_receive}};
+
+    SIM_errMsgEnd_pair err = SIM_retrieveCustomErr_find(buf, rec_len, c_st);
+    
+    if (err.err == SIM_closed)
     {
         SIM_listenTCP_closed_handler(/* EDIT */);
-        resp->err = SIM_closed;
+        resp->err = err.err;
+        resp->msg_end = err.ptr;
         return SIM_err;
     }
     else
     {
         resp->data = buf;
-        resp->data_len = strlen(resp->data);
-        resp->err = SIM_receive;
+        resp->data_len = strlen(resp->data) - strlen("\r\n");
+        resp->err = err.err;
+        resp->msg_end = err.ptr;
         return SIM_ok;
     }
 }
