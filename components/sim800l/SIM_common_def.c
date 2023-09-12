@@ -149,8 +149,9 @@ SIM_errMsgEnd_pair SIM_retrieveCustomErr(const SIM_line_pair *lines, const SIM_e
 
     do
     {
-        
-        
+        line_ptr = &lines[0];
+        line_num = 0;
+
         do
         {
             ptr = SIM_util_lineerr(line_ptr, err_ptr->name);
@@ -168,15 +169,16 @@ SIM_errMsgEnd_pair SIM_retrieveCustomErr(const SIM_line_pair *lines, const SIM_e
             line_num++;
         } while (line_ptr->ptr);
 
-        line_ptr = &lines[0];
-        line_num = 0;
         err_ptr++;
     } while (err_ptr->name);
 
-    pair.ptr_beg = NULL;
-    pair.ptr = NULL;
+    line_ptr--;
+    line_num--;
+
+    pair.ptr_beg = line_ptr->ptr;
+    pair.ptr = line_ptr->ptr + line_ptr->len;
     pair.err = err_ptr->err;
-    pair.line_num = 0;
+    pair.line_num = line_num;
     return pair;
 }
 
@@ -212,10 +214,11 @@ SIM_resp_pair SIM_retrieveCustomResp(const SIM_line_pair *lines, const char *res
         line_num++;
     } while (line_ptr->ptr);
 
-    // line_num = 0;
+    line_ptr--;
+    line_num--;
 
-    pair.ptr_beg = NULL;
-    pair.ptr = NULL;
-    pair.line_num = 0;
+    pair.ptr_beg = line_ptr->ptr;
+    pair.ptr = line_ptr->ptr + line_ptr->len;
+    pair.line_num = line_num;
     return pair;
 }

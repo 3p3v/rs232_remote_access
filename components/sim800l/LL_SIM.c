@@ -95,7 +95,7 @@ SIM_error SIM_exec(SIM_intf *sim)
 {
     SIM_error err;
 
-    // xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
+    xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
 
     for (int i = sim->cmds_num - 1; i >= 0; i--)
     {
@@ -216,11 +216,11 @@ SIM_error SIM_exec(SIM_intf *sim)
     }
 
 REGION_END:
-    // xSemaphoreGive(sim->exec_mutex);
+    xSemaphoreGive(sim->exec_mutex);
     return err;
 }
 
-LL_SIM_error LL_SIM_wait(LL_SIM_intf *sim, SIM_time time)
+LL_SIM_error SIM_wait(LL_SIM_intf *sim, SIM_time time)
 {
     LL_SIM_error err = SIM_timeoutErr;
 
@@ -232,10 +232,10 @@ LL_SIM_error LL_SIM_wait(LL_SIM_intf *sim, SIM_time time)
 void LL_SIM_listen(LL_SIM_intf *sim)
 {
     // read data non stop
-    xTaskCreate(LL_SIM_receiveHandler, "SIM_listener", 4096, (void *)sim, 5, NULL);
+    xTaskCreate(SIM_receiveHandler, "SIM_listener", 4096, (void *)sim, 5, NULL);
 }
 
-void LL_SIM_receiveHandler(void *sim_void)
+void SIM_receiveHandler(void *sim_void)
 {
     LL_SIM_intf *sim = sim_void;
 
@@ -255,7 +255,7 @@ void LL_SIM_receiveHandler(void *sim_void)
 // }
 
 /* Send data to LL_SIM */
-LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data, const unsigned int data_len)
+LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned int data_len)
 {
     LL_SIM_error err = SIM_ok;
     xSemaphoreTake(sim->write_mutex, portMAX_DELAY);

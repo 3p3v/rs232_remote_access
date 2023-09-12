@@ -76,11 +76,11 @@ SIM_error SIM_exec(SIM_intf *sim);
 /* User defined */
 void LL_SIM_listen(LL_SIM_intf *sim);
 
-void LL_SIM_receiveHandler(void *sim_void);
+void SIM_receiveHandler(void *sim_void);
 
 SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim);
 
-LL_SIM_error LL_SIM_wait(LL_SIM_intf *sim, SIM_time time);
+LL_SIM_error SIM_wait(LL_SIM_intf *sim, SIM_time time);
 /* Set SIM800L struct to default values */
 void LL_SIM_def(LL_SIM_intf *sim);
 /* Initialize microcontrollers interfaces */
@@ -90,7 +90,7 @@ LL_SIM_error LL_SIM_deinit(const LL_SIM_intf *sim);
 // LL_SIM_error LL_SIM_reinit(const LL_SIM* interface);
 
 /* User defined */
-LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data, const unsigned int data_len);
+LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned int data_len);
 /* Receive raw response from SIM800l */
 // SIM_data_len LL_SIM_receiveRaw(const LL_SIM_intf* sim, SIM_time time);
 // SIM_data_len LL_SIM_receiveRaw_checkCustomErr(const LL_SIM_intf *sim, SIM_time time, SIM_error (*check)(const LL_SIM_intf *, const SIM_err_pair *), const SIM_err_pair *err);

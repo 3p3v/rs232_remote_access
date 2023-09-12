@@ -67,13 +67,13 @@ SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
    sim->cmds[sim->cmds_num].cmd = cmd;
    sim->cmds_num++;
 
-   err = LL_SIM_wait(sim, cmd->timeout);
+   err = SIM_wait(sim, cmd->timeout);
 
    // 'delete' cmd from listener
-   // xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
+   xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
    sim->cmds_num--;
    sim->cmds[sim->cmds_num].cmd = NULL;
-   // xSemaphoreGive(sim->exec_mutex);
+   xSemaphoreGive(sim->exec_mutex);
 
    return err;
 }

@@ -428,29 +428,24 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
     if (err.err == SIM_receive)
     {
         // check if it's the right stream
-        if (resp->at[12] != err.ptr[0])
+        if (resp->at[12] != err.ptr_beg[9])
         {
             return SIM_noErrCode;
         }
         
         // get parameters
-        resp->params[0].ptr = err.ptr;
+        resp->params[0].ptr = (err.ptr_beg + strlen("+RECEIVE,"));
         resp->params[0].len = 1;
         resp->params[1].ptr = resp->params[0].ptr + 2;
         resp->params[1].len = strstr(resp->params[1].ptr, ":") - resp->params[1].ptr;
         resp->params_num = 2;
 
         // get data
-        SIM_line_pair *lines_ptr = NULL;
-        for (unsigned int i = 0; i < limes_num; i++)
-        {
-            if (lines[i].ptr == err.ptr_beg)
-            {
-                lines_ptr = (lines + i);
-            }
-        }
+        SIM_line_pair *lines_ptr = (lines + (err.line_num + 1));
         SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr(lines_ptr, SIM_reservedResps);
         resp->msg_end = err2.ptr;
+        resp->data = err.ptr;
+        resp->data_len = err2.ptr - err.ptr;
 
         SIM_listenTCP_receive_handler(/* EDIT */);
         resp->err = SIM_receive;
