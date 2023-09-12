@@ -22,6 +22,9 @@ void app_main(void)
     SIM_readCGATT(&cmd);
     err = SIM_run(&sim, &cmd);
 
+    SIM_writeCIPMUX(&cmd, 1);
+    err = SIM_run(&sim, &cmd);
+
     SIM_writeCSTT(&cmd, "internet", NULL, NULL);
     err = SIM_run(&sim, &cmd);
 
@@ -32,14 +35,14 @@ void app_main(void)
     err = SIM_run(&sim, &cmd);
 
     SIM_cmd cmd_tcp;
-    SIM_listenTCP(&cmd_tcp, 0);
+    SIM_listenTCP(&cmd_tcp, SIM_con_0);
     err = SIM_run_multiple_launch(&sim, &cmd_tcp);
 
-    SIM_writeCIPSTART(&cmd, SIM_con_def, "TCP", "3p3v.pl", 2014);
+    SIM_writeCIPSTART(&cmd, SIM_con_0, "TCP", "3p3v.pl", 2014);
     err = SIM_run(&sim, &cmd);
 
     const char *data = "Test c-string.\r\n" ;
-    SIM_execCIPSEND(&cmd, data, strlen(data));
+    SIM_writeCIPSEND(&cmd, SIM_con_0, 0, data, strlen(data));
     err = SIM_run(&sim, &cmd);
 
     // for(int i = 0; i < 10; i++)

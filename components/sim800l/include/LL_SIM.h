@@ -49,6 +49,7 @@ typedef struct LL_SIM_intf
     /* Length of last received message from SIM800L module */
     unsigned int rec_len;
     /*  */
+    /* Number of not yet processed messages */
     unsigned char unread_num;
     SIM_cmd_grip cmds[LL_SIM_DEF_CMDS_NUM]; // [LL_SIM_DEF_BUF_SIZE];
     unsigned int cmds_num;
@@ -66,6 +67,7 @@ typedef struct LL_SIM_intf
     QueueHandle_t uartQueue;
     SemaphoreHandle_t add_cmd_mutex;
     SemaphoreHandle_t write_mutex;
+    SemaphoreHandle_t exec_mutex;
 } LL_SIM_intf;
 typedef LL_SIM_intf SIM_intf;
 
@@ -88,7 +90,7 @@ LL_SIM_error LL_SIM_deinit(const LL_SIM_intf *sim);
 // LL_SIM_error LL_SIM_reinit(const LL_SIM* interface);
 
 /* User defined */
-LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data);
+LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data, const unsigned int data_len);
 /* Receive raw response from SIM800l */
 // SIM_data_len LL_SIM_receiveRaw(const LL_SIM_intf* sim, SIM_time time);
 // SIM_data_len LL_SIM_receiveRaw_checkCustomErr(const LL_SIM_intf *sim, SIM_time time, SIM_error (*check)(const LL_SIM_intf *, const SIM_err_pair *), const SIM_err_pair *err);

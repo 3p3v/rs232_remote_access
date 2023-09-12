@@ -2,10 +2,12 @@
 
 /* Must exist, can be changed */
 #define SIM_MAX_PARAMS 4
-#define SIM_MAX_AT_LEN 10
+#define SIM_MAX_AT_LEN 50
 #define SIM_MAX_PARAM_LEN 10
 #define SIM_MAX_HANDLERS_NUM 10
-#define SIM_MAX_AT_STR_LEN SIM_MAX_AT_LEN + 1
+#define SIM_MAX_AT_STR_LEN (SIM_MAX_AT_LEN + 1)
+#define SIM_MAX_LINES 20
+#define SIM_MAX_LINES_ARR_LEN (SIM_MAX_LINES + 1)
 #define SIM_CHECK_OK
 
 /* Error codes */
@@ -28,6 +30,9 @@ typedef enum SIM_error
     SIM_sendOk = -14,
     SIM_receive = -15,
     SIM_sendFail = -16,
+    SIM_smsReady = -17,
+    SIM_callReady = -18,
+    SIM_ring = -19,
     SIM_unknown = -99
     // SIM_registered = -7,
     // SIM_roamingRegistered = -8,
@@ -49,11 +54,42 @@ typedef struct SIM_err_pair
     const SIM_error err; 
 } SIM_err_pair;
 
-typedef struct SIM_errMsgEnd_pair
+// typedef struct SIM_err_triple
+// {
+//     const char *name;
+//     const SIM_error err; 
+//     const unsigned char max_len;
+// } SIM_err_triple;
+
+typedef struct SIM_line_pair
 {
     char *ptr;
+    unsigned int len; 
+} SIM_line_pair;
+// typedef union SIM_err_pair_triple
+// {
+//     SIM_err_triple 
+// } SIM_err_pair_triple;
+
+typedef struct SIM_errMsgEnd_pair
+{
+    char *ptr_beg;
+    char *ptr;
     SIM_error err; 
+    unsigned int line_num;
 } SIM_errMsgEnd_pair;
+
+typedef struct SIM_resp_pair
+{
+    char *ptr_beg;
+    char *ptr;
+    unsigned int line_num;
+} SIM_resp_pair;
+
+typedef struct SIM_param
+{
+    char name[SIM_MAX_PARAM_LEN];
+} SIM_param;
 
 typedef struct SIM_resp
 {
@@ -98,8 +134,8 @@ typedef unsigned int SIM_time;
 typedef struct SIM_cmd
 {
     char at[SIM_MAX_AT_STR_LEN];
-    char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
-    unsigned char params_num;
+    // char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
+    // unsigned char params_num;
     SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(char *, unsigned int, SIM_resp *, void *);
     unsigned char handlers_num;
     SIM_resp resp;
@@ -119,6 +155,12 @@ unsigned char SIM_atoi_uint8_t(const char *param, unsigned char param_len);
 unsigned int SIM_atoi_uint32_t(const char *param, unsigned char param_len);
 int SIM_atoi_int32_t(const char *param, unsigned char param_len);
 
+typedef int SIM_data_len;
+
+SIM_data_len SIM_findAllLines(const char *buf, const SIM_data_len rec_len, SIM_line_pair *lines, unsigned int lines_num);
+SIM_errMsgEnd_pair SIM_retrieveCustomErr(const SIM_line_pair *lines, const SIM_err_pair *errs);
+SIM_resp_pair SIM_retrieveCustomResp(const SIM_line_pair *lines, const char *resp);
+
 typedef enum SIM_pin
 {
     SIM_pinLow = 0,
@@ -126,15 +168,13 @@ typedef enum SIM_pin
 } SIM_pin;
 typedef SIM_pin LL_SIM_pin;
 
-typedef int SIM_data_len;
-
 typedef enum SIM_con_num 
 {
-    SIM_con_def = 0,
+    SIM_con_def = - 1,
+    SIM_con_0,
     SIM_con_1,
     SIM_con_2,
     SIM_con_3,
     SIM_con_4,
-    SIM_con_5,
-    SIM_con_6
+    SIM_con_5
 } SIM_con_num;

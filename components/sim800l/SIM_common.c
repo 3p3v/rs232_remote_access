@@ -40,7 +40,7 @@ SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd)
    SIM_error err = SIM_ok;
    xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
    // Send command
-   err = SIM_sendAT(sim, cmd->at, cmd->params);
+   err = SIM_sendAT(sim, cmd->at);
    if (err != SIM_ok)
       goto REGION_END;
 
@@ -70,8 +70,10 @@ SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
    err = LL_SIM_wait(sim, cmd->timeout);
 
    // 'delete' cmd from listener
+   // xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
    sim->cmds_num--;
    sim->cmds[sim->cmds_num].cmd = NULL;
+   // xSemaphoreGive(sim->exec_mutex);
 
    return err;
 }
@@ -91,63 +93,40 @@ SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_cmd *cmd)
    
 // }
 
+void SIM_setAT(char *at, const char *type, const SIM_param *params)
+{
+   const char *beg = "AT+";
+   const char *end = "=";
+   const char *next = ",";
+   const char *new_line = "\r\n";
+
+   at[0] = '\0';
+   strcat(at, beg);
+   strcat(at, type);
+   if (*params[0].name != NULL)
+   {
+      strcat(at, end);
+      for (int p_num = 0; p_num < SIM_MAX_PARAMS; p_num++)
+      {
+         strcat(at, params[p_num].name);
+         if (*params[p_num + 1].name != NULL)
+            strcat(at, next);
+         else 
+            break;
+      }
+   }
+   strcat(at, new_line);
+
+   return;
+}
+
 /* Send AT command with any params.
  * Given array of params must contain
  * a NULL ptr after the last parameter.
  */
-SIM_error SIM_sendAT(const SIM_intf *sim, const char *type, const char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN]) // TODO check length
+SIM_error SIM_sendAT(const SIM_intf *sim, const char *at) // TODO check length
 {
-   const char *beg = "AT+";
-   const char *end = "=";
-   const char *new_line = "\r\n";
-
-   unsigned int len = strlen(type) + strlen(beg) + strlen(end);
-
-   int p_num;
-
-   for (p_num = 0; p_num < SIM_MAX_PARAMS; p_num++)
-   {
-      if (params[p_num][0] == '\0')
-         break;
-
-      len += strlen(*(params + p_num)) + 1;
-   }
-   len--;
-
-   // char temp[len + strlen(new_line) + 1] = {};
-   char *temp = sim->buf;
-   memcpy(temp, beg, strlen(beg));
-   int len2 = strlen(beg);
-
-   memcpy(temp + len2, type, strlen(type));
-   len2 += strlen(type);
-
-   if (p_num > 0)
-   {
-      memcpy(temp + len2, end, strlen(end));
-      len2 += strlen(end);
-   }
-
-   for (int i = 0; i < SIM_MAX_PARAMS; i++)
-   {
-      if (*(*(params + i) + 0) == '\0')
-         break;
-
-      memcpy(temp + len2, *(params + i), strlen(*(params + i)));
-      len2 += strlen(*(params + i));
-      if (len2 < len)
-      {
-         *(temp + len2) = ',';
-         len2 += 1;
-      }
-   }
-
-   memcpy(temp + len2, new_line, strlen(new_line));
-   len2 += strlen(new_line);
-
-   temp[len2] = '\0';
-
-   return LL_SIM_sendData(sim, temp);
+   return LL_SIM_sendData(sim, at, strlen(at));
 }
 
 // SIM_error SIM_sendAT_short(const SIM_intf *sim, const char *type)
@@ -198,83 +177,68 @@ SIM_error SIM_sendAT(const SIM_intf *sim, const char *type, const char params[SI
 // }
 
 /* Get error code, error code must be located at the end of the message */
-SIM_errMsgEnd_pair SIM_retrieveErr(char *buf, unsigned int rec_len) // TODO fix
+SIM_errMsgEnd_pair SIM_retrieveErr(const SIM_line_pair *lines) // TODO fix
 {
-   SIM_errMsgEnd_pair err;
-   
-   err.ptr = strstr(buf + rec_len - 6, "\r\nOK\r\n");
-   if (rec_len >= 4 && err.ptr)
-   {
-      err.err = SIM_ok;
-      err.ptr += strlen("\r\nOK\r\n");
-      return err;
-   }
+   SIM_err_pair c_st[] = {{.name = "OK\r\n", .err = SIM_ok},
+                           {.name = "ERROR\r\n", .err = SIM_err},
+                           {.name = NULL, .err = SIM_noErrCode}};
 
-   err.ptr = strstr(buf + rec_len - 9, "\r\nERROR\r\n");
-   if (rec_len >= 7 && err.ptr)
-   {
-      err.err = SIM_err;
-      err.ptr += strlen("\r\nERROR\r\n");
-      return err;
-   }
-
-   err.err = SIM_noErrCode;
-   return err;
+   return SIM_retrieveCustomErr(lines, c_st);
 }
 
 /* Get error code, can be located anywhere, starts searching from the top */
-SIM_errMsgEnd_pair SIM_retrieveErr_find(char *buf, unsigned int rec_len) // TODO fix
-{
-   SIM_errMsgEnd_pair err;
+// SIM_errMsgEnd_pair SIM_retrieveErr_find(char *buf, unsigned int rec_len) // TODO fix
+// {
+//    SIM_errMsgEnd_pair err;
    
-   err.ptr = strstr(buf, "\r\nOK\r\n");
-   if (rec_len >= 4 && err.ptr)
-   {
-      err.err = SIM_ok;
-      err.ptr += strlen("\r\nOK\r\n");
-      return err;
-   }
+//    err.ptr = strstr(buf, "\r\nOK\r\n");
+//    if (rec_len >= 4 && err.ptr)
+//    {
+//       err.err = SIM_ok;
+//       err.ptr += strlen("\r\nOK\r\n");
+//       return err;
+//    }
 
-   err.ptr = strstr(buf, "\r\nERROR\r\n");
-   if (rec_len >= 7 && err.ptr)
-   {
-      err.err = SIM_err;
-      err.ptr += strlen("\r\nERROR\r\n");
-      return err;
-   }
+//    err.ptr = strstr(buf, "\r\nERROR\r\n");
+//    if (rec_len >= 7 && err.ptr)
+//    {
+//       err.err = SIM_err;
+//       err.ptr += strlen("\r\nERROR\r\n");
+//       return err;
+//    }
 
-   err.err = SIM_noErrCode;
-   return err;
-}
+//    err.err = SIM_noErrCode;
+//    return err;
+// }
 
 /* Find custom error message, error code must be located at the end of the message */
-SIM_errMsgEnd_pair SIM_retrieveCustomErr_find(char *buf, unsigned int rec_len, const SIM_err_pair *err)
-{
-   SIM_errMsgEnd_pair err_pair;
-   int i = 0;
+// SIM_errMsgEnd_pair SIM_retrieveCustomErr_find(char *buf, unsigned int rec_len, const SIM_err_pair *err)
+// {
+//    SIM_errMsgEnd_pair err_pair;
+//    int i = 0;
 
-   for(;;)
-   {
-      if (err[i].name == NULL)
-      {
-         err_pair.err = err[i].err;
-         err_pair.ptr = NULL;
-         return err_pair;
-      }
-      else
-      {
-         err_pair.ptr = strstr(buf, err[i].name);
-         if (err_pair.ptr != NULL)
-         {
-            err_pair.err = err[i].err;
-            err_pair.ptr += strlen(err[i].name);
-            return err_pair;
-         }
-      }
+//    for(;;)
+//    {
+//       if (err[i].name == NULL)
+//       {
+//          err_pair.err = err[i].err;
+//          err_pair.ptr = NULL;
+//          return err_pair;
+//       }
+//       else
+//       {
+//          err_pair.ptr = strstr(buf, err[i].name);
+//          if (err_pair.ptr != NULL)
+//          {
+//             err_pair.err = err[i].err;
+//             err_pair.ptr += strlen(err[i].name);
+//             return err_pair;
+//          }
+//       }
       
-      i++;
-   }
-}
+//       i++;
+//    }
+// }
 
 /* Find custom error message, can be located anywhere, starts searching from the top */
 // SIM_error SIM_retrieveCustomErr_find(const SIM_intf *sim, const SIM_err_pair *err)
@@ -342,28 +306,29 @@ SIM_errMsgEnd_pair SIM_retrieveCustomErr_find(char *buf, unsigned int rec_len, c
 // }
 
 /* Get ptr to response, returns length of the response */
-SIM_error SIM_retrieveResp(char *buf, unsigned int rec_len, SIM_resp *resp)
+SIM_error SIM_retrieveResp(SIM_line_pair *lines, const char *at, SIM_resp *resp)
 {
-   // Find line starting with "+"
-   char ret[SIM_MAX_AT_STR_LEN + 2] = {};
-   ret[0] = '+';
-   strcat(ret, resp->at);
-   strcat(ret, ":");
-   char *start = strstr((buf + 0), ret); // const ???
+   char resp_str[strlen("+") + strlen(at) + strlen(":") + 1];
+   sprintf(resp_str, "+%s:", at);
 
-   if (start == NULL)
+   SIM_resp_pair rp = SIM_retrieveCustomResp(lines, resp_str);
+
+   if (rp.ptr_beg == NULL)
    {
       resp->resp = NULL;
       resp->resp_len = 0;
       return SIM_noResp;
    }
-   else
+   else if (!strcmp(rp.ptr - strlen("\r\n"), "\r\n"))
    {
-      start += strlen(ret) + 1;
+      resp->resp = NULL;
+      resp->resp_len = 0;
+      return SIM_noResp;
    }
 
    // Find endl
-   const char *endl = strstr((start + 0), "\r\n");
+   char *start = rp.ptr_beg + strlen(resp_str);
+   const char *endl = rp.ptr - strlen("\r\n") - 1;
 
    if (start < endl) // endl && start < endl
    {
@@ -536,9 +501,9 @@ SIM_data_len SIM_retrieveData(char *buf, unsigned int rec_len, SIM_resp *resp, c
 //    return err;
 // }
 
-SIM_error SIM_retrieve(char *buf, unsigned int rec_len, SIM_resp *resp)
+SIM_error SIM_retrieve(SIM_line_pair *lines, char *at, SIM_resp *resp)
 {
-   SIM_error err = SIM_retrieveResp(buf, rec_len, resp);
+   SIM_error err = SIM_retrieveResp(lines, at, resp);
    ESP_LOGI("SIM", "SIM_retrieveResp: %i", err);
    if (err != SIM_ok)
       return err;

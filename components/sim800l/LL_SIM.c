@@ -31,6 +31,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
 
     sim->add_cmd_mutex = xSemaphoreCreateMutex();
     sim->write_mutex = xSemaphoreCreateMutex();
+    sim->exec_mutex = xSemaphoreCreateMutex();
 }
 
 /*  UART configuration, includes ESP pattern detection (detects every new line) */
@@ -84,14 +85,17 @@ LL_SIM_error LL_SIM_deinit(const LL_SIM_intf *sim)
         return SIM_hardwareErr;
 }
 
-static void SIM_setMsg(char *buf, unsigned int rec_len, char *msg_end)
+static void SIM_setMsg(char *buf, unsigned int *rec_len, char *msg_end)
 {
-    memcpy(buf, msg_end, rec_len - (msg_end - buf) + 1);
+    memcpy(buf, msg_end, *rec_len - (msg_end - buf) + 1);
+    *rec_len -= msg_end - buf;
 }
 
 SIM_error SIM_exec(SIM_intf *sim)
 {
     SIM_error err;
+
+    // xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
 
     for (int i = sim->cmds_num - 1; i >= 0; i--)
     {
@@ -106,7 +110,7 @@ SIM_error SIM_exec(SIM_intf *sim)
             if (err == SIM_ok)
             {
                 // Handler was executed correctly
-                SIM_setMsg(sim->buf, sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
                 sim->cmds[i].cmd->handlers_num--;
                 if (sim->cmds[i].cmd->handlers_num == 0)
                 {
@@ -118,7 +122,7 @@ SIM_error SIM_exec(SIM_intf *sim)
                 }
 
                 sim->unread_num = 0;
-                if ((sim->buf + sim->rec_len) == sim->cmds[i].cmd->resp.msg_end)
+                if (sim->rec_len == 0)
                 {
                     // no message left
                     goto REGION_END;
@@ -136,11 +140,11 @@ SIM_error SIM_exec(SIM_intf *sim)
             else 
             {
                 // ecountered error
-                SIM_setMsg(sim->buf, sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
+                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
                 xQueueSend(sim->cmds[i].queue, (void *)&err, portMAX_DELAY);
                 /********/
                 sim->unread_num = 0;
-                if ((sim->buf + sim->rec_len) == sim->cmds[i].cmd->resp.msg_end)
+                if (sim->rec_len == 0)
                 {
                     // no message left
                     goto REGION_END;
@@ -162,12 +166,12 @@ SIM_error SIM_exec(SIM_intf *sim)
             if (err == SIM_ok)
             {
                 // Handler was executed correctly
-                SIM_setMsg(sim->buf, sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
                 /* EDIT */
                 xQueueSend(sim->cmds[i].queue, (void *)&sim->cmds[i].cmd->resp.err, portMAX_DELAY);
                 /********/
                 sim->unread_num = 0;
-                if ((sim->buf + sim->rec_len) == sim->cmds[i].cmd->resp.msg_end)
+                if (sim->rec_len == 0)
                 {
                     // no message left
                     goto REGION_END;
@@ -184,14 +188,14 @@ SIM_error SIM_exec(SIM_intf *sim)
             else
             {
                 // encountered error
-                SIM_setMsg(sim->buf, sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
                 /* EDIT */
                 xQueueSend(sim->cmds[i].queue, (void *)&err, portMAX_DELAY);
                 /********/
                 // 'delete' cmd from listener
                 sim->cmds[i].cmd = NULL;
                 sim->unread_num = 0;
-                if ((sim->buf + sim->rec_len) == sim->cmds[i].cmd->resp.msg_end)
+                if (sim->rec_len == 0)
                 {
                     // no message left
                     goto REGION_END;
@@ -212,12 +216,13 @@ SIM_error SIM_exec(SIM_intf *sim)
     }
 
 REGION_END:
+    // xSemaphoreGive(sim->exec_mutex);
     return err;
 }
 
 LL_SIM_error LL_SIM_wait(LL_SIM_intf *sim, SIM_time time)
 {
-    LL_SIM_error err;
+    LL_SIM_error err = SIM_timeoutErr;
 
     xQueueReceive(sim->cmds[sim->cmds_num - 1].queue, &err, time / portTICK_PERIOD_MS);
 
@@ -227,7 +232,7 @@ LL_SIM_error LL_SIM_wait(LL_SIM_intf *sim, SIM_time time)
 void LL_SIM_listen(LL_SIM_intf *sim)
 {
     // read data non stop
-    xTaskCreate(LL_SIM_receiveHandler, "SIM_listener", 2048, (void *)sim, 5, NULL);
+    xTaskCreate(LL_SIM_receiveHandler, "SIM_listener", 4096, (void *)sim, 5, NULL);
 }
 
 void LL_SIM_receiveHandler(void *sim_void)
@@ -250,7 +255,7 @@ void LL_SIM_receiveHandler(void *sim_void)
 // }
 
 /* Send data to LL_SIM */
-LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data)
+LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data, const unsigned int data_len)
 {
     LL_SIM_error err = SIM_ok;
     xSemaphoreTake(sim->write_mutex, portMAX_DELAY);
@@ -259,7 +264,7 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, const char *data)
     xQueueReset(sim->uartQueue);
 
     /* Send data */
-    int len = uart_write_bytes(sim->uart, data, strlen(data));
+    int len = uart_write_bytes(sim->uart, data, data_len);
 
     if (len > 0)
         err = SIM_ok;
