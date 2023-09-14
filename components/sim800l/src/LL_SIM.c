@@ -121,10 +121,11 @@ SIM_error SIM_exec(SIM_intf *sim)
                     /********/
                 }
 
-                sim->unread_num = 0;
+                
                 if (sim->rec_len == 0)
                 {
                     // no message left
+                    sim->unread_num = 0;
                     goto REGION_END;
                 }
                 else
@@ -143,10 +144,11 @@ SIM_error SIM_exec(SIM_intf *sim)
                 SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
                 xQueueSend(sim->cmds[i].queue, (void *)&err, portMAX_DELAY);
                 /********/
-                sim->unread_num = 0;
+                
                 if (sim->rec_len == 0)
                 {
                     // no message left
+                    sim->unread_num = 0;
                     goto REGION_END;
                 }
                 else
@@ -170,10 +172,11 @@ SIM_error SIM_exec(SIM_intf *sim)
                 /* EDIT */
                 xQueueSend(sim->cmds[i].queue, (void *)&sim->cmds[i].cmd->resp.err, portMAX_DELAY);
                 /********/
-                sim->unread_num = 0;
+                
                 if (sim->rec_len == 0)
                 {
                     // no message left
+                    sim->unread_num = 0;
                     goto REGION_END;
                 }
                 else
@@ -194,10 +197,11 @@ SIM_error SIM_exec(SIM_intf *sim)
                 /********/
                 // 'delete' cmd from listener
                 sim->cmds[i].cmd = NULL;
-                sim->unread_num = 0;
+                
                 if (sim->rec_len == 0)
                 {
                     // no message left
+                    sim->unread_num = 0;
                     goto REGION_END;
                 }
                 else
@@ -303,7 +307,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
                 sim->rec_len = 0;
 
             sim->rec_len += uart_read_bytes(sim->uart, sim->buf + sim->rec_len, event.size, portMAX_DELAY);
-            sim->buf[sim->rec_len] = '\0';
+            (*((char *)(sim->buf) + sim->rec_len)) = '\0';
             sim->unread_num++;
             // ESP_LOGI(TAG, "[UART DATA]: %d", sim->rec_len);
             // printf("%s", sim->buf); // TODO delete

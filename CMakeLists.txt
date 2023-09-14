@@ -4,5 +4,6 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
 
+set(COMPONENTS esp32 esptool_py bootloader main spi_flash DRIVER mbedtls mqtt) # lwip)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(praca_inzynierska_device)

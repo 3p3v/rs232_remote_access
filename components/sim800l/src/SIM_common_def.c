@@ -12,8 +12,8 @@ void SIM_respNULL(SIM_resp *resp, const char *at_resp_name)
 {
     memset(resp, 0, sizeof(*resp));
     strcpy(resp->at, at_resp_name);
-    if (resp->at[strlen(resp->at) - 1] == '?')
-        resp->at[strlen(resp->at) - 1] = '\0';
+    // if (resp->at[strlen(resp->at) - 1] == '?')
+    //     resp->at[strlen(resp->at) - 1] = '\0';
 
     resp->err = SIM_unknown;
     // resp->resp = NULL;

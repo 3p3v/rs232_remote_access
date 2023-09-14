@@ -113,7 +113,7 @@ static SIM_errMsgEnd_pair SIM_execCIFSR_retrieveIP(char *buf, unsigned int rec_l
         const char *end = strstr(resp->data, "\r\n");
         if (end != NULL)
         {
-            resp->data_len = end - resp->data;
+            resp->data_len = end - (char *)resp->data;
             err.err = SIM_ok;
             err.ptr = end + strlen("\r\n");
             return err;
@@ -254,7 +254,7 @@ static SIM_error SIM_execCIPSEND_handler1(char *buf, unsigned int rec_len, SIM_r
     return err.err;
 }
 
-SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, char *send_data, SIM_data_len send_data_len)
+SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, void *send_data, SIM_data_len send_data_len)
 {
     SIM_param params[1];
     *params[0].name = NULL;
@@ -317,7 +317,7 @@ static SIM_error SIM_writeCIPSEND_handler1(char *buf, unsigned int rec_len, SIM_
     return err.err;
 }
 
-SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, char *send_data, SIM_data_len send_data_len)
+SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void *send_data, SIM_data_len send_data_len)
 {
     SIM_param params[4];
     if (n > SIM_con_5 || n < SIM_con_def)
@@ -342,7 +342,7 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, char
     {
         if (length == 0)
             return NULL;
-        
+
         sprintf(params[0].name, "%u", length);
         *params[1].name = NULL;
     }
@@ -401,7 +401,7 @@ static SIM_error SIM_listenTCP_cipmux0_handler(char *buf, unsigned int rec_len, 
         resp->data = buf;
         resp->err = err.err;
         err = SIM_retrieveCustomErr(lines, SIM_reservedResps);
-        resp->data_len = err.ptr - resp->data;
+        resp->data_len = err.ptr - (char *)resp->data;
         resp->msg_end = err.ptr;
 
         return SIM_ok;
@@ -432,20 +432,40 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
         {
             return SIM_noErrCode;
         }
-        
+
+        char *resp_end = strstr(err.ptr_beg, ":/r/n");
+        if (resp_end == NULL)
+            return SIM_err;
+
+        xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+        // save response to buffer
+        realloc(resp->resp, resp->resp_len = ((sizeof(unsigned char) * (resp_end - err.ptr_beg)) - strlen("+RECEIVE,")));
+        memcpy(resp->resp, err.ptr_beg + strlen("+RECEIVE,"), resp->resp_len);
+
         // get parameters
-        resp->params[0].ptr = (err.ptr_beg + strlen("+RECEIVE,"));
+        resp->params[0].ptr = resp->resp;
         resp->params[0].len = 1;
-        resp->params[1].ptr = resp->params[0].ptr + 2;
-        resp->params[1].len = strstr(resp->params[1].ptr, ":") - resp->params[1].ptr;
+        resp->params[1].ptr = resp->resp + 2;
+        resp->params[1].len = resp->resp_len - (resp->params[1].ptr - resp->resp);
         resp->params_num = 2;
 
         // get data
         SIM_line_pair *lines_ptr = (lines + (err.line_num + 1));
         SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr(lines_ptr, SIM_reservedResps);
         resp->msg_end = err2.ptr;
-        resp->data = err.ptr;
-        resp->data_len = err2.ptr - err.ptr;
+        if (resp->data_len != 0)
+        {
+            resp->data = realloc(resp->data, sizeof(unsigned char) * (resp->data_len + err2.ptr - err.ptr));
+            memcpy(resp->data + resp->data_len, err.ptr, err2.ptr - err.ptr);
+        }
+        else
+        {
+            resp->data = malloc(sizeof(unsigned char) * (err2.ptr - err.ptr));
+            memcpy(resp->data, err.ptr, err2.ptr - err.ptr);
+        }
+        resp->data_len += err2.ptr - err.ptr;
+
+        xSemaphoreGive(resp->data_mutex);
 
         SIM_listenTCP_receive_handler(/* EDIT */);
         resp->err = SIM_receive;
@@ -465,7 +485,110 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
     }
 }
 
-SIM_cmd * SIM_listenTCP(SIM_cmd *cmd, const SIM_con_num n)
+SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
+{
+    char n_str[10];
+    sprintf(n_str, "%u", n);
+
+    SIM_cmd *cmd = NULL;
+    SIM_resp *resp;
+
+    // Find the right stream
+    for(int i = 0; i < sim->cmds_num; i++)
+    {
+        if(sim->cmds[i].cmd->at[12] == n_str[0])
+        {
+            cmd = sim->cmds[i].cmd;
+            resp = &cmd->resp;
+            break;
+        }
+    }
+    if (cmd == NULL)
+        return SIM_err;
+    
+    // Read the data and delete it from the buffer
+    xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+    unsigned int read_len;
+    if (len < resp->data_len)
+    {
+        memcpy(buf, resp->data, len);
+        memcpy(resp->data, resp->data + len, resp->data_len - len);
+        resp->data_len = resp->data_len - len;
+        resp->data = realloc(resp->data, resp->data_len - len);
+        read_len = len;
+        goto EXIT;
+    }
+    else
+    {
+        memcpy(buf, resp->data, resp->data_len);
+        free(resp->data);
+        resp->data_len = 0;
+        goto EXIT;
+    }
+
+    EXIT:
+    xSemaphoreGive(resp->data_mutex);
+    return read_len;
+}
+
+SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
+{
+    char n_str[10];
+    sprintf(n_str, "%u", n);
+
+    SIM_cmd *cmd = NULL;
+    SIM_resp *resp;
+
+    // Find the right stream
+    for(int i = 0; i < sim->cmds_num; i++)
+    {
+        if(sim->cmds[i].cmd->at[12] == n_str[0])
+        {
+            cmd = sim->cmds[i].cmd;
+            resp = &cmd->resp;
+            break;
+        }
+    }
+    if (cmd == NULL)
+        return SIM_err;
+    
+    // Read the data and delete it from the buffer
+    xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+    unsigned int read_len;
+    if (len < resp->data_len)
+    {
+        memcpy(buf, resp->data, len);
+        memcpy(resp->data, resp->data + len, resp->data_len - len);
+        resp->data_len = resp->data_len - len;
+        resp->data = realloc(resp->data, resp->data_len - len);
+        read_len = len;
+        goto EXIT;
+    }
+    else
+    {
+        memcpy(buf, resp->data, resp->data_len);
+        free(resp->data);
+        resp->data_len = 0;
+        goto EXIT;
+    }
+
+    EXIT:
+    xSemaphoreGive(resp->data_mutex);
+    return read_len;
+}
+
+SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
+{
+    SIM_error err;
+    SIM_cmd cmd;
+    SIM_writeCIPSEND(&cmd, n, 0, buf, len);
+    if (err = SIM_run(&sim, &cmd) != SIM_ok)
+        return (int)err;
+
+    return len;
+}
+
+SIM_cmd *SIM_listenTCP(SIM_cmd *cmd, const SIM_con_num n)
 {
     if (n > SIM_con_5 || n < SIM_con_def)
         return NULL;
@@ -483,6 +606,7 @@ SIM_cmd * SIM_listenTCP(SIM_cmd *cmd, const SIM_con_num n)
 
     cmd->handlers_num = 1;
     SIM_respNULL(&cmd->resp, cmd->at);
+    cmd->resp.data_mutex = xSemaphoreCreateMutex();
     cmd->type = SIM_cmd_multiple_launch;
     cmd->timeout = 0;
 

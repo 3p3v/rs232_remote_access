@@ -44,7 +44,7 @@ typedef struct LL_SIM_intf
 {
     /* Must not be deleted */
     /* Buffer used for receiving raw messages from SIM800L module */
-    char *buf;
+    void *buf;
     unsigned int buf_len;
     /* Length of last received message from SIM800L module */
     unsigned int rec_len;

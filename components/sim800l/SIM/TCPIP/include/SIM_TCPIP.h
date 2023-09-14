@@ -36,11 +36,15 @@ SIM_cmd *SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *
 #define SIM_EXECCIPSEND_TIMEOUT 1000
 #define SIM_WRITECIPSEND_TIMEOUT 1000
 /* AT+CIPSEND Send Data Through TCP or UDP Connection */
-SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, char *send_data, SIM_data_len send_data_len);
-SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, char *send_data, SIM_data_len send_data_len);
+SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, void *send_data, SIM_data_len send_data_len);
+SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void *send_data, SIM_data_len send_data_len);
 // SIM_error SIM_execCIPSEND_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
 /* Listen to TCP stream */
+void SIM_listenTCP_receive_handler(/* EDIT */);
+void SIM_listenTCP_closed_handler(/* EDIT */);
+SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len);
+SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len);
 SIM_cmd *SIM_listenTCP(SIM_cmd *cmd, const SIM_con_num n);
 
 /* AT+CIPMUX Start Up Multi-IP Connection */

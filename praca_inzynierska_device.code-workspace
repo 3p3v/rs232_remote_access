@@ -18,7 +18,7 @@
 		"idf.openOcdConfigs": [
 			"board/esp32-wrover-kit-3.3v.cfg"
 		],
-		"idf.pythonBinPathWin": "C:\\Users\\ADAM\\.espressif\\python_env\\idf5.0_py3.8_env\\Scripts\\python.exe",
+		"idf.pythonBinPathWin": "C:\\Users\\ADAM\\esp\\esp-idf\\tools\\python_env\\idf5.0_py3.11_env\\Scripts\\python.exe",
 		"idf.toolsPathWin": "C:\\Users\\ADAM\\.espressif",
 		"files.associations": {
 			"array": "cpp",
@@ -87,7 +87,12 @@
 			"typeinfo": "cpp",
 			"sim_common_def.h": "c",
 			"sim_common.h": "c",
-			"stdio.h": "c"
+			"stdio.h": "c",
+			"net_sockets.h": "c",
+			"mqtt.h": "c",
+			"mqtt_client.h": "c",
+			"ssl.h": "c",
+			"sim_tcpip.h": "c"
 		}
 	},
 	"launch": {

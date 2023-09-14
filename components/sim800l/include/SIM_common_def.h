@@ -1,5 +1,7 @@
 #pragma once
 
+#include <freertos\FreeRTOS.h>
+
 /* Must exist, can be changed */
 #define SIM_MAX_PARAMS 4
 #define SIM_MAX_AT_LEN 50
@@ -102,7 +104,9 @@ typedef struct SIM_resp
     SIM_resp_params params[SIM_MAX_PARAMS];
     char *send_data;
     unsigned int send_data_len;
-    char *data;
+    unsigned char *data_buf;
+    SemaphoreHandle_t data_mutex;
+    void *data;
     unsigned int data_len;
     char *msg_end;
     SIM_error err;

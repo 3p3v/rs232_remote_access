@@ -478,7 +478,7 @@ SIM_data_len SIM_retrieveData(char *buf, unsigned int rec_len, SIM_resp *resp, c
       }
       else
       {
-         resp->data_len = rec_len - (resp->data - buf);
+         resp->data_len = rec_len - ((char *)resp->data - buf);
 
          if (rec_len >= 4 && strstr(buf, "\r\nOK\r\n"))
          {

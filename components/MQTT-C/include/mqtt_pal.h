@@ -67,6 +67,16 @@ extern "C" {
  * for sending and receiving data using the platforms socket calls.
  */
 
+/* ESP-32 support */
+#define __esp32__
+#define __sim800__
+#define MQTT_USE_MBEDTLS
+#ifdef __esp32__
+    #define __unix__
+#endif
+#ifdef __sim800__
+    #include <inet_sim800.h>
+#endif
 
 /* UNIX-like platform support */
 #if defined(__unix__) || defined(__APPLE__) || defined(__NuttX__)
@@ -74,7 +84,9 @@ extern "C" {
     #include <string.h>
     #include <stdarg.h>
     #include <time.h>
-    #include <arpa/inet.h>
+    #ifndef __sim800__
+        #include <arpa/inet.h>
+    #endif
     #include <pthread.h>
 
     #define MQTT_PAL_HTONS(s) htons(s)
