@@ -35,10 +35,14 @@ static char *SIM_util_strchar(const SIM_resp *resp, const char *start, const cha
    //    return NULL;
 }
 
+
+
 SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd)
 {
    SIM_error err = SIM_ok;
    xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
+   // Minimalise the risc of interrupting current reading task
+   while (sim->tcp_ret);
    // Send command
    err = SIM_sendAT(sim, cmd->at);
    if (err != SIM_ok)
@@ -52,7 +56,7 @@ SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd)
    return err;
 }
 
-SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_cmd *cmd)
+SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
 {
    SIM_error err = SIM_ok;
 
@@ -64,24 +68,26 @@ SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
 {
    SIM_error err;
 
-   sim->cmds[sim->cmds_num].cmd = cmd;
-   sim->cmds_num++;
+   xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
+   sim->cmds.cmd = cmd;
+   xSemaphoreGive(sim->exec_mutex);
 
    err = SIM_wait(sim, cmd->timeout);
 
    // 'delete' cmd from listener
    xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
-   sim->cmds_num--;
-   sim->cmds[sim->cmds_num].cmd = NULL;
+   sim->cmds.cmd = NULL;
    xSemaphoreGive(sim->exec_mutex);
 
    return err;
 }
 
-SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_cmd *cmd)
+SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
 {
-   sim->cmds[sim->cmds_num].cmd = cmd;
-   sim->cmds_num++;
+   xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
+   sim->tcp_cmds[cmd->con].cmd = malloc(sizeof(SIM_TCP_cmd));
+   memcpy(sim->tcp_cmds[cmd->con].cmd, cmd, sizeof(SIM_TCP_cmd));
+   xSemaphoreGive(sim->exec_mutex);
 
    return SIM_ok;
 }

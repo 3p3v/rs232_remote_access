@@ -29,6 +29,7 @@ C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/http_parser/libhttp_parser.
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/esp-tls/libesp-tls.a
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/tcp_transport/libtcp_transport.a
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mqtt/libmqtt.a
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/libnvs_flash.a
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/sim800l/libsim800l.a
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mbedtls_sim800/libmbedtls_sim800.a
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/MQTT-C/libMQTT-C.a

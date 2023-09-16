@@ -342,6 +342,13 @@ C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mqtt/CMakeFiles/list_instal
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mqtt/CMakeFiles/install.dir
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mqtt/CMakeFiles/install/local.dir
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/mqtt/CMakeFiles/install/strip.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/edit_cache.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/rebuild_cache.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/list_install_components.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/install.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/install/local.dir
+C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/nvs_flash/CMakeFiles/install/strip.dir
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/sim800l/CMakeFiles/__idf_sim800l.dir
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/sim800l/CMakeFiles/edit_cache.dir
 C:/Users/ADAM/praca_inzynierska_device/build/esp-idf/sim800l/CMakeFiles/rebuild_cache.dir

@@ -11,6 +11,7 @@
 #include "LL_SIM.h"
 
 static char TAG[] = "LL_SIM";
+extern const SIM_err_pair SIM_reservedResps[];
 
 void LL_SIM_def(LL_SIM_intf *sim)
 {
@@ -20,14 +21,24 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->unread_num = 0;
     sim->tx = LL_SIM_DEF_UART_TX;
     sim->rx = LL_SIM_DEF_UART_RX;
-    sim->baudRate = 9600;
+    sim->baudRate = 19200;
     sim->drt = LL_SIM_DEF_DRT_PIN;
     sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
     sim->uartQueue = NULL; // xQueueCreate(LL_SIM_DEF_QUEUE_SIZE, sizeof(int));
-    sim->cmds_num = 0;
-    for (int i = 0; i < LL_SIM_DEF_CMDS_NUM; i++)
-        sim->cmds[i].queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
+    sim->cmds.cmd = NULL;
+    sim->cmds.queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
+    for (int i = 0; i < LL_SIM_DEF_TCP_CMDS_NUM; i++)
+        sim->tcp_cmds[i].queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
+
+    sim->tcp_ret = NULL;
+
+    for (int i = 0; i < SIM_MAX_LINES_ARR_LEN; i++)
+    {
+        sim->lines[i].ptr = NULL;
+        sim->lines[i].len = 0;
+    }
+    sim->lines_num = 0;
 
     sim->add_cmd_mutex = xSemaphoreCreateMutex();
     sim->write_mutex = xSemaphoreCreateMutex();
@@ -97,126 +108,174 @@ SIM_error SIM_exec(SIM_intf *sim)
 
     xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
 
-    for (int i = sim->cmds_num - 1; i >= 0; i--)
+START:
+    // Find all lines in data
+    sim->lines_num = SIM_findAllLines(sim->buf, sim->rec_len, sim->lines, SIM_MAX_LINES_ARR_LEN);
+    SIM_errMsgEnd_pair err_pair = SIM_retrieveCustomErr(sim->lines, SIM_reservedResps);
+
+    switch (err_pair.err)
     {
-        switch (sim->cmds[i].cmd->type)
+    case SIM_noErrCode:
+    {
+        // for (;;)
+        // {
+        if (sim->cmds.cmd == NULL)
         {
-        case SIM_cmd_single_use:
-        {
-            // Execute operations with data received
-            err = sim->cmds[i].cmd->handlers[sim->cmds[i].cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds[i].cmd->resp, (void *)sim);
-
-            // Check execution code
-            if (err == SIM_ok)
-            {
-                // Handler was executed correctly
-                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
-                sim->cmds[i].cmd->handlers_num--;
-                if (sim->cmds[i].cmd->handlers_num == 0)
-                {
-                    // If all handlers were executed then return with ok code and 'delete' cmd from listener
-                    // sim->cmds[i].cmd->err = err;
-                    /* EDIT */
-                    xQueueSend(sim->cmds[i].queue, (void *)&sim->cmds[i].cmd->resp.err, portMAX_DELAY);
-                    /********/
-                }
-
-                
-                if (sim->rec_len == 0)
-                {
-                    // no message left
-                    sim->unread_num = 0;
-                    goto REGION_END;
-                }
-                else
-                {
-                    // another message, or part of it left in buffer, let it be processed by another cmd
-                }
-            }
-            else if (err == SIM_noErrCode || err == SIM_noResp)
-            {
-                // try again untill the cmd isn't removed
-                goto REGION_END;
-            }
-            else 
-            {
-                // ecountered error
-                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
-                xQueueSend(sim->cmds[i].queue, (void *)&err, portMAX_DELAY);
-                /********/
-                
-                if (sim->rec_len == 0)
-                {
-                    // no message left
-                    sim->unread_num = 0;
-                    goto REGION_END;
-                }
-                else
-                {
-                    // another message, or part of it left in buffer, let it be processed by another cmd
-                }
-
-            }
-            
-
-            break;
+            err = SIM_noErrCode;
+            goto REGION_END;
         }
-        case SIM_cmd_multiple_launch:
-        {
-            err = sim->cmds[i].cmd->handlers[sim->cmds[i].cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds[i].cmd->resp, (void *)sim);
 
-            if (err == SIM_ok)
+        err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds.cmd->resp, (void *)sim);
+
+        // Check execution code
+        if (err == SIM_ok)
+        {
+            // Handler was executed correctly
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+            sim->cmds.cmd->handlers_num--;
+            if (sim->cmds.cmd->handlers_num == 0)
             {
-                // Handler was executed correctly
-                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+                // If all handlers were executed then return with ok code and 'delete' cmd from listener
+                // sim->cmds.cmd->err = err;
                 /* EDIT */
-                xQueueSend(sim->cmds[i].queue, (void *)&sim->cmds[i].cmd->resp.err, portMAX_DELAY);
+                xQueueSend(sim->cmds.queue, (void *)&err /*&sim->cmds.cmd->resp.err*/, portMAX_DELAY);
+                sim->cmds.cmd = NULL;
                 /********/
-                
-                if (sim->rec_len == 0)
-                {
-                    // no message left
-                    sim->unread_num = 0;
-                    goto REGION_END;
-                }
-                else
-                {
-                    // another message, or part of it left in buffer, let it be processed by another cmd
-                }
             }
-            else if (err == SIM_noErrCode || err == SIM_noResp)
+
+            if (sim->rec_len == 0)
             {
-                // didn't match, check another cmd
+                // no message left
+                sim->unread_num = 0;
+                goto REGION_END;
             }
             else
             {
-                // encountered error
-                SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds[i].cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
-                /* EDIT */
-                xQueueSend(sim->cmds[i].queue, (void *)&err, portMAX_DELAY);
-                /********/
-                // 'delete' cmd from listener
-                sim->cmds[i].cmd = NULL;
-                
-                if (sim->rec_len == 0)
-                {
-                    // no message left
-                    sim->unread_num = 0;
-                    goto REGION_END;
-                }
-                else
-                {
-                    // another message, or part of it left in buffer, let it be processed by another cmd
-                }
+                // another message, or part of it left in buffer, let it be processed by another cmd
+                goto START;
+            }
+        }
+        else if (err == SIM_noErrCode || err == SIM_noResp)
+        {
+            // try again untill the cmd isn't removed
+            goto REGION_END;
+        }
+        else
+        {
+            // ecountered error
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
+            xQueueSend(sim->cmds.queue, (void *)&err, portMAX_DELAY);
+            sim->cmds.cmd = NULL;
+            /********/
+
+            if (sim->rec_len == 0)
+            {
+                // no message left
+                sim->unread_num = 0;
+                goto REGION_END;
+            }
+            else
+            {
+                // another metcpssage, or part of it left in buffer, let it be processed by another cmd
+                goto START;
+            }
+        }
+        // }
+
+        break;
+    }
+    case SIM_receive:
+    case SIM_closed:
+    {
+        char num_str[2] = {};
+        unsigned char num;
+
+        if (sim->tcp_ret == NULL)
+        {
+            if (err_pair.err == SIM_receive)
+            {
+                num_str[0] = err_pair.ptr_beg[9];
+                num = atoi(num_str);
+            }
+            else
+            {
+                num_str[0] = err_pair.ptr_beg[0];
+                num = atoi(num_str);
             }
 
-            break;
+            if (sim->tcp_cmds[num].cmd == NULL)
+            {
+                // Discard maching line
+                // TODO
+                return SIM_noErrCode;
+            }
+
+            sim->tcp_ret = &sim->tcp_cmds[num];
         }
-        default:
+
+        // for (;;)
+        // {
+        err = sim->tcp_ret->cmd->handler(sim->buf, sim->rec_len, &sim->tcp_ret->cmd->resp, (void *)sim);
+
+        if (err == SIM_ok)
         {
-            break;
+            // Handler was executed correctly
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+            /* EDIT */
+            xQueueSend(sim->tcp_ret->queue, (void *)&sim->tcp_ret->cmd->resp.err, portMAX_DELAY);
+            sim->tcp_ret = NULL;
+            /********/
+
+            if (sim->rec_len == 0)
+            {
+                // no message left
+                sim->unread_num = 0;
+                goto REGION_END;
+            }
+            else
+            {
+                // another message, or part of it left in buffer, let it be processed by another cmd
+                goto START;
+            }
         }
+        else if (err == sim_msgDetect)
+        {
+            // Got some matching output, not enough data though, try again when data arrives
+            goto REGION_END;
         }
+        else
+        {
+            // encountered error
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+            /* EDIT */
+            xQueueSend(sim->tcp_ret->queue, (void *)&err, portMAX_DELAY);
+            sim->tcp_ret = NULL;
+            /********/
+            // 'delete' cmd from listener
+            // sim->tcp_ret->cmd = NULL;
+
+            if (sim->rec_len == 0)
+            {
+                // no message left
+                sim->unread_num = 0;
+                goto REGION_END;
+            }
+            else
+            {
+                // another message, or part of it left in buffer, let it be processed by another cmd
+                goto START;
+            }
+        }
+
+        // }
+
+        break;
+    }
+    default:
+    {
+        // Discard maching line
+        // TODO
+    }
     }
 
 REGION_END:
@@ -224,11 +283,141 @@ REGION_END:
     return err;
 }
 
+//     // START: // used to start
+//     static int cmd_ret = -1;
+//     for (int i = sim->cmds_num - 1; i >= 0; i--)
+//     {
+//         if (cmd_ret >= 0)
+//             i = cmd_ret;
+
+//         switch (sim->cmds.cmd->type)
+//         {
+//         case SIM_cmd_single_use:
+//         {
+//             // Execute operations with data received
+//             err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds.cmd->resp, (void *)sim);
+
+//             // Check execution code
+//             if (err == SIM_ok)
+//             {
+//                 // Handler was executed correctly
+//                 SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+//                 sim->cmds.cmd->handlers_num--;
+//                 if (sim->cmds.cmd->handlers_num == 0)
+//                 {
+//                     // If all handlers were executed then return with ok code and 'delete' cmd from listener
+//                     // sim->cmds.cmd->err = err;
+//                     /* EDIT */
+//                     xQueueSend(sim->cmds.queue, (void *)&err /*&sim->cmds.cmd->resp.err*/, portMAX_DELAY);
+//                     /********/
+//                 }
+
+//                 if (sim->rec_len == 0)
+//                 {
+//                     // no message left
+//                     sim->unread_num = 0;
+//                     goto REGION_END;
+//                 }
+//                 else
+//                 {
+//                     // another message, or part of it left in buffer, let it be processed by another cmd
+//                 }
+//             }
+//             else if (err == SIM_noErrCode || err == SIM_noResp)
+//             {
+//                 // try again untill the cmd isn't removed
+//                 goto REGION_END;
+//             }
+//             else
+//             {
+//                 // ecountered error
+//                 SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
+//                 xQueueSend(sim->cmds.queue, (void *)&err, portMAX_DELAY);
+//                 /********/
+
+//                 if (sim->rec_len == 0)
+//                 {
+//                     // no message left
+//                     sim->unread_num = 0;
+//                     goto REGION_END;
+//                 }
+//                 else
+//                 {
+//                     // another message, or part of it left in buffer, let it be processed by another cmd
+//                 }
+//             }
+
+//             break;
+//         }
+//         case SIM_cmd_multiple_launch:
+//         {
+
+//             err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds.cmd->resp, (void *)sim);
+
+//             if (err == SIM_ok)
+//             {
+//                 // Handler was executed correctly
+//                 SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+//                 /* EDIT */
+//                 xQueueSend(sim->cmds.queue, (void *)&sim->cmds.cmd->resp.err, portMAX_DELAY);
+//                 /********/
+
+//                 if (sim->rec_len == 0)
+//                 {
+//                     // no message left
+//                     sim->unread_num = 0;
+//                     goto REGION_END;
+//                 }
+//                 else
+//                 {
+//                     // another message, or part of it left in buffer, let it be processed by another cmd
+//                 }
+//             }
+//             else if (err == SIM_noErrCode || err == SIM_noResp)
+//             {
+//                 // didn't match, check another cmd
+//             }
+//             else
+//             {
+//                 // encountered error
+//                 SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+//                 /* EDIT */
+//                 xQueueSend(sim->cmds.queue, (void *)&err, portMAX_DELAY);
+//                 /********/
+//                 // 'delete' cmd from listener
+//                 // sim->cmds.cmd = NULL;
+
+//                 if (sim->rec_len == 0)
+//                 {
+//                     // no message left
+//                     sim->unread_num = 0;
+//                     goto REGION_END;
+//                 }
+//                 else
+//                 {
+//                     // another message, or part of it left in buffer, let it be processed by another cmd
+//                 }
+//             }
+
+//             break;
+//         }
+//         default:
+//         {
+//             break;
+//         }
+//         }
+//     }
+
+// REGION_END:
+//     xSemaphoreGive(sim->exec_mutex);
+//     return err;
+// }
+
 LL_SIM_error SIM_wait(LL_SIM_intf *sim, SIM_time time)
 {
     LL_SIM_error err = SIM_timeoutErr;
 
-    xQueueReceive(sim->cmds[sim->cmds_num - 1].queue, &err, time / portTICK_PERIOD_MS);
+    xQueueReceive(sim->cmds.queue, &err, time / portTICK_PERIOD_MS);
 
     return err;
 }
@@ -236,7 +425,7 @@ LL_SIM_error SIM_wait(LL_SIM_intf *sim, SIM_time time)
 void LL_SIM_listen(LL_SIM_intf *sim)
 {
     // read data non stop
-    xTaskCreate(SIM_receiveHandler, "SIM_listener", 4096, (void *)sim, 5, NULL);
+    xTaskCreate(SIM_receiveHandler, "SIM_listener", 5000, (void *)sim, 5, NULL);
 }
 
 void SIM_receiveHandler(void *sim_void)
@@ -280,6 +469,12 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
     xSemaphoreGive(sim->write_mutex);
     return err;
 }
+
+// void SIM_receiveAny(LL_SIM_intf *sim)
+// {
+
+//     xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
+// }
 
 /*  Receive data from LL_SIM using ESP interrupts.
  *   Detects every new line or timeout.

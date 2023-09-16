@@ -20,17 +20,17 @@
 
 /* Interrupt config */
 // #define LL_SIM_DEF_DOWNLOAD_TIME 10000
-#define LL_SIM_DEF_QUEUE_SIZE 10
+#define LL_SIM_DEF_QUEUE_SIZE 60
 #define LL_SIM_DEF_PATTERN_QUEUE_SIZE 5
 #define LL_SIM_PATTERN_INTERVAL 0
 #define LL_SIM_MIN_POST_IDLE 0
 #define LL_SIM_MIN_PRE_IDLE 0
 
 /* Buffers */
-#define LL_SIM_DEF_TX_BUF_SIZE 240
+#define LL_SIM_DEF_TX_BUF_SIZE 1380
 // #define LL_SIM_DEF_BUF_SIZE 240
 
-#define LL_SIM_DEF_CMDS_NUM 10
+#define LL_SIM_DEF_TCP_CMDS_NUM 6
 #define LL_SIM_DEF_CMD_QUEUE_SIZE  5
 
 
@@ -39,6 +39,12 @@ typedef struct SIM_cmd_grip
     SIM_cmd *cmd;
     QueueHandle_t queue;
 } SIM_cmd_grip;
+
+typedef struct SIM_TCP_cmd_grip
+{
+    SIM_TCP_cmd *cmd;
+    QueueHandle_t queue;
+} SIM_TCP_cmd_grip;
 
 typedef struct LL_SIM_intf
 {
@@ -51,10 +57,14 @@ typedef struct LL_SIM_intf
     /*  */
     /* Number of not yet processed messages */
     unsigned char unread_num;
-    SIM_cmd_grip cmds[LL_SIM_DEF_CMDS_NUM]; // [LL_SIM_DEF_BUF_SIZE];
-    unsigned int cmds_num;
+    SIM_cmd_grip cmds; // [LL_SIM_DEF_BUF_SIZE];
+    SIM_TCP_cmd_grip tcp_cmds[LL_SIM_DEF_TCP_CMDS_NUM];
+    volatile SIM_TCP_cmd_grip *tcp_ret;
+    // unsigned int tcp_cmds_num;
     /* Length of last received message from SIM800L module */
     // SIM_response resp;
+    SIM_line_pair lines[SIM_MAX_LINES_ARR_LEN];
+    SIM_data_len lines_num;
 
     /* User defined, can be changed */
     gpio_num_t tx;

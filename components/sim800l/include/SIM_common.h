@@ -5,7 +5,7 @@
 
 /* Subscribe to the listener, wait for error code */
 SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd);
-SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_cmd *cmd);
+SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd);
 // void SIM_unsub(SIM_intf *sim)
 // {
 //     sim->cmds_num--;
@@ -14,7 +14,7 @@ SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_cmd *cmd);
 // }
 
 SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd);
-SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_cmd *cmd);
+SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd);
 
 void SIM_setAT(char *at, const char *type, const SIM_param *params);
 

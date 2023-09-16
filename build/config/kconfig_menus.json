@@ -7916,7 +7916,10 @@
                         "help": "Number of stack frames to save when tracing heap operation callers.\n\nMore stack frames uses more memory in the heap trace buffer (and slows down allocation), but\ncan provide useful information.",
                         "id": "HEAP_TRACING_STACK_DEPTH",
                         "name": "HEAP_TRACING_STACK_DEPTH",
-                        "range": null,
+                        "range": [
+                            0,
+                            10
+                        ],
                         "title": "Heap tracing stack depth",
                         "type": "int"
                     },
@@ -11486,6 +11489,44 @@
                 "depends_on": null,
                 "id": "component-config-newlib",
                 "title": "Newlib",
+                "type": "menu"
+            },
+            {
+                "children": [
+                    {
+                        "children": [],
+                        "depends_on": "SECURE_FLASH_ENC_ENABLED",
+                        "help": "This option enables encryption for NVS. When enabled, AES-XTS is used to encrypt\nthe complete NVS data, except the page headers. It requires XTS encryption keys\nto be stored in an encrypted partition. This means enabling flash encryption is\na pre-requisite for this feature.",
+                        "id": "NVS_ENCRYPTION",
+                        "name": "NVS_ENCRYPTION",
+                        "range": null,
+                        "title": "Enable NVS encryption",
+                        "type": "bool"
+                    },
+                    {
+                        "children": [],
+                        "depends_on": "SECURE_FLASH_ENC_ENABLED",
+                        "help": "Enabling this will ignore \"encrypted\" flag for NVS partitions. NVS encryption\nscheme is different than hardware flash encryption and hence it is not recommended\nto have \"encrypted\" flag for NVS partitions. This was not being checked in pre v4.3\nIDF. Hence, if you have any devices where this flag is kept enabled in partition\ntable then enabling this config will allow to have same behavior as pre v4.3 IDF.",
+                        "id": "NVS_COMPATIBLE_PRE_V4_3_ENCRYPTION_FLAG",
+                        "name": "NVS_COMPATIBLE_PRE_V4_3_ENCRYPTION_FLAG",
+                        "range": null,
+                        "title": "NVS partition encrypted flag compatible with ESP-IDF before v4.3",
+                        "type": "bool"
+                    },
+                    {
+                        "children": [],
+                        "depends_on": null,
+                        "help": "This option switches error checking type between assertions (y) or return codes (n).",
+                        "id": "NVS_ASSERT_ERROR_CHECK",
+                        "name": "NVS_ASSERT_ERROR_CHECK",
+                        "range": null,
+                        "title": "Use assertions for error checking",
+                        "type": "bool"
+                    }
+                ],
+                "depends_on": null,
+                "id": "component-config-nvs",
+                "title": "NVS",
                 "type": "menu"
             },
             {

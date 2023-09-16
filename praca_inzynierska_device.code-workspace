@@ -92,7 +92,8 @@
 			"mqtt.h": "c",
 			"mqtt_client.h": "c",
 			"ssl.h": "c",
-			"sim_tcpip.h": "c"
+			"sim_tcpip.h": "c",
+			"sim_common_cmds.h": "c"
 		}
 	},
 	"launch": {

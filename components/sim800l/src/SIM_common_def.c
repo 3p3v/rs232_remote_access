@@ -11,7 +11,8 @@ const SIM_err_pair SIM_reservedResps[] = {{.name = "+RECEIVE", .err = SIM_receiv
 void SIM_respNULL(SIM_resp *resp, const char *at_resp_name)
 {
     memset(resp, 0, sizeof(*resp));
-    strcpy(resp->at, at_resp_name);
+    if (at_resp_name != NULL)
+        strcpy(resp->at, at_resp_name);
     // if (resp->at[strlen(resp->at) - 1] == '?')
     //     resp->at[strlen(resp->at) - 1] = '\0';
 
@@ -53,57 +54,125 @@ int SIM_atoi_int32_t(const char *param, unsigned char param_len)
     return atoi(param_str);
 }
 
-SIM_data_len SIM_findAllLines(const char *buf, const SIM_data_len rec_len, SIM_line_pair *lines, unsigned int lines_num)
+static void *SIM_util_strstr(const void *buf, unsigned int rec_len, const char *find)
+{
+    // unsigned int find_len = strlen(find);
+    void *ptr = NULL;
+
+    for (int i = 0; i < rec_len - strlen(find) + 1; i++) // - 2 loops, becaurse of endl
+    {
+        if ((ptr = strstr(((char *)buf + i), find)))
+        {
+            break;
+        }
+    }
+
+    return ptr;
+}
+
+SIM_data_len SIM_findAllLines(const void *buf, const SIM_data_len rec_len, SIM_line_pair *lines, unsigned int lines_num)
 {
     if (lines_num < 2)
         return SIM_err;
 
     unsigned int i = 0;
-    char *endl = strstr(buf, "\r\n");
-    lines[0].ptr = buf;
 
-    if (endl != NULL)
+    lines[0].ptr = (char *)buf;
+    char *end = SIM_util_strstr(buf, rec_len, "\r\n");
+
+    if (end == NULL)
     {
-        lines[0].len = endl++ - lines[0].ptr + strlen("\r\n");
+        lines[0].len = rec_len;
         i++;
+        goto EXIT;
     }
     else
     {
-        lines[0].len = 0;
-        return i;
+        lines[0].len = end - lines[0].ptr + strlen("\r\n");
+        i++;
     }
 
     for (;;)
     {
-        if ((i) == lines_num)
+        if (lines_num > i)
         {
-            lines[i].ptr = NULL;
-            lines[i].len = 0;
-            return i;
-        }
-
-        endl = strstr(endl, "\r\n");
-
-        if (!endl)
-        {
-            if ((lines[i - 1].ptr + lines[i - 1].len) != (buf + rec_len))
+            if (((char *)buf + rec_len - 1) >= (lines[i - 1].ptr + lines[i - 1].len))
             {
                 lines[i].ptr = lines[i - 1].ptr + lines[i - 1].len;
-                lines[i].len = rec_len - (lines[i].ptr - buf);
-                i++;
+                end = SIM_util_strstr(lines[i].ptr, rec_len - (lines[i].ptr - (char *)buf), "\r\n");
+                if (end == NULL)
+                {
+                    lines[i].len = rec_len - (lines[i].ptr - (char *)buf);
+                    i++;
+                    goto EXIT;
+                }
+                else
+                {
+                    lines[i].len = end - lines[i].ptr + strlen("\r\n");
+                    i++;
+                }
             }
-
-            lines[i].ptr = NULL;
-            lines[i].len = 0;
-            return i;
+            else
+            {
+                // buffer couldn't contain another line
+                goto EXIT;
+            }
         }
         else
         {
-            lines[i].ptr = lines[i - 1].ptr + lines[i - 1].len;
-            lines[i].len = endl++ - lines[i].ptr + strlen("\r\n");
-            i++;
+        EXIT:
+            // last element, exit
+            lines[i].ptr = NULL;
+            lines[i].len = 0;
+            return i;
         }
     }
+
+    // char *endl = SIM_util_strstr(buf, rec_len, "\r\n");
+    // lines[0].ptr = buf;
+
+    // if (endl != NULL)
+    // {
+    //     lines[0].len = endl++ - lines[0].ptr + strlen("\r\n");
+    //     i++;
+    // }
+    // else
+    // {
+    //     lines[0].len = 0;
+    //     return i;
+    // }
+
+    // for (;;)
+    // {
+    //     if ((i) == lines_num)
+    //     {
+    //         lines[i].ptr = NULL;
+    //         lines[i].len = 0;
+    //         return i;
+    //     }
+
+    //     endl = SIM_util_strstr(endl, rec_len - (endl - (char *)buf), "\r\n");
+
+    //     if (!endl)
+    //     {
+    //         if ((lines[i - 1].ptr + lines[i - 1].len) != (buf + rec_len))
+    //         {
+    //             lines[i].ptr = lines[i - 1].ptr + lines[i - 1].len;
+    //             lines[i].len = rec_len - (lines[i].ptr - (char *)buf);
+    //             i++;
+    //         }
+
+    //         lines[i].ptr = NULL;
+    //         lines[i].len = 0;
+    //         return i;
+    //     }
+    //     else
+    //     {
+    //         lines[i].ptr = lines[i - 1].ptr + lines[i - 1].len;
+    //         lines[i].len = endl++ - lines[i].ptr + strlen("\r\n");
+    //         i++;
+    //     }
+    // }
 }
 
 /* Checks if string line == string err */

@@ -29,6 +29,7 @@ $<TARGET_FILE:__idf_http_parser>
 $<TARGET_FILE:__idf_esp-tls>
 $<TARGET_FILE:__idf_tcp_transport>
 $<TARGET_FILE:__idf_mqtt>
+$<TARGET_FILE:__idf_nvs_flash>
 $<TARGET_FILE:__idf_sim800l>
 $<TARGET_FILE:__idf_mbedtls_sim800>
 $<TARGET_FILE:__idf_MQTT-C>

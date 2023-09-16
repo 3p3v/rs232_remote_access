@@ -6,7 +6,7 @@
             "type": "shell",
             "isBackground": true,
             "windows": {
-                "command": "clear ; cd 'C:/Users/ADAM/.espressif/tools/openocd-esp32/v0.11.0-esp32-20221026/openocd-esp32/bin' ; ./openocd -c 'set ESP_RTOS none' -c 'adapter_khz 3000' -f board/esp32-wrover-kit-3.3v.cfg ; exit"
+                "command": "clear ; cd 'C:/Users/ADAM/.espressif/tools/openocd-esp32/v0.11.0-esp32-20221026/openocd-esp32/bin' ; ./openocd -c 'set ESP_RTOS none' -f board/esp32-wrover-kit-3.3v.cfg ; exit"
             }
         },
         {

@@ -4,4 +4,5 @@ idf_component_register(SRCS "main.c"
                                 mbedtls_sim800
                                 mbedtls
                                 MQTT-C
-                                mqtt)
+                                mqtt
+                                nvs_flash)
