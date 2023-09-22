@@ -10,6 +10,7 @@
 #define SIM_MAX_HANDLERS_NUM 10
 #define SIM_MAX_AT_STR_LEN (SIM_MAX_AT_LEN + 1)
 #define SIM_MAX_LINES 20
+#define SIM_MAX_RESPS 10
 #define SIM_MAX_LINES_ARR_LEN (SIM_MAX_LINES + 1)
 #define SIM_CHECK_OK
 
@@ -97,6 +98,7 @@ typedef struct SIM_param
 
 typedef struct SIM_resp
 {
+    SIM_err_pair *pos_resps;
     char at[SIM_MAX_AT_STR_LEN];
     char *resp_name;    //TODO delete??
     char *resp_name_len;

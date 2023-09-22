@@ -7,7 +7,7 @@
     "bootloader_elf":     "C:/Users/ADAM/praca_inzynierska_device/build/bootloader/bootloader.elf",
     "app_elf":            "praca_inzynierska_device.elf",
     "app_bin":            "praca_inzynierska_device.bin",
-    "git_revision":       "v5.0.1",
+    "git_revision":       "v5.0.1-dirty",
     "target":             "esp32",
     "rev":                "0",
     "min_rev":            "0",

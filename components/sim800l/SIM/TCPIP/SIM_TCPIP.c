@@ -356,6 +356,13 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
     cmd->handlers[1] = &SIM_writeCIPSEND_handler1;
     cmd->handlers_num = 2;
     SIM_respNULL(&cmd->resp, cmd->at);
+    static SIM_err_pair c_st[] = {{.name = "> ", .err = SIM_ok},
+                           {.name = "ERROR\r\n", .err = SIM_err},
+                           {.name = "OK\r\n", .err = SIM_sendOk},
+                           {.name = "., SEND OK\r\n", .err = SIM_sendOk},
+                           {.name = "., SEND FAIL\r\n", .err = SIM_sendFail},
+                           {.name = NULL, .err = SIM_noErrCode}};
+    cmd->resp.pos_resps = &c_st;
     cmd->resp.send_data = send_data;
     cmd->resp.send_data_len = send_data_len;
     cmd->type = SIM_cmd_single_use;
@@ -415,10 +422,10 @@ static SIM_error SIM_listenTCP_cipmux0_handler(char *buf, unsigned int rec_len, 
 
 static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, SIM_resp *resp, void *sim)
 {
-    resp->data = NULL;
-    resp->data_len = 0;
-    resp->params_num = 0;
-    resp->resp_name_len = 0;
+    // resp->data = NULL;
+    // resp->data_len = 0;
+    // resp->params_num = 0;
+    // resp->resp_name_len = 0;
 
     SIM_line_pair lines[SIM_MAX_LINES_ARR_LEN];
     SIM_data_len limes_num = SIM_findAllLines(buf, rec_len, lines, SIM_MAX_LINES_ARR_LEN);
@@ -467,18 +474,29 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
         // get data
         SIM_line_pair *lines_ptr = (lines + (err.line_num + 1));
         SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr(lines_ptr, SIM_reservedResps);
-        resp->msg_end = err2.ptr;
-        if (resp->data_len != 0)
+        void * end_ptr;
+        if (err2.err != SIM_noErrCode)
         {
-            resp->data = realloc(resp->data, sizeof(unsigned char) * (resp->data_len + err2.ptr - err.ptr));
-            memcpy(resp->data + resp->data_len, err.ptr, err2.ptr - err.ptr);
+            end_ptr = err2.ptr_beg - strlen ("\r\n");
         }
         else
         {
-            resp->data = malloc(sizeof(unsigned char) * (err2.ptr - err.ptr));
-            memcpy(resp->data, err.ptr, err2.ptr - err.ptr);
+            end_ptr = err2.ptr;
+
         }
-        resp->data_len += err2.ptr - err.ptr;
+
+        resp->msg_end = end_ptr;
+        if (resp->data_len != 0)
+        {
+            resp->data = realloc(resp->data, sizeof(unsigned char) * (resp->data_len + (char *)end_ptr - err.ptr));
+            memcpy(resp->data + resp->data_len, err.ptr, (char *)end_ptr - err.ptr);
+        }
+        else
+        {
+            resp->data = malloc(sizeof(unsigned char) * ((char *)end_ptr - err.ptr));
+            memcpy(resp->data, err.ptr, (char *)end_ptr - err.ptr);
+        }
+        resp->data_len += (char *)end_ptr - err.ptr;
 
         xSemaphoreGive(resp->data_mutex);
 
@@ -518,15 +536,18 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
         return SIM_err;
     
     // no data to receive, wait for it
+    SIM_error err = SIM_noErrCode;
     if (resp->data_len == 0)
     {
-        SIM_error err = SIM_noErrCode;
-        xQueueReceive(cmd_grip->queue, &err, SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
+        xQueueReceive(cmd_grip->queue, &err, portMAX_DELAY);//SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
         if (err == SIM_err)
             return err;
         else if (err == SIM_noErrCode)
-            return 0;
+        {
+            // while(sim->tcp_ret);
+        }
     }
+    
     
     // Read the data and delete it from the buffer
     xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
@@ -545,15 +566,43 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     }
     else
     {
+        if (resp->data_len < len) // TODO change so only waits when packet indycator was found in buffer  
+        {   
+            xSemaphoreGive(resp->data_mutex);
+            while((len > resp->data_len) || sim->rec_len);
+            xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+            memcpy(buf, resp->data, len);
+            memcpy(resp->data, resp->data + len, resp->data_len - len);
+            resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
+            read_len = len;
+        }
+
         // memcpy(test[1], resp->data, resp->data_len);
-        memcpy(buf, resp->data, resp->data_len);
-        free(resp->data);
-        read_len = resp->data_len;
-        resp->data_len = 0;
+        else //if (len == resp->data_len)
+        {
+            memcpy(buf, resp->data, resp->data_len);
+            if (resp->data_len != 0)
+                free(resp->data);
+            read_len = resp->data_len;
+            resp->data_len = 0;
+        }
         goto EXIT;
     }
 
     EXIT:
+
+    static int break_p = 0; 
+
+    for (int i = 0; i < len; i++)
+    {
+        printf("%X  ", ((char *)buf)[i]);
+        if (++break_p == 16)
+        {
+            printf("\r\n");
+            break_p = 0;
+        }
+    }
+
     xSemaphoreGive(resp->data_mutex);
     return read_len;
 }

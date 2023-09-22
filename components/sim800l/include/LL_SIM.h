@@ -27,7 +27,7 @@
 #define LL_SIM_MIN_PRE_IDLE 0
 
 /* Buffers */
-#define LL_SIM_DEF_TX_BUF_SIZE 1380
+#define LL_SIM_DEF_TX_BUF_SIZE 10000
 // #define LL_SIM_DEF_BUF_SIZE 240
 
 #define LL_SIM_DEF_TCP_CMDS_NUM 6
@@ -76,6 +76,7 @@ typedef struct LL_SIM_intf
     // uart_config_t uartConf;
     QueueHandle_t uartQueue;
     SemaphoreHandle_t add_cmd_mutex;
+    bool add_cmd_mutex_taken;
     SemaphoreHandle_t write_mutex;
     SemaphoreHandle_t exec_mutex;
 } LL_SIM_intf;

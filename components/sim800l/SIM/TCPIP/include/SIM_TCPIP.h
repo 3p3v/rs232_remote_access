@@ -34,7 +34,7 @@ SIM_cmd *SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *
 
 /* AT+CIPSEND Send Data Through TCP or UDP Connection */
 #define SIM_EXECCIPSEND_TIMEOUT 5000
-#define SIM_WRITECIPSEND_TIMEOUT 5000
+#define SIM_WRITECIPSEND_TIMEOUT 10000
 /* AT+CIPSEND Send Data Through TCP or UDP Connection */
 SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, void *send_data, SIM_data_len send_data_len);
 SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void *send_data, SIM_data_len send_data_len);

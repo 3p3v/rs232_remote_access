@@ -41,6 +41,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->lines_num = 0;
 
     sim->add_cmd_mutex = xSemaphoreCreateMutex();
+    sim->add_cmd_mutex_taken = false;
     sim->write_mutex = xSemaphoreCreateMutex();
     sim->exec_mutex = xSemaphoreCreateMutex();
 }
@@ -112,6 +113,17 @@ START:
     // Find all lines in data
     sim->lines_num = SIM_findAllLines(sim->buf, sim->rec_len, sim->lines, SIM_MAX_LINES_ARR_LEN);
     SIM_errMsgEnd_pair err_pair = SIM_retrieveCustomErr(sim->lines, SIM_reservedResps);
+    SIM_errMsgEnd_pair err_pair2;
+
+    if (sim->cmds.cmd && sim->cmds.cmd->resp.pos_resps)
+    {
+        err_pair2 = SIM_retrieveCustomErr(sim->lines, sim->cmds.cmd->resp.pos_resps);
+        if (err_pair2.err != SIM_noErrCode)
+        {
+            if (err_pair2.ptr_beg < err_pair.ptr_beg)
+                err_pair.err = SIM_noErrCode;
+        }
+    }
 
     switch (err_pair.err)
     {
@@ -229,6 +241,11 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
+                if (sim->cmds.cmd == NULL)
+                {
+                    sim->add_cmd_mutex_taken = false;
+                    xSemaphoreGive(sim->add_cmd_mutex);
+                }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -257,6 +274,11 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
+                if (sim->cmds.cmd == NULL)
+                {
+                    sim->add_cmd_mutex_taken = false;
+                    xSemaphoreGive(sim->add_cmd_mutex);
+                }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -490,6 +512,11 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
     while (xQueueReceive(sim->uartQueue, (void *)&event, portMAX_DELAY))
 
     {
+        if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == false)
+        {
+            sim->add_cmd_mutex_taken = true;
+            xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
+        }
         // bzero(sim->buf, sim->buf_len);
         ESP_LOGI(TAG, "uart[%d] event:", sim->uart);
         switch (event.type)

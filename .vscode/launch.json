@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "preLaunchTask": "Run OpenOCD",
+      // "preLaunchTask": "Run OpenOCD",
       "name": "ESP32 OpenOCD",
       "type": "cppdbg",
       "request": "launch",

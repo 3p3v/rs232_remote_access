@@ -38,6 +38,7 @@ set(mbedtls_sim800_srcs "port/net_sockets_sim800.c")
 idf_component_register(
     REQUIRES mbedtls sim800l
     SRCS "${mbedtls_sim800_srcs}"
+    INCLUDE_DIRS "include"
     )
 
 # Use port specific implementation of net_socket.c instead of one from mbedtls
