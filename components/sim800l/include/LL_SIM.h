@@ -53,7 +53,7 @@ typedef struct LL_SIM_intf
     void *buf;
     unsigned int buf_len;
     /* Length of last received message from SIM800L module */
-    unsigned int rec_len;
+    volatile unsigned int rec_len;
     /*  */
     /* Number of not yet processed messages */
     unsigned char unread_num;

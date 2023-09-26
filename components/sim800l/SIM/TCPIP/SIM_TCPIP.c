@@ -523,6 +523,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     if (n > SIM_con_5 || n < SIM_con_0)
         return SIM_err;
 
+    SIM_error err = SIM_noErrCode;
     SIM_TCP_cmd_grip *cmd_grip;
     SIM_cmd *cmd;
     SIM_resp *resp;
@@ -535,19 +536,21 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     else
         return SIM_err;
     
+    // 
+    err = resp->err;
+    if (err != SIM_noErrCode && err != SIM_receive && err != SIM_unknown)
+        return err;
+    
     // no data to receive, wait for it
-    SIM_error err = SIM_noErrCode;
+    err = SIM_noErrCode;
     if (resp->data_len == 0)
     {
-        xQueueReceive(cmd_grip->queue, &err, portMAX_DELAY);//SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
-        if (err == SIM_err)
-            return err;
-        else if (err == SIM_noErrCode)
-        {
-            // while(sim->tcp_ret);
-        }
+        xQueueReceive(cmd_grip->queue, &err, SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
     }
-    
+
+    // if error code 
+    if (err != SIM_noErrCode && err != SIM_receive)
+        return err;
     
     // Read the data and delete it from the buffer
     xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
@@ -569,8 +572,15 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
         if (resp->data_len < len) // TODO change so only waits when packet indycator was found in buffer  
         {   
             xSemaphoreGive(resp->data_mutex);
-            while((len > resp->data_len) || sim->rec_len);
+            // wait for enough data while raw data is still being processed by main task
+            while((len > resp->data_len) && sim->rec_len);
             xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+            if (!resp->data_len)
+            {
+                printf("NO DATA\r\n");
+                read_len = 0;
+                goto EXIT;
+            }
             memcpy(buf, resp->data, len);
             memcpy(resp->data, resp->data + len, resp->data_len - len);
             resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
@@ -593,7 +603,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
 
     static int break_p = 0; 
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < read_len; i++)
     {
         printf("%X  ", ((char *)buf)[i]);
         if (++break_p == 16)

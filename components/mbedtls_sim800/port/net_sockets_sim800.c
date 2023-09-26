@@ -11,7 +11,12 @@ void mbedtls_net_init( mbedtls_net_context *ctx )
 
 int mbedtls_net_recv( void *ctx, unsigned char *buf, size_t len )
 {
-    return SIM_TCP_read(sim, (SIM_con_num)((mbedtls_net_context *)ctx)->fd, buf, len);
+    int err = SIM_TCP_read(sim, (SIM_con_num)((mbedtls_net_context *)ctx)->fd, buf, len);
+
+    if (err == 0)
+        err = -1;
+
+    return err;
 }
 
 int mbedtls_net_send( void *ctx, const unsigned char *buf, size_t len )

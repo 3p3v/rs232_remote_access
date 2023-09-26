@@ -241,7 +241,7 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
-                if (sim->cmds.cmd == NULL)
+                if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
                 {
                     sim->add_cmd_mutex_taken = false;
                     xSemaphoreGive(sim->add_cmd_mutex);
@@ -274,7 +274,7 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
-                if (sim->cmds.cmd == NULL)
+                if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
                 {
                     sim->add_cmd_mutex_taken = false;
                     xSemaphoreGive(sim->add_cmd_mutex);

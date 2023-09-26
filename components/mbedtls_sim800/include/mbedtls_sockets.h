@@ -106,7 +106,7 @@ int open_nb_socket(mbedtls_context *ctx,
     }
 #endif
 
-    // mbedtls_esp_enable_debug_log(&conf, 5);
+    
 
     mbedtls_ssl_init(ssl);
     mbedtls_x509_crt_init(ca_crt);
@@ -181,6 +181,7 @@ int open_nb_socket(mbedtls_context *ctx,
 #ifdef CONFIG_MBEDTLS_DEBUG
     mbedtls_esp_enable_debug_log(ssl_conf, CONFIG_MBEDTLS_DEBUG_LEVEL);
 #endif
+    // mbedtls_esp_enable_debug_log(ssl_conf, 0);
 
 #ifdef CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
     mbedtls_ssl_conf_min_tls_version(ssl_conf, MBEDTLS_SSL_VERSION_TLS1_3);

@@ -43,11 +43,20 @@ SOFTWARE.
 int _mqtt_pal_dummy;
 
 #else /* defined(MQTT_USE_CUSTOM_SOCKET_HANDLE) */
-
+#define MQTT_USE_MBEDTLS
 #if defined(MQTT_USE_MBEDTLS)
 #include <mbedtls/ssl.h>
 
+static int ssl_save_session_serialize(mbedtls_ssl_context *ssl,
+                                      unsigned char **session_data,
+                                      size_t *session_data_len);
+
 ssize_t mqtt_pal_sendall(mqtt_pal_socket_handle fd, const void* buf, size_t len, int flags) {
+    for (int i = 0; i< len; i++) 
+    {
+        printf("0x%X ", ((unsigned char *)buf)[i]);
+    }
+    printf("\r\n");
     enum MQTTErrors error = 0;
     size_t sent = 0;
     while(sent < len) {
@@ -95,12 +104,33 @@ ssize_t mqtt_pal_recvall(mqtt_pal_socket_handle fd, void* buf, size_t bufsz, int
              *
              * Raise an error to trigger a reconnect.
              */
+            printf("SERIOUS SOCKET ERROR");
             error = MQTT_ERROR_SOCKET_ERROR;
             break;
         }
         if (rv < 0) {
-            if (rv == MBEDTLS_ERR_SSL_WANT_READ ||
-                rv == MBEDTLS_ERR_SSL_WANT_WRITE
+            if (rv == -1)
+            {
+                rv = 0;
+                break;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_WANT_READ)
+            {
+                rv = 0;
+                continue;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
+            {
+                /* We were waiting for application data but got
+                 * a NewSessionTicket instead. */
+                // if (rv = ssl_save_session_serialize(fd, ) != 0)
+                // {
+
+                // }
+                rv = 0;
+                continue;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_WANT_WRITE
 #if defined(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS)
                 || rv == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS
 #endif
@@ -112,6 +142,7 @@ ssize_t mqtt_pal_recvall(mqtt_pal_socket_handle fd, void* buf, size_t bufsz, int
                 break;
             }
             /* Note: MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY is handled here. */
+            printf("NOT SERIOUS SOCKET ERROR?");
             error = MQTT_ERROR_SOCKET_ERROR;
             break;
         }
@@ -123,6 +154,54 @@ ssize_t mqtt_pal_recvall(mqtt_pal_socket_handle fd, void* buf, size_t bufsz, int
     }
     return (const char *)buf - (const char*)start;
 }
+
+// static int ssl_save_session_serialize(mbedtls_ssl_context *ssl,
+//                                       unsigned char **session_data,
+//                                       size_t *session_data_len)
+// {
+//     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+//     mbedtls_ssl_session exported_session;
+
+//     /* free any previously saved data */
+//     if (*session_data != NULL) {
+//         mbedtls_platform_zeroize(*session_data, *session_data_len);
+//         mbedtls_free(*session_data);
+//         *session_data = NULL;
+//         *session_data_len = 0;
+//     }
+
+//     mbedtls_ssl_session_init(&exported_session);
+//     ret = mbedtls_ssl_get_session(ssl, &exported_session);
+//     if (ret != 0) {
+//         mbedtls_printf(
+//             "failed\n  ! mbedtls_ssl_get_session() returned -%#02x\n",
+//             (unsigned) -ret);
+//         goto exit;
+//     }
+
+//     /* get size of the buffer needed */
+//     mbedtls_ssl_session_save(&exported_session, NULL, 0, session_data_len);
+//     *session_data = mbedtls_calloc(1, *session_data_len);
+//     if (*session_data == NULL) {
+//         mbedtls_printf(" failed\n  ! alloc %u bytes for session data\n",
+//                        (unsigned) *session_data_len);
+//         ret = MBEDTLS_ERR_SSL_ALLOC_FAILED;
+//         goto exit;
+//     }
+
+//     /* actually save session data */
+//     if ((ret = mbedtls_ssl_session_save(&exported_session,
+//                                         *session_data, *session_data_len,
+//                                         session_data_len)) != 0) {
+//         mbedtls_printf(" failed\n  ! mbedtls_ssl_session_saved returned -0x%04x\n\n",
+//                        (unsigned int) -ret);
+//         goto exit;
+//     }
+
+// exit:
+//     mbedtls_ssl_session_free(&exported_session);
+//     return ret;
+// }
 
 #elif defined(MQTT_USE_WOLFSSL)
 #include <wolfssl/ssl.h>
