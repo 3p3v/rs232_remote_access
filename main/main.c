@@ -149,6 +149,10 @@ void *client_refresher(void *client);
 void publish_callback(void **unused, struct mqtt_response_publish *published);
 void mqtt_main_task(void);
 void return_error(const char *tag, int err);
+void mqtt_deamon(void *);
+TaskHandle_t *mqtt_deamon_get_task();
+TaskHandle_t mqtt_deamon_start();
+TaskHandle_t mqtt_deamon_stop();
 
 /* Main */
 void app_main(void)
@@ -163,7 +167,7 @@ void app_main(void)
     settimeofday(&tv_now, NULL);
 
     /* Enable the persistant ESP32 memory */
-    if (err = nvs_flash_init())
+    if ((err = nvs_flash_init()))
     {
         return_error("ESP", err);
     }
@@ -184,12 +188,12 @@ void app_main(void)
     LL_SIM_listen(sim);
 
     /* Enable network connection and multiple TCP streams */
-    if (err = SIM_run(sim, SIM_execATE0(&cmd)) ||
-        err = SIM_run(sim, SIM_readCGATT(&cmd)) ||
-        err = SIM_run(sim, SIM_writeCIPMUX(&cmd, 1)) ||
-        err = SIM_run(sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL)) ||
-        err = SIM_run(sim, SIM_execCIICR(&cmd)) ||
-        err = SIM_run(sim, SIM_execCIFSR(&cmd)))
+    if ((err = SIM_run(sim, SIM_execATE0(&cmd))) ||
+        (err = SIM_run(sim, SIM_readCGATT(&cmd))) ||
+        (err = SIM_run(sim, SIM_writeCIPMUX(&cmd, 1))) ||
+        (err = SIM_run(sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL))) ||
+        (err = SIM_run(sim, SIM_execCIICR(&cmd))) ||
+        (err = SIM_run(sim, SIM_execCIFSR(&cmd))))
     {
         return_error("SIM", err);
     }
@@ -204,6 +208,7 @@ void mqtt_main_task(void)
     
     /* TLS and MQTT specyfic structures */
     mbedtls_context ctx;
+    client_queue = xQueueCreate(1, sizeof(SIM_error));
 
     /* Load certyficates */
     const unsigned char *ca_chain[] = {(const unsigned char *)SERVER_IM2_CERT,
@@ -214,7 +219,7 @@ void mqtt_main_task(void)
     /* Open encrypted socket */
     err = open_nb_socket(&ctx, WEB_SERVER, WEB_PORT, ca_chain);
     mqtt_pal_socket_handle sockfd = &ctx.ssl_ctx;
-    if (err < 0 || sockfd == NULL)
+    if (sockfd == NULL) //TODO change
     {
         // exit_example(EXIT_FAILURE, sockfd, NULL);
         // printf("err\r\n");
@@ -226,10 +231,6 @@ void mqtt_main_task(void)
     uint8_t sendbuf[MAIN_MQTT_SEND_BUF_SIZE]; 
     uint8_t recvbuf[MAIN_MQTT_REC_BUF_SIZE]; 
     mqtt_init(&client, sockfd, sendbuf, sizeof(sendbuf), recvbuf, sizeof(recvbuf), publish_callback);
-    if (client.error != MQTT_OK)
-    {
-        return_error("MQTT-C", err);
-    }
     /* Create connect message */
     const char *client_id = NULL;
     const char *username = MAIN_USERNAME;
@@ -238,23 +239,27 @@ void mqtt_main_task(void)
     mqtt_connect(&client, client_id, NULL, NULL, 0, username, password, connect_flags, 60);
     if (client.error != MQTT_OK)
     {
-        return_error("MQTT-C", err);
+        return_error("MQTT-C", client.error);
     }
-
-    ESP_LOGI("MAIN", "Connect.");
-    mqtt_sync(&client);
-    // xTaskCreate(client_refresher, "client_refresher", 2000, (void *)&client, 5, NULL);
+    // xQueueSend(client_queue, &client.error, portMAX_DELAY);
+mqtt_sync(&client);
+    /* Start deamon */
+    // if (!mqtt_deamon_start())
+    // {
+    //     return_error("MQTT-C", 0);
+    // }
 
     mqtt_publish(&client, MQTT_TOPIC, "test", strlen("test") + 1, MQTT_PUBLISH_QOS_0);
     if (client.error != MQTT_OK)
     {
-        return_error("MQTT-C", err);
+        return_error("MQTT-C", client.error);
     }
+    // xQueueSend(client_queue, &client.error, portMAX_DELAY);
+mqtt_sync(&client);
+    // ESP_LOGI("MAIN", "Send MSG.");
+    // mqtt_sync(&client);
 
-    ESP_LOGI("MAIN", "Send MSG.");
-    mqtt_sync(&client);
-
-EXIT:
+// EXIT:
     return;
 }
 
@@ -262,19 +267,16 @@ void publish_callback(void **unused, struct mqtt_response_publish *published)
 {
 }
 
-void *mqtt_deamon(void *)
+void mqtt_deamon(void *)
 {
     SIM_error err = SIM_noErrCode;
-    // struct mqtt_client *client;
-    // QueueHandle_t *queue;
     
-    while (xQueueReceive((mqtt_task_grip *)grip->queue, &err, 100000U / portTICK_PERIOD_MS))
+    while (xQueueReceive(client_queue, &err, 100000U / portTICK_PERIOD_MS))
     {
         // xQueueReceive((mqtt_task_grip *)grip->queue, &err, 100000U / portTICK_PERIOD_MS);
         mqtt_sync(&client);
         err = SIM_noErrCode;
     }
-    return NULL;
 }
 
 TaskHandle_t *mqtt_deamon_get_task()
@@ -288,13 +290,13 @@ TaskHandle_t mqtt_deamon_start()
     TaskHandle_t *handle = mqtt_deamon_get_task();
     if (!(*handle))
     {
-        xTaskCreate(mqtt_deamon, "mqtt_deamon", 1024, NULL, 5, handle);
+        xTaskCreate(mqtt_deamon, "mqtt_deamon", 4096, NULL, 5, handle);
     }
 
     return *handle;
 }
 
-TaskHandle_t *mqtt_deamon_stop()
+TaskHandle_t mqtt_deamon_stop()
 {
     TaskHandle_t *handle = mqtt_deamon_get_task();
     if (*handle)
@@ -318,9 +320,19 @@ void return_error(const char *tag, int err)
     }
     }
     /* Reboot device in x */
-    for (unsigned char i = 0; i < MAIN_SECS_TILL_REBOOT; i++)
+    char i = MAIN_SECS_TILL_REBOOT;
+    for (;;)
     {
-        printf("Reboot in %i s.\r\n");
+        printf("Reboot in %i s.\r\n", i);
+        if (i != 0)
+        {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+        else
+        {
+            break;
+        }
+        i--;
     }
 
     printf("Rebooting...\r\n");

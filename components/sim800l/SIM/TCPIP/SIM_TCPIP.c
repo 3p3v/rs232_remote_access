@@ -601,17 +601,17 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
 
     EXIT:
 
-    static int break_p = 0; 
+    // static int break_p = 0; 
 
-    for (int i = 0; i < read_len; i++)
-    {
-        printf("%X  ", ((char *)buf)[i]);
-        if (++break_p == 16)
-        {
-            printf("\r\n");
-            break_p = 0;
-        }
-    }
+    // for (int i = 0; i < read_len; i++)
+    // {
+    //     printf("%X  ", ((char *)buf)[i]);
+    //     if (++break_p == 16)
+    //     {
+    //         printf("\r\n");
+    //         break_p = 0;
+    //     }
+    // }
 
     xSemaphoreGive(resp->data_mutex);
     return read_len;
