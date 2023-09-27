@@ -24,30 +24,13 @@ int mbedtls_net_send( void *ctx, const unsigned char *buf, size_t len )
     return SIM_TCP_write(sim, (SIM_con_num)((mbedtls_net_context *)ctx)->fd, buf, len);
 }
 
+// #ifdef MBEDTLS_DEFAULT_TCP_RESP_HANDLER
 int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char *port, int proto )
 {
-    // static unsigned char sockets[][2] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}};
-    // static SIM_cmd cmds[5];
     SIM_TCP_cmd cmd_tcp;
     SIM_cmd cmd;
-
-    // for (unsigned int i = 0; i < SIM_con_5; i++)
-    // {
-    //     if (sockets[i][1] == 0)
-    //     {
-    //         ctx->fd = *sockets[i];
-    //         cmd_tcp = &cmds[i];
-    //         break;
-    //     }
-    // }
-
-    // if (cmd_tcp == NULL)
-    // {
-    //     return SIM_err;
-    // }
-    
     SIM_error err;
-    SIM_listenTCP(&cmd_tcp, (SIM_con_num)ctx->fd);
+    SIM_listenTCP(&cmd_tcp, (SIM_con_num)ctx->fd, NULL);
     if ((err = SIM_run_multiple_launch(sim, &cmd_tcp)) != SIM_ok)
     {
         return err;
@@ -63,6 +46,29 @@ int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char 
     err = SIM_run(sim, &cmd);
     return err;
 }
+// #else
+// int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char *port, int proto, void (*resp_handle)(int *))
+// {
+//     SIM_TCP_cmd cmd_tcp;
+//     SIM_cmd cmd;
+//     SIM_error err;
+//     SIM_listenTCP(&cmd_tcp, (SIM_con_num)ctx->fd, resp_handle);
+//     if ((err = SIM_run_multiple_launch(sim, &cmd_tcp)) != SIM_ok)
+//     {
+//         return err;
+//     }
+
+//     char protocol[4];
+//     if (proto == 0)
+//         strcpy(protocol, "TCP");
+//     else
+//         strcpy(protocol, "UDP");
+
+//     SIM_writeCIPSTART(&cmd, (SIM_con_num)ctx->fd, protocol, host, atoi(port));
+//     err = SIM_run(sim, &cmd);
+//     return err;
+// }
+// #endif
 
 void mbedtls_net_free( mbedtls_net_context *ctx )
 {

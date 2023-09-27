@@ -500,13 +500,13 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
 
         xSemaphoreGive(resp->data_mutex);
 
-        SIM_listenTCP_receive_handler(/* EDIT */);
+        // SIM_listenTCP_receive_handler(/* EDIT */);
         resp->err = SIM_receive;
         return SIM_ok;
     }
     else if (err.err == SIM_closed)
     {
-        SIM_listenTCP_closed_handler(/* EDIT */);
+        // SIM_listenTCP_closed_handler(/* EDIT */);
         resp->err = err.err;
         resp->msg_end = err.ptr;
         return SIM_err;
@@ -525,7 +525,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
 
     SIM_error err = SIM_noErrCode;
     SIM_TCP_cmd_grip *cmd_grip;
-    SIM_cmd *cmd;
+    SIM_TCP_cmd *cmd;
     SIM_resp *resp;
 
     // Find the right stream
@@ -683,7 +683,7 @@ SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int
     return len;
 }
 
-SIM_TCP_cmd *SIM_listenTCP(SIM_TCP_cmd *cmd, const SIM_con_num n)
+SIM_TCP_cmd *SIM_listenTCP(SIM_TCP_cmd *cmd, const SIM_con_num n, void (*resp_handler)(SIM_error *))
 {
     if (n > SIM_con_5 || n < SIM_con_def)
         return NULL;
@@ -693,10 +693,35 @@ SIM_TCP_cmd *SIM_listenTCP(SIM_TCP_cmd *cmd, const SIM_con_num n)
         cmd->handler = &SIM_listenTCP_cipmux0_handler;
     else
         cmd->handler = &SIM_listenTCP_cipmux1_handler;
+    if (resp_handler == NULL)
+        cmd->handler = &SIM_listenTCP_resp_handler;
+    else 
+        cmd->handler = resp_handler;
     SIM_respNULL(&cmd->resp, NULL);
     cmd->resp.data_mutex = xSemaphoreCreateMutex();
 
     return cmd;
+}
+
+SIM_error SIM_listenTCP_setHandler(SIM_intf *sim, const SIM_con_num n,  void (*resp_handler)(SIM_error *))
+{
+    if (n > SIM_con_5 || n < SIM_con_0)
+        return SIM_err;
+
+    SIM_error err = SIM_noErrCode;
+    SIM_TCP_cmd_grip *cmd_grip;
+    SIM_TCP_cmd *cmd;
+    SIM_resp *resp;
+
+    // Find the right stream
+    cmd_grip = &sim->tcp_cmds[n];
+    cmd = sim->tcp_cmds[n].cmd;
+    if (!cmd)
+        return SIM_err;
+
+    cmd->resp_handler = resp_handler;
+
+    return SIM_ok;
 }
 
 static SIM_error SIM_writeCIPMUX_handler(char *buf, unsigned int rec_len, SIM_resp *resp, void *sim)

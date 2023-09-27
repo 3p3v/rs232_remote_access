@@ -225,8 +225,7 @@ START:
             sim->tcp_ret = &sim->tcp_cmds[num];
         }
 
-        // for (;;)
-        // {
+        /* Excute handler */
         err = sim->tcp_ret->cmd->handler(sim->buf, sim->rec_len, &sim->tcp_ret->cmd->resp, (void *)sim);
 
         if (err == SIM_ok)
@@ -234,6 +233,7 @@ START:
             // Handler was executed correctly
             SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
             /* EDIT */
+            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
             xQueueSend(sim->tcp_ret->queue, (void *)&sim->tcp_ret->cmd->resp.err, portMAX_DELAY);
             sim->tcp_ret = NULL;
             /********/
@@ -265,6 +265,7 @@ START:
             // encountered error
             SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
             /* EDIT */
+            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
             xQueueSend(sim->tcp_ret->queue, (void *)&err, portMAX_DELAY);
             sim->tcp_ret = NULL;
             /********/
@@ -447,7 +448,7 @@ LL_SIM_error SIM_wait(LL_SIM_intf *sim, SIM_time time)
 void LL_SIM_listen(LL_SIM_intf *sim)
 {
     // read data non stop
-    xTaskCreate(SIM_receiveHandler, "SIM_listener", 5000, (void *)sim, 5, NULL);
+    xTaskCreate(SIM_receiveHandler, "SIM_listener", 5000, (void *)sim, 4, NULL);
 }
 
 void SIM_receiveHandler(void *sim_void)

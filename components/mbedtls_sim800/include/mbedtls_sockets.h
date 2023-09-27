@@ -79,6 +79,11 @@ typedef struct mbedtls_context {
 /*
     A template for opening a non-blocking mbed TLS connection.
 */
+int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) )
+{
+    return SIM_listenTCP_setHandler(sim, ctx->net_ctx.fd, resp_handler);
+}
+
 int open_nb_socket(mbedtls_context *ctx,
                     const char *hostname,
                     const char *port,

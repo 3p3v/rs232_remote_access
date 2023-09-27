@@ -166,12 +166,9 @@ typedef struct SIM_cmd
 typedef struct SIM_TCP_cmd
 {
     SIM_con_num con;
-    // char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
-    // unsigned char params_num;
     SIM_error (*handler)(char *, unsigned int, SIM_resp *, void *);
     SIM_resp resp;
-    // SIM_time timeout;
-    // SIM_error err;
+    void (*resp_handler)(SIM_error *err);
 } SIM_TCP_cmd;
 
 
