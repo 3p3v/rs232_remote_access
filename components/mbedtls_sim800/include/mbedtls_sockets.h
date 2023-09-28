@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <SIM.h>
 
 #include "mbedtls/platform.h"
 #include "mbedtls/net_sockets.h"
@@ -18,7 +19,7 @@
 #endif
 #include "esp_crt_bundle.h"
 
-#define CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
+// #define CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
 
 
 #if !defined(MBEDTLS_NET_POLL_READ)
@@ -79,6 +80,8 @@ typedef struct mbedtls_context {
 /*
     A template for opening a non-blocking mbed TLS connection.
 */
+extern SIM_intf *sim;
+
 int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) )
 {
     return SIM_listenTCP_setHandler(sim, ctx->net_ctx.fd, resp_handler);
@@ -93,7 +96,7 @@ int open_nb_socket(mbedtls_context *ctx,
     // while(take_break);
 
     char buf[512];
-    int ret, flags, len;
+    int ret, flags;//, len;
 
     mbedtls_net_context *net = &ctx->net_ctx;
     mbedtls_ssl_context *ssl = &ctx->ssl_ctx;

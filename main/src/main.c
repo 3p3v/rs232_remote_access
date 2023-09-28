@@ -35,29 +35,25 @@
 #endif
 #include <esp_crt_bundle.h>
 /* MQTT-C lib */
-#include <MQTT-C/include/mqtt.h>
+#include <mqtt.h>
 /* Main deamon */
 #include <error_handler.h>
 #include <mqtt_deamon.h>
+#include <sim_deamon.h>
+#include <ctrl_ch.h>
+#include <info_ch.h>
 /* TEMPORARY */
 #include <cert.h>
 
 /* Definitions */
 #define MAIN_SIM_BUF_SIZE 12000
-#define MAIN_MQTT_REC_BUF_SIZE 1024
-#define MAIN_MQTT_SEND_BUF_SIZE 1024
 
-#define MAIN_USERNAME "admin"
-#define MAIN_PASSWORD "admin"
 
-#define WEB_SERVER "www.3p3v.pl"
-#define WEB_PORT "8883"
 #define MQTT_TOPIC "console_device1"
 
 /* Global variables */
 SIM_intf *sim;
-struct mqtt_client client; /* TLS and MQTT specyfic structures */
-// QueueHandle_t main_queue;
+struct mqtt_client client; 
 
 /* Function decalrations */
 void *client_refresher(void *client);
@@ -79,7 +75,7 @@ void app_main(void)
     settimeofday(&tv_now, NULL);
 
     /* Run main */
-    xTaskCreate(main_task, "mqtt_main_task", 20000, NULL, 3, NULL);
+    xTaskCreate(&main_task, "mqtt_main_task", 20000, NULL, 3, NULL);
 
     // while(1);
 }
@@ -88,12 +84,18 @@ void main_task(void)
 {
     TaskHandle_t handler;
     int err;
-    QueueHandle_t main_queue = *error_get_queue();
+
+    /* Init needed structures */
+    QueueHandle_t *main_queue = error_create_queue();
+    uart_deamon_load_config();
+    cert_load_chain();
+
+
 
     /* Enable the persistant ESP32 memory */
     if ((err = nvs_flash_init()))
     {
-        mqtt_deamon_delete_queue();
+        // mqtt_deamon_delete_queue();
         error_delete_queue();
         return_error("nvs_flash init", err);
     }
@@ -101,7 +103,7 @@ void main_task(void)
     /* Start SIM deamon */
     if ((err = sim_deamon_start(&handler)))
     {
-        mqtt_deamon_delete_queue();
+        // mqtt_deamon_delete_queue();
         error_delete_queue();
         return_error("sim_deamon startup", err);
     }
@@ -110,23 +112,23 @@ void main_task(void)
     // TODO
 
     /* Start mqtt deamon */
-    if ((err = mqtt_deamon_start(&handler)))
+    if ((err = mqtt_deamon_start(&handler, &publish_callback)))
     {
-        mqtt_deamon_delete_queue();
+        // mqtt_deamon_delete_queue();
         error_delete_queue();
         return_error("mqtt_deamon startup", err);
     }
 
     while (1)
     {
-        xQueueReceive(main_queue, &handler, portMAX_DELAY);
+        xQueueReceive(*main_queue, &handler, portMAX_DELAY);
 
         if (*sim_deamon_get_task() == handler)
         {
             /* Unhandlable exception occured in SIM task */
             sim_deamon_delete_task();
             mqtt_deamon_delete_task();
-            mqtt_deamon_delete_queue();
+            // mqtt_deamon_delete_queue();
             error_delete_queue();
             return_error("sim_deamon", err);
             // break;
@@ -136,13 +138,16 @@ void main_task(void)
             /* Unhandlable exception occured in MQTT task, reset this task */
             echo_error("mqtt_deamon", err);
             mqtt_deamon_delete_task();
-            if ((err = mqtt_deamon_start(&handler)))
+            if ((err = mqtt_deamon_start(&handler, &publish_callback)))
             {
                 return_error("mqtt_deamon startup", err);
             }
         }
     }
 
+    exit:
+
+    
     // mqtt_publish(&client, MQTT_TOPIC, "test", strlen("test") + 1, MQTT_PUBLISH_QOS_0);
     // if (client.error != MQTT_OK)
     // {
@@ -150,8 +155,8 @@ void main_task(void)
     // }
     // xQueueSend(client_queue, &client.error, portMAX_DELAY);
     
-    mqtt_deamon_delete_queue();
-    error_delete_queue();
+    // mqtt_deamon_delete_queue();
+    // error_delete_queue();
     // abort();
     // vTaskDelete(NULL);
 }
@@ -165,12 +170,12 @@ void publish_callback(void **unused, struct mqtt_response_publish *published)
     /* Control channel handling */
     if (strstr(topic_name, "control"))
     {
-
+        ctrl_ch_handler((const char*) published->application_message);
     }
     /* Information channel handling */
     else
     {
-
+        info_ch_handler((const char*) published->application_message);
     }
 }
 

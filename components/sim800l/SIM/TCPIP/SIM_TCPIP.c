@@ -402,14 +402,14 @@ static SIM_error SIM_listenTCP_cipmux0_handler(char *buf, unsigned int rec_len, 
 
     if (err.err == SIM_closed)
     {
-        SIM_listenTCP_closed_handler(/* EDIT */);
+        // SIM_listenTCP_closed_handler(/* EDIT */);
         resp->err = err.err;
         resp->msg_end = err.ptr;
         return SIM_err;
     }
     else
     {
-        SIM_listenTCP_receive_handler(/* EDIT */);
+        // SIM_listenTCP_receive_handler(/* EDIT */);
         resp->data = buf;
         resp->err = err.err;
         err = SIM_retrieveCustomErr(lines, SIM_reservedResps);

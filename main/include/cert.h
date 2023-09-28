@@ -81,3 +81,6 @@
     "VoNzcOSGGtIxQbovvi0TWnZvTuhOgQ4/WwMioBK+ZlgRSssDxLQqKi2WF+A5VLxI\n" \
     "03YnnZotBqbJ7DnSq9ufmgsnAjUpsUCV5/nonFWIGUbWtzT1fs45mtk48VH3Tyw=\n" \
     "-----END CERTIFICATE-----"
+
+const char **cert_get_chain();
+const char **cert_set_chain(const char ** new_chain);
