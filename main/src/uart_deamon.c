@@ -1,5 +1,3 @@
-#pragma once
-
 #include <uart_deamon.h>
 
 /* FreeRTOS-specyfic libraries */
@@ -17,21 +15,31 @@
 static const char *TAG = "UART_DEAMON";
 extern struct mqtt_client client;
 
-// QueueHandle_t *uart_deamon_get_queue()
+// uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int))
 // {
-//     static QueueHandle_t queue;
-//     return &queue;
+//     uart_deamon_handler *handler = uart_deamon_get_handle();
+//     handler->error_handler = error_handler;
+//     handler->resp_handler = resp_handler;
+//     handler->hard_error_handler = hard_error_handler;
+//     return handler;
 // }
 
-void uart_deamon(void *)
+// static uart_deamon_handler *uart_deamon_get_handle()
+// {
+//     static uart_deamon_handler handle;
+//     return &handle;
+// }
+
+void uart_deamon(void *v_handler)
 {
     esp_err_t err = ESP_OK;
-    QueueHandle_t *queue = uart_deamon_get_queue();
+    uart_deamon_handler *handler = (uart_deamon_handler *)v_handler;
+    QueueHandle_t *queue = &handler->queue;
     uart_event_t event;
     int len;
     unsigned char buf[UART_DEAMON_DEF_REC_BUF_SIZE];
 
-    while (xQueueReceive(*queue, &err, portMAX_DELAY))
+    while (xQueueReceive(*queue, &event, portMAX_DELAY))
     {
         switch (event.type)
         {
@@ -42,15 +50,10 @@ void uart_deamon(void *)
 
             len += uart_read_bytes(UART_DEAMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
             buf[len] = '\0';
-            
+            // client
             if (len > 0)
             {
-                mqtt_publish(&client, "console_device1", buf, len, MQTT_PUBLISH_QOS_0);
-                if (client.error != MQTT_OK)
-                {
-                    // TODO send error using ctrl channel
-                }
-                mqtt_deamon_awake(&client.error);
+                handler->resp_handler(buf, len);
             }
 
             len = 0;
@@ -59,38 +62,39 @@ void uart_deamon(void *)
         case UART_FIFO_OVF:
             ESP_LOGI(TAG, "hw fifo overflow");
             uart_flush_input(UART_DEAMON_DEF_UART_NUM);
-            xQueueReset(sim->uartQueue);
-            // TODO send error using ctrl channel
+            xQueueReset(*queue);
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_FIFO_OVF);
             break;
         // Event of UART ring buffer full
         case UART_BUFFER_FULL:
-            ESP_LOGI(TAG, "ring buffer full");
+            ESP_LOGI(TAG, "ring bufer full");
             uart_flush_input(UART_DEAMON_DEF_UART_NUM);
             xQueueReset(*queue);
-            // TODO send error using ctrl channel
-            return SIM_bufferFullErr;
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BUFFER_FULL);
+            // return SIM_TAGferFullErr;
             break;
         // Event of UART RX break detected
         case UART_BREAK:
             ESP_LOGI(TAG, "uart rx break");
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BREAK);
             break;
         // Event of UART parity check error
         case UART_PARITY_ERR:
             ESP_LOGI(TAG, "uart parity error");
-            // TODO send error using ctrl channel
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_PARITY_ERR);
             break;
         // Event of UART frame error
         case UART_FRAME_ERR:
             ESP_LOGI(TAG, "uart frame error");
-            // TODO send error using ctrl channel
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_FRAME_ERR);
             break;
         case UART_DATA_BREAK:
             ESP_LOGI(TAG, "uart data break");
-            // TODO send error using ctrl channel
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_DATA_BREAK);
             break;
         case UART_EVENT_MAX:
             ESP_LOGI(TAG, "uart event max");
-            // TODO send error using ctrl channel
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_EVENT_MAX);
             break;
         case UART_PATTERN_DET:
         {
@@ -98,116 +102,116 @@ void uart_deamon(void *)
         }
         default:
             ESP_LOGI(TAG, "uart event type: %d", event.type);
-            // TODO send error using ctrl channel
-            break;
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, event.type);            break;
         }
     }
 
     /* Send error to main deamon */
-    TaskHandle_t task = xTaskGetCurrentTaskHandle();
-    xQueueSend(*error_get_queue(), &task, portMAX_DELAY);
+    // TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    // xQueueSend(*error_get_queue(), &task, portMAX_DELAY);
+    // handler->hard_error_handler(handler->handler);
 
     /* wait for the task to be deleted */
-    for (;;);
+    for (;;)
+        ;
 }
 
-TaskHandle_t uart_deamon_create_task()
+TaskHandle_t uart_deamon_create_task(uart_deamon_handler *handler)
 {
-    TaskHandle_t *handle = uart_deamon_get_task();
-    if (!(*handle))
+    if (!(handler->handler))
     {
-        xTaskCreate(uart_deamon, "uart_deamon", 4096, NULL, 3, handle);
+        xTaskCreate(uart_deamon, "uart_deamon", 4096, (void *)handler, 3, &handler->handler);
     }
-    return *handle;
+    return handler->handler;
 }
 
-TaskHandle_t uart_deamon_delete_task()
+TaskHandle_t uart_deamon_delete_task(uart_deamon_handler *handler)
 {
-    TaskHandle_t *handle = uart_deamon_get_task();
-    if (*handle)
+    if (handler->handler)
     {
-        vTaskDelete(*handle);
+        vTaskDelete(handler->handler);
     }
-    return *handle;
+    return handler->handler;
 }
 
-static uart_config_t *uart_deamon_load_config()
+uart_config_t uart_deamon_load_config()
 {
-    static bool load = false;
-    uart_config_t *uart_conf = uart_deamon_get_config();
+    // static bool load = false;
+    // uart_config_t *uart_conf = uart_deamon_get_config();
 
-    if (load == false)
-    {
-        // TODO load config from memory
-        uart_config_t uart_def_conf = {
-            .baud_rate = UART_DEAMON_DEF_UART_BAUD_RATE,
-            .data_bits = UART_DEAMON_DEF_UART_DATA_BITS,
-            .parity = UART_DEAMON_DEF_UART_PARITY,
-            .stop_bits = UART_DEAMON_DEF_UART_STOP_BITS,
-            .flow_ctrl = UART_DEAMON_DEF_UART_FLOW_CTRL,
-            .rx_flow_ctrl_thresh = UART_DEAMON_DEF_UART_RX_FLOW_CTRL_TRESH,
-            .source_clk = UART_DEAMON_DEF_UART_SOURCE_CLK};
+    // if (load == false)
+    // {
+    // TODO load config from memory
+    uart_config_t uart_def_conf = {
+        .baud_rate = UART_DEAMON_DEF_UART_BAUD_RATE,
+        .data_bits = UART_DEAMON_DEF_UART_DATA_BITS,
+        .parity = UART_DEAMON_DEF_UART_PARITY,
+        .stop_bits = UART_DEAMON_DEF_UART_STOP_BITS,
+        .flow_ctrl = UART_DEAMON_DEF_UART_FLOW_CTRL,
+        .rx_flow_ctrl_thresh = UART_DEAMON_DEF_UART_RX_FLOW_CTRL_TRESH,
+        .source_clk = UART_DEAMON_DEF_UART_SOURCE_CLK};
 
-        *uart_conf = uart_def_conf;
-        load = true;
-    }
+    // *uart_conf = uart_def_conf;
+    // load = true;
+    // }
 
-    return uart_conf;
+    return uart_def_conf;
 }
 
-static uart_config_t *uart_deamon_get_config()
-{
-    static uart_config_t uart_conf;
-    return &uart_conf;
-}
+// static uart_config_t *uart_deamon_get_config()
+// {
+//     static uart_config_t uart_conf;
+//     return &uart_conf;
+// }
 
-uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf)
-{
-    uart_config_t *uart_conf = uart_deamon_get_config();
-    *uart_conf = *new_uart_conf;
+// uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf)
+// {
+//     uart_config_t *uart_conf = uart_deamon_get_config();
+//     *uart_conf = *new_uart_conf;
 
-    return uart_conf;
-}
+//     return uart_conf;
+// }
 
-uart_config_t *uart_deamon_save_config()
+uart_config_t *uart_deamon_save_config(uart_config_t *new_uart_conf)
 {
-    uart_config_t *uart_conf = uart_deamon_get_config();
+    // uart_config_t *uart_conf = uart_deamon_get_config();
 
     // TODO save to nvs
 
-    return uart_conf;
+    return new_uart_conf;
 }
 
 /* Start UART deamon.
- * If driver install and starting deamon was successful 
+ * If driver install and starting deamon was successful
  * then handler != NULL and returned value == 0.
- * If driver install and uninstall was successful but starting deamon was't 
+ * If driver install and uninstall was successful but starting deamon was't
  * then handler == NULL and returned value == 0.
- * If both we unsuccessfull 
+ * If both we unsuccessfull
  * then handler == NULL and returned value != 0.*/
-int uart_deamon_start(TaskHandle_t *handler, void (*rec_handler)(void *, ))
+int uart_deamon_start(uart_deamon_handler *handler)
 {
     esp_err_t err;
-    *handler = NULL;
+    // *handler = NULL;
 
     /* UART-specyfic vars */
-    uart_config_t *uart_conf = uart_deamon_load_config();
-    static QueueHandle_t uart_queue;
+    // uart_deamon_handler *uart_handler = uart_deamon_set_handle(resp_handler, error_handler, hard_error_handler);
+    // uart_config_t *uart_conf = uart_deamon_get_config();
+    // QueueHandle_t *uart_queue = &uart_handler->queue;
 
     /* Basic UART config */
     if ((err = uart_driver_install(UART_DEAMON_DEF_UART_NUM,
                                    UART_DEAMON_DEF_RX_BUF_SIZE,
                                    UART_DEAMON_DEF_TX_BUF_SIZE,
                                    UART_DEAMON_DEF_QUEUE_SIZE,
-                                   &uart_queue,
+                                   &handler->queue,
                                    0)) != ESP_OK)
     {
         /* Driver installation failed */
-        return ESP_OK;//(int)err;
+        return ESP_OK; //(int)err;
     }
 
     if ((err = uart_param_config(UART_DEAMON_DEF_UART_NUM,
-                                 uart_conf)) != ESP_OK)
+                                 &handler->uart_conf)) != ESP_OK)
     {
         /* Parameter configuration failed, uninstall drivers */
         err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
@@ -215,8 +219,8 @@ int uart_deamon_start(TaskHandle_t *handler, void (*rec_handler)(void *, ))
     }
 
     /* Finally run the deamon */
-    *handler = uart_deamon_create_task();
-    if (*handler)
+    uart_deamon_create_task(handler);
+    if (handler->handler)
     {
         /* OK */
         return (int)err;
@@ -229,14 +233,14 @@ int uart_deamon_start(TaskHandle_t *handler, void (*rec_handler)(void *, ))
     }
 }
 
-int uart_deamon_stop(TaskHandle_t *handler)
+int uart_deamon_stop(uart_deamon_handler *handler)
 {
     esp_err_t err = ESP_OK;
 
     /* Stop UART deamon */
-    *handler = uart_deamon_delete_task();
+    uart_deamon_delete_task(handler);
 
-    if (!(*handler))
+    if (!(handler->handler))
     {
         err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
         return (int)err;
@@ -247,8 +251,8 @@ int uart_deamon_stop(TaskHandle_t *handler)
     }
 }
 
-TaskHandle_t *uart_deamon_get_task()
-{
-    static TaskHandle_t handle = NULL;
-    return &handle;
-}
+// TaskHandle_t *uart_deamon_get_task()
+// {
+//     static TaskHandle_t handle = NULL;
+//     return &handle;
+// }

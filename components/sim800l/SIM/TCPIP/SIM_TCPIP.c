@@ -518,6 +518,56 @@ static SIM_error SIM_listenTCP_cipmux1_handler(char *buf, unsigned int rec_len, 
     }
 }
 
+static SIM_error SIM_writeCIPCLOSE_handler(char *buf, unsigned int rec_len, SIM_resp *resp, void *sim)
+{
+    SIM_line_pair lines[SIM_MAX_LINES_ARR_LEN];
+    SIM_findAllLines(buf, rec_len, lines, SIM_MAX_LINES_ARR_LEN);
+
+    SIM_errMsgEnd_pair err = SIM_retrieveErr(lines);
+    if (err.err != SIM_ok && err.err != SIM_err)
+        return SIM_noErrCode;
+
+    SIM_err_pair c_st[] = {{.name = "., CONNECT OK\r\n", .err = SIM_connectOk},
+                           {.name = "., ALREADY CONNECT\r\n", .err = SIM_alreadyConnect},
+                           {.name = "., CONNECT FAIL\r\n", .err = SIM_connectFail},
+                           {.name = NULL, .err = SIM_noErrCode}};
+
+    SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr(lines, c_st);
+    resp->err = err2.err;
+    resp->msg_end = err2.ptr;
+    if (resp->err != SIM_connectOk && resp->err != SIM_alreadyConnect && resp->err != SIM_connectFail)
+        return SIM_noErrCode;
+    else if (resp->err == SIM_connectOk)
+        return SIM_ok;
+    else
+        return SIM_err;
+    // todo check code and connect status
+    // return err.err;
+}
+
+SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
+{
+    SIM_param params[3];
+    sprintf(params[0].name, "%u", (unsigned int)id);
+    sprintf(params[1].name, "%u", (unsigned int)n);
+    *params[2].name = NULL;
+    SIM_setAT(cmd->at, "CIPCLOSE", params);
+    cmd->handlers[0] = &SIM_writeCIPCLOSE_handler;
+    cmd->handlers_num = 1;
+    SIM_respNULL(&cmd->resp, cmd->at);
+    static SIM_err_pair c_st[] = {{.name = "> ", .err = SIM_ok},
+                           {.name = "ERROR\r\n", .err = SIM_err},
+                           {.name = "OK\r\n", .err = SIM_sendOk},
+                           {.name = "., SEND OK\r\n", .err = SIM_sendOk},
+                           {.name = "., SEND FAIL\r\n", .err = SIM_sendFail},
+                           {.name = NULL, .err = SIM_noErrCode}};
+    cmd->resp.pos_resps = &c_st;
+    cmd->type = SIM_cmd_single_use;
+    cmd->timeout = SIM_WRITECIPSTART_TIMEOUT;
+
+    return cmd;
+}
+
 SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
 {
     if (n > SIM_con_5 || n < SIM_con_0)
@@ -581,10 +631,23 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
                 read_len = 0;
                 goto EXIT;
             }
-            memcpy(buf, resp->data, len);
-            memcpy(resp->data, resp->data + len, resp->data_len - len);
-            resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
-            read_len = len;
+            
+            if (resp->data_len < len)
+            {
+                memcpy(buf, resp->data, resp->data_len);
+                free(resp->data);
+                resp->data_len = 0;
+                read_len = resp->data_len;
+                goto EXIT;
+            }
+            else
+            {
+                memcpy(buf, resp->data, len);
+                memcpy(resp->data, resp->data + len, resp->data_len - len);
+                resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
+                read_len = len;
+                goto EXIT;
+            }
         }
 
         // memcpy(test[1], resp->data, resp->data_len);
@@ -694,11 +757,12 @@ SIM_TCP_cmd *SIM_listenTCP(SIM_TCP_cmd *cmd, const SIM_con_num n, void (*resp_ha
     else
         cmd->handler = &SIM_listenTCP_cipmux1_handler;
     if (resp_handler == NULL)
-        cmd->handler = &SIM_listenTCP_resp_handler;
+        cmd->resp_handler = &SIM_listenTCP_resp_handler;
     else 
-        cmd->handler = resp_handler;
+        cmd->resp_handler = resp_handler;
     SIM_respNULL(&cmd->resp, NULL);
-    cmd->resp.data_mutex = xSemaphoreCreateMutex();
+    cmd->resp.data_mutex = xSemaphoreCreateBinary();
+    xSemaphoreGive(cmd->resp.data_mutex);
 
     return cmd;
 }

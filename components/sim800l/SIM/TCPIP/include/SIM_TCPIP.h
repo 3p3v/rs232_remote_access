@@ -32,6 +32,11 @@ SIM_cmd *SIM_execCIFSR(SIM_cmd *cmd);
 SIM_cmd *SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *address, const unsigned int port);
 // SIM_error SIM_writeCIPSTART_handler(char *buf, unsigned int rec_len, SIM_resp *resp, SIM_intf* sim);
 
+/* AT+CIPCLOSE Close TCP or UDP Connection */
+#define SIM_WRITECIPSTART_TIMEOUT 5000
+/* AT+CIPCLOSE Close TCP or UDP Connection */
+SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n);
+
 /* AT+CIPSEND Send Data Through TCP or UDP Connection */
 #define SIM_EXECCIPSEND_TIMEOUT 5000
 #define SIM_WRITECIPSEND_TIMEOUT 10000

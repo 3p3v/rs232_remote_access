@@ -33,7 +33,7 @@
 
 
 
-set(mbedtls_sim800_srcs "port/net_sockets_sim800.c")
+set(mbedtls_sim800_srcs "port/net_sockets_sim800.c" "src/mbedtls_sockets.c")
 
 idf_component_register(
     REQUIRES mbedtls sim800l

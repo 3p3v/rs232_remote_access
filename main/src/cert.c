@@ -7,51 +7,54 @@
 
 char **cert_load_chain()
 {
-    char **chain = cert_get_chain();
+    char ***chain = cert_get_chain();
     // TODO get from nvs
     const unsigned char *ca_chain[] = {(const unsigned char *)SERVER_IM2_CERT,
                                        (const unsigned char *)SERVER_IM1_CERT,
-                                       (const unsigned char *)SERVER_ROOT_CERT,
-                                       NULL};
-    chain = realloc(chain, sizeof(ca_chain));
+                                       (const unsigned char *)SERVER_ROOT_CERT};//,
+                                    //    NULL};
+    *chain = realloc(*chain, sizeof(ca_chain) / sizeof(unsigned char *));
 
-    for (int i = 0; i < (sizeof(ca_chain) - 1); i++)
+    for (int i = 0; i < (sizeof(ca_chain) / sizeof(unsigned char *)); i++)
     {
-        *(chain + i) = realloc(*(chain + i), strlen(*(ca_chain + i)) + 1);
+        
+
+        *(*chain + i) = malloc(sizeof(unsigned char) * (strlen((*((char **)ca_chain + i))) + 1));
+        memcpy(*(*chain + i), *(((char **)ca_chain) + i), strlen(*(((char **)ca_chain) + i)) + 1);
     }
 
-    *(chain + (sizeof(ca_chain) - 1)) = NULL;
+    *(*chain + (sizeof(ca_chain) / sizeof(unsigned char *) - 1)) = NULL;
 
-    return chain;
+    return *chain;
 }
 
-char **cert_get_chain()
+char ***cert_get_chain()
 {
     static char **chain = NULL;
-    return chain;
+    return &chain;
 }
 
 char **cert_set_save_chain(const char ** new_chain)
 {
-    char **chain = cert_get_chain();
+    char ***chain = cert_get_chain();
     //TODO save to nvs
     // chain = realloc(password, sizeof(char) * (strlen(new_password) + 1));
-    return chain;
+    return *chain;
 }
 
 char **cert_free_chain()
 {
-    char **chain = cert_get_chain();
+    char ***chain = cert_get_chain();
     unsigned int i = 0;
     for(;;)
     {
-        if (*(chain + i) == NULL)
+        if (*(*chain + i) == NULL)
             break;
 
-        free(*(chain + i));
+        free(*(*chain + i));
 
         i++;
     }
-    free(chain);
-    return chain;
+    free(*chain);
+    return *chain;
 }

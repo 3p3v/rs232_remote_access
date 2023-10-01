@@ -82,5 +82,10 @@
     "03YnnZotBqbJ7DnSq9ufmgsnAjUpsUCV5/nonFWIGUbWtzT1fs45mtk48VH3Tyw=\n" \
     "-----END CERTIFICATE-----"
 
-const char **cert_get_chain();
-const char **cert_set_chain(const char ** new_chain);
+char **cert_load_chain();
+
+char ***cert_get_chain();
+
+char **cert_set_save_chain(const char ** new_chain);
+
+char **cert_free_chain();

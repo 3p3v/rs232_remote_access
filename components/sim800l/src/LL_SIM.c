@@ -40,10 +40,13 @@ void LL_SIM_def(LL_SIM_intf *sim)
     }
     sim->lines_num = 0;
 
-    sim->add_cmd_mutex = xSemaphoreCreateMutex();
+    sim->add_cmd_mutex = xSemaphoreCreateBinary();
+    xSemaphoreGive(sim->add_cmd_mutex);
     sim->add_cmd_mutex_taken = false;
-    sim->write_mutex = xSemaphoreCreateMutex();
-    sim->exec_mutex = xSemaphoreCreateMutex();
+    sim->write_mutex = xSemaphoreCreateBinary();
+    xSemaphoreGive(sim->write_mutex);
+    sim->exec_mutex = xSemaphoreCreateBinary();
+    xSemaphoreGive(sim->exec_mutex);
 }
 
 /*  UART configuration, includes ESP pattern detection (detects every new line) */

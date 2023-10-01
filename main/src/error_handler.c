@@ -1,5 +1,3 @@
-#pragma once
-
 #include <error_handler.h>
 
 #include <stdio.h>
@@ -20,32 +18,26 @@
 /* Definitions */
 #define MAIN_SECS_TILL_REBOOT 10
 
-void echo_error(const char *tag, int err)
+void echo_error(const char *deamon_name, ext_error *err)
 {
+    
     /* Short info */
-    printf("Module %s encountered unhandlable error: %i.\r\n", tag, err);
-    /* Description if known */
-    switch (err)
-    {
-    default:
-    {
-        break;
-    }
-    }
+    if (err->type == ext_type_non_fatal)
+        printf("Module %s encountered non-fatal error: %i.\r\n", err->module, err->err);
+    else
+        printf("Module %s encountered fatal error: %i.\r\n", err->module, err->err);
+    // /* Description if known */
+    // switch (err)
+    // {
+    // default:
+    // {
+    //     break;
+    // }
+    // }
 }
 
-void return_error(const char *tag, int err)
+void reboot()
 {
-    /* Short info */
-    printf("Module %s encountered unhandlable error: %i.\r\n", tag, err);
-    /* Description if known */
-    switch (err)
-    {
-    default:
-    {
-        break;
-    }
-    }
     /* Reboot device in x */
     char i = MAIN_SECS_TILL_REBOOT;
     for (;;)
@@ -63,13 +55,51 @@ void return_error(const char *tag, int err)
     }
 
     printf("Rebooting...\r\n");
-    abort();
+    // abort();
+    while(1);
+}
+
+void ext_error_send(void *handler, const char *module, int type, int err)
+{
+    ext_error ext_err = {.handler = *((TaskHandle_t *)handler),
+                         .module = malloc(sizeof(char) * (strlen(module) + 1)),
+                         .type = (ext_type)type,
+                         .err = err};
+    memcpy(ext_err.module, module, strlen(module) + 1);
+
+    QueueHandle_t *queue = error_get_queue();
+    xQueueSend(*queue, (void *)&ext_err, portMAX_DELAY);
+}
+
+// void send_error(TaskHandle_t *handler)
+// {
+//     QueueHandle_t *queue = error_get_queue();
+//     xQueueSend(*queue, handler, sizeof(TaskHandle_t *));
+// }
+
+void ext_mqtt_send_error(const char *deamon_name, ext_error *err)
+{
+
+}
+
+void return_error(const char *tag, int err)
+{
+    /* Short info */
+    printf("Module %s encountered unhandlable error: %i.\r\n", tag, err);
+    /* Description if known */
+    switch (err)
+    {
+    default:
+    {
+        break;
+    }
+    }
 }
 
 QueueHandle_t *error_create_queue()
 {
     QueueHandle_t *queue = error_get_queue();
-    *queue = xQueueCreate(1, sizeof(QueueHandle_t));
+    *queue = xQueueCreate(1, sizeof(ext_error));
     return queue;
 }
 

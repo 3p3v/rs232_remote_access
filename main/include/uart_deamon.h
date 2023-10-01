@@ -26,13 +26,35 @@
 /* UART interrupt config, no changable */
 #define UART_DEAMON_DEF_QUEUE_SIZE 60
 
-QueueHandle_t *uart_deamon_get_queue();
-void uart_deamon(void *);
-TaskHandle_t uart_deamon_create_task();
-TaskHandle_t uart_deamon_delete_task();
-static uart_config_t uart_deamon_load_config();
-uart_config_t *uart_deamon_get_config();
-uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf);
+typedef struct uart_deamon_handler
+{
+    TaskHandle_t handler;
+    QueueHandle_t queue;
+    uart_config_t uart_conf;
+    void (*resp_handler)(const unsigned char *, unsigned int);
+    void (*error_handler)(void *handler, const char *module, int type, int err);
+    // void (*hard_error_handler)(TaskHandle_t *);
+} uart_deamon_handler;
+
+
+// uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int));
+
+// static uart_deamon_handler *uart_deamon_get_handle();
+
+void uart_deamon(void *v_handler);
+
+TaskHandle_t uart_deamon_create_task(uart_deamon_handler *handler);
+
+TaskHandle_t uart_deamon_delete_task(uart_deamon_handler *handler);
+
+uart_config_t uart_deamon_load_config();
+
+// static uart_config_t *uart_deamon_get_config();
+
+// uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf);
+
+uart_config_t *uart_deamon_save_config(uart_config_t *new_uart_conf);
+
 /* Start UART deamon.
  * If driver install and starting deamon was successful 
  * then handler != NULL and returned value == 0.
@@ -40,6 +62,8 @@ uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf);
  * then handler == NULL and returned value == 0.
  * If both we unsuccessfull 
  * then handler == NULL and returned value != 0.*/
-int uart_deamon_start(TaskHandle_t *handler, void (*rec_handler)(void *, ));
-int uart_deamon_stop(TaskHandle_t *handler);
-TaskHandle_t *uart_deamon_get_task();
+int uart_deamon_start(uart_deamon_handler *handler);
+
+int uart_deamon_stop(uart_deamon_handler *handler);
+
+// TaskHandle_t *uart_deamon_get_task();

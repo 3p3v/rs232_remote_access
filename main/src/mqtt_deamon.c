@@ -1,5 +1,3 @@
-#pragma once
-
 #include <mqtt_deamon.h>
 
 /* FreeRTOS-specyfic libraries */
@@ -39,131 +37,185 @@
 #include <error_handler.h>
 #include <cert.h>
 
-
 extern SIM_intf *sim;
 extern struct mqtt_client client;
 
-static QueueHandle_t *mqtt_deamon_create_queue()
-{
-    QueueHandle_t *queue = mqtt_deamon_get_queue();
-    *queue = xQueueCreate(1, sizeof(int));
-    return &queue;
-}
+// static mqtt_deamon_handler *mqtt_deamon_get_handler()
+// {
+//     static QueueHandle_t queue;
+//     return &queue;
+// }
 
-QueueHandle_t *mqtt_deamon_get_queue()
-{
-    static QueueHandle_t queue;
-    return &queue;
-}
+// mqtt_deamon_handler *mqtt_deamon_set_handle(void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int))
+// {
+//     mqtt_deamon_handler *handler = mqtt_deamon_get_handle();
+//     handler->error_handler = error_handler;
+//     handler->hard_error_handler = hard_error_handler;
+//     handler->queue = xQueueCreate(1, sizeof(int));
+//     // handler->resp_handler = resp_handler;
+//     return handler;
+// }
 
-static void mqtt_deamon_delete_queue()
-{
-    QueueHandle_t *queue = mqtt_deamon_get_queue();
-    vQueueDelete(*queue);
-}
+// mqtt_deamon_handler *mqtt_deamon_free_handle()
+// {
+//     mqtt_deamon_handler *handler = mqtt_deamon_get_handle();
+//     handler->error_handler = NULL;
+//     handler->hard_error_handler = NULL;
+//     vQueueDelete(handler->queue);
+//     // handler->resp_handler = resp_handler;
+//     return handler;
+// }
 
-void mqtt_deamon(void *)
+// static mqtt_deamon_handler *mqtt_deamon_get_handle()
+// {
+//     static mqtt_deamon_handler handle;
+//     return &handle;
+// }
+
+// static QueueHandle_t *mqtt_deamon_create_queue()
+// {
+//     mqtt_deamon_handler *handler = mqtt_deamon_get_handle();
+
+//     return &handler->queue;
+// }
+
+// static QueueHandle_t *mqtt_deamon_get_queue()
+// {
+//     static QueueHandle_t queue;
+//     return &queue;
+// }
+
+// static void mqtt_deamon_delete_queue()
+// {
+//     mqtt_deamon_handler *handler = mqtt_deamon_get_handle();
+
+// }
+
+void mqtt_deamon(void *v_mqtt_deamon_handler)
 {
-    SIM_error err = SIM_noErrCode;
-    QueueHandle_t *queue = mqtt_deamon_get_queue();
-    
+    int err = SIM_noErrCode;
+    mqtt_deamon_handler *handler = (mqtt_deamon_handler *)v_mqtt_deamon_handler;
+
     while (1)
     {
-        xQueueReceive(*queue, &err, 100000U / portTICK_PERIOD_MS);
+        xQueueReceive(handler->queue, &err, 100000U / portTICK_PERIOD_MS);
         // xQueueReceive((mqtt_task_grip *)grip->queue, &err, 100000U / portTICK_PERIOD_MS);
-        if (err == SIM_closed || SIM_closedOk)
+        // printf("sd");
+        if (err == SIM_closed || err == SIM_closedOk)
+        {
+            handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
             break;
-        
-        mqtt_sync(&client);
+        }
+
+        err = mqtt_sync(&handler->client);
+        if ((err) < 0)
+        {
+            printf("MQTT error: %i", err);
+            
+            switch (err)
+            {
+            default:
+            {
+                handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, err);
+            }
+            }
+        }
+        printf("MQTT error: %i", err);
         err = SIM_noErrCode;
     }
 
     /* Send error to main deamon */
-    TaskHandle_t task = xTaskGetCurrentTaskHandle();
-    xQueueSend(*error_get_queue(), &task(), portMAX_DELAY);
+    // TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    // xQueueSend(handler->error_queue, &task, portMAX_DELAY);
+    // handler->hard_error_handler(&handler->handler);
 
     /* wait for the task to be deleted */
-    for (;;);
+    for (;;)
+        ;
 }
 
-void mqtt_deamon_awake(int *err)
+void mqtt_deamon_awake(mqtt_deamon_handler *handler, int *err)
 {
-    QueueHandle_t *queue = mqtt_deamon_get_queue();
-    xQueueSend(*queue, err, portMAX_DELAY);
+    xQueueSend(handler->queue, err, portMAX_DELAY);
 }
 
-TaskHandle_t *mqtt_deamon_get_task()
-{
-    static TaskHandle_t handle = NULL;
-    return &handle;
-}
+// TaskHandle_t *mqtt_deamon_get_task()
+// {
+//     static TaskHandle_t handle = NULL;
+//     return &handle;
+// }
 
-TaskHandle_t mqtt_deamon_create_task()
+TaskHandle_t mqtt_deamon_create_task(mqtt_deamon_handler *handler)
 {
-    TaskHandle_t *handle = mqtt_deamon_get_task();
-    if (!(*handle))
+    if (!(handler->handler))
     {
-        xTaskCreate(mqtt_deamon, "mqtt_deamon", 4096, NULL, 3, handle);
+        xTaskCreate(mqtt_deamon, "mqtt_deamon", 4096, handler, 3, &handler->handler);
     }
-    return *handle;
+    return handler->handler;
 }
 
-TaskHandle_t mqtt_deamon_delete_task()
+TaskHandle_t mqtt_deamon_delete_task(mqtt_deamon_handler *handler)
 {
-    TaskHandle_t *handle = mqtt_deamon_get_task();
-    if (*handle)
+    if (handler->handler)
     {
-        vTaskDelete(*handle);
+        vTaskDelete(handler->handler);
     }
-    return *handle;
+    return handler->handler;
 }
 
-int mqtt_deamon_start(TaskHandle_t *handler, 
-                      
-                      void (*publish_callback)(void **, struct mqtt_response_publish *))
+int mqtt_deamon_start(mqtt_deamon_handler *handler,
+                      const char *server,
+                      const char *port,
+                      // const char *client_id,
+                      const char *username,
+                      const char *password,
+                      const unsigned char **chain,
+                      void (*socket_resp_handler)(int *err))
 {
     int err;
-    *handler = NULL;
     /* TLS and MQTT specyfic structures */
-    mqtt_deamon_create_queue();
+    // mqtt_deamon_set_handle(error_handler, hard_error_handler);
     mbedtls_context ctx;
+    handler->queue = xQueueCreate(10, sizeof(int));
 
     /* Load certyficates */
-    const unsigned char *ca_chain[] = {(const unsigned char *)SERVER_IM2_CERT,
-                                       (const unsigned char *)SERVER_IM1_CERT,
-                                       (const unsigned char *)SERVER_ROOT_CERT,
-                                       NULL};
+    // const unsigned char *ca_chain[] = {(const unsigned char *)SERVER_IM2_CERT,
+    //                                    (const unsigned char *)SERVER_IM1_CERT,
+    //                                    (const unsigned char *)SERVER_ROOT_CERT,
+    //                                    NULL};
 
     /* Open encrypted socket */
-    err = open_nb_socket(&ctx, WEB_SERVER, WEB_PORT, ca_chain);
-    err = socket_set_handler(&ctx, &mqtt_deamon_awake); // set handler that awakes deamon when new message comes
+    err = open_nb_socket(&ctx, server, port, chain);
+    err = socket_set_handler(&ctx, socket_resp_handler); // set handler that awakes deamon when new message comes
     mqtt_pal_socket_handle sockfd = &ctx.ssl_ctx;
-    if (sockfd == NULL) //TODO change
+    if (sockfd == NULL) // TODO change
     {
-        echo_error("MbedTLS", err);
+        // handler->error_handler(&handler->handler, "MBEDTLS", ext_type_fatal, err);
         return err;
     }
 
     /* Init MQTT client */
-    static uint8_t sendbuf[MAIN_MQTT_SEND_BUF_SIZE]; 
-    static uint8_t recvbuf[MAIN_MQTT_REC_BUF_SIZE]; 
-    mqtt_init(&client, sockfd, sendbuf, sizeof(sendbuf), recvbuf, sizeof(recvbuf), publish_callback);
-    /* Create connect message */
+    static uint8_t sendbuf[MAIN_MQTT_SEND_BUF_SIZE];
+    static uint8_t recvbuf[MAIN_MQTT_REC_BUF_SIZE];
     const char *client_id = NULL;
-    const char *username = MAIN_USERNAME;
-    const char *password = MAIN_PASSWORD;
-    uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION; /* Ensure having a clean session as client id is not specyfied */
-    mqtt_connect(&client, client_id, NULL, NULL, 0, username, password, connect_flags, 60);
-    if (client.error != MQTT_OK)
+    uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
+    mqtt_init(&handler->client, sockfd, sendbuf, sizeof(sendbuf), recvbuf, sizeof(recvbuf), handler->publish_callback);
+    /* Create connect message */
+    /* Ensure having a clean session as client id is not specyfied */
+    mqtt_connect(&handler->client, client_id, NULL, NULL, 0, username, password, connect_flags, 60);
+    if (handler->client.error != MQTT_OK)
     {
-        echo_error("MQTT-C", client.error);
-        return client.error;
+        // handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, err);
+        return handler->client.error;
     }
-    mqtt_deamon_awake(&client.error);
-    
+
+    mqtt_publish(&handler->client, "console_device1", "t", 1, 0);
+    mqtt_subscribe(&handler->client, "console_device1", 0);
+    mqtt_deamon_awake(handler, &handler->client.error);
+
     /* Finally run the deamon */
-    *handler = mqtt_deamon_create_task();
-    if (*handler)
+    mqtt_deamon_create_task(handler);
+    if (handler->handler)
     {
         return 0;
     }
@@ -173,12 +225,12 @@ int mqtt_deamon_start(TaskHandle_t *handler,
     }
 }
 
-int mqtt_deamon_stop(TaskHandle_t *hander)
+int mqtt_deamon_stop(mqtt_deamon_handler *handler)
 {
-    *handler = mqtt_deamon_delete_task();
-    mqtt_deamon_delete_queue();
-    
-    if (!(*handler))
+    mqtt_deamon_delete_task(handler);
+    vQueueDelete(handler->queue);
+
+    if (!(handler->handler))
     {
         // TODO close socket, clean up
         return 0;

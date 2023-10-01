@@ -1,0 +1,29 @@
+2023-09-30 02:21:41,278 - Debug Adapter (main) - DEBUG - START_TIME_2023_09_30_02-21-41
+2023-09-30 02:21:41,278 - Debug Adapter (main) - DEBUG - Init errors:None
+2023-09-30 02:21:41,278 - Debug Adapter (main) - INFO - Working directory: C:\Users\ADAM\AppData\Local\Programs\Microsoft VS Code
+2023-09-30 02:21:41,279 - Debug Adapter (main) - INFO - Arguments: 
+{   'app_flash_off': 65536,
+    'board_type': None,
+    'cmdfile': None,
+    'core_file': (),
+    'debug': 4,
+    'developer_mode': 'none',
+    'device_name': 'esp32',
+    'elfpath': (   'c:\\Users\\ADAM\\praca_inzynierska_device\\build\\praca_inzynierska_device.elf',),
+    'log_file': 'c:\\Users\\ADAM\\praca_inzynierska_device\\debug.log',
+    'log_mult_files': None,
+    'log_no_debug_console': None,
+    'oocd': 'openocd',
+    'oocd_args': None,
+    'oocd_ip': 'localhost',
+    'oocd_mode': 'connect_to_instance',
+    'oocd_scripts': None,
+    'port': 6666,
+    'postmortem': False,
+    'tmo_scale_factor': 1,
+    'toolchain_prefix': 'xtensa-esp32-elf-'}
+2023-09-30 02:21:41,279 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_STARTED
+2023-09-30 02:21:41,279 - Debug Adapter (main) - INFO - Starting. Cmd: c:\Users\ADAM\.vscode\extensions\espressif.esp-idf-extension-1.6.4\esp_debug_adapter\debug_adapter_main.py -d 4 -e c:\Users\ADAM\praca_inzynierska_device\build\praca_inzynierska_device.elf -l c:\Users\ADAM\praca_inzynierska_device\debug.log -p 6666 -dn esp32 -a 0x10000 -t xtensa-esp32-elf- -tsf 1
+
+2023-09-30 02:21:41,287 - Debug Adapter (main) - INFO - Listening on port 6666
+2023-09-30 02:21:41,287 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_READY2CONNECT

@@ -1,6 +1,6 @@
-#include <info_ch.h>
+#pragma once
 
 int info_ch_handler(const char *message)
 {
-    return 0;
+    
 }
