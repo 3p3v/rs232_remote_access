@@ -1,4 +1,4 @@
 /server/db/db
 /server/mosquitto/log
-/server/resources/tls/server.crt
-/server/resources/tls/server.key
+/server/resources/tls/
+/server/openresty/logs
