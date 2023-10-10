@@ -12,12 +12,17 @@ namespace Serial_port
     class Serial : public Connection, public Io_interface, public Ctrl_interface
     {
     private:
+        Serial(Serial &) = delete;
+        Serial& operator=(Serial &) = delete;
+
         boost::asio::serial_port serial;
         std::string port;
 
     public:
         Serial(Io_context_ptr io_context_);
-        ~Serial() = 0;
+        Serial(Serial &&) = default;
+        Serial& operator=(Serial &&) = default;
+        virtual ~Serial() = 0;
 
         /* Conf */
         std::string get_port();
@@ -35,7 +40,7 @@ namespace Serial_port
         virtual void set_stop_bits() override final;
         
         /* Communication */
-        virtual void write(const Cont_type &data) final;
+        virtual void write(const Data &data) final;
         virtual void run() final;
     };
 }

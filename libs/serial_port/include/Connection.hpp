@@ -17,10 +17,15 @@ namespace Serial_port
         Io_context_ptr io_context_;
 
     protected:
+        Connection(Connection &) = delete;
+        Connection& operator=(Connection &) = delete;
+
         Io_context& get_io_context();
 
     public:
         Connection(Io_context_ptr io_context_);
+        Connection(Connection &&) = default;
+        Connection& operator=(Connection &&) = default;
         virtual ~Connection() = 0;
 
         virtual void run() = 0;

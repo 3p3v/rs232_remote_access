@@ -12,8 +12,8 @@ class Local_serial final : public Serial
 
     /* Callbacks */
     virtual void write_callback(std::size_t write_len) override;
-    virtual void read_callback(Cont_type::iterator begin, Cont_type::iterator end, std::size_t write_len) override;
-    virtual void error_callback(const std::string &err) override;
+    virtual void read_callback(const Data &data, std::size_t write_len) override;
+    virtual void error_callback(const unsigned int code, const std::string &err) override;
 
 public:
     Local_serial(Io_context_ptr io_context_);

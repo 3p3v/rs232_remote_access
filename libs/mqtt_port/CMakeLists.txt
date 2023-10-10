@@ -10,16 +10,21 @@ find_package(PahoMqttCpp REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC
             src/Traffic_receiver.cpp
-            src/Traffic_controller.cpp)
+            src/Traffic_controller.cpp
+            src/Traffic_mqtt_connect_options.cpp
+            src/Traffic_mqtt_controller.cpp
+            src/Traffic_mqtt_ssh.cpp
+            src/Traffic_paho_action_listener.cpp
+            src/Traffic_paho_callback.cpp
+            src/Traffic_paho_controller.cpp)
 
 # include dirs
 set(mqtt_port_INCLUDE_DIR "include")
-
 # include libs
-target_include_directories(${PROJECT_NAME} PUBLIC ${PahoMqttCpp_INCLUDE_DIR})
+# target_include_directories(${PROJECT_NAME} PUBLIC ${PahoMqttCpp_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${mqtt_port_INCLUDE_DIR})
 
-target_link_libraries(${PROJECT_NAME} ${PahoMqttCpp_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PahoMqttCpp::paho-mqttpp3-static)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

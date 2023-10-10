@@ -182,14 +182,14 @@ namespace Serial_port
         set_stop_bits(this->stop_bits);
     }
 
-    void Serial::write(const std::vector<unsigned char> &data)
+    void Serial::write(const Data &data)
     {
         boost::asio::async_write(serial,
                                  boost::asio::buffer(data),
                                  [this](const boost::system::error_code &err, std::size_t write_len)
                                  {
                                      if (err)
-                                        error_callback(err.what());
+                                        error_callback(err.value(), err.what());
                                      else
                                         write_callback(write_len);
                                  });
@@ -202,9 +202,9 @@ namespace Serial_port
                                 [this](const boost::system::error_code &err, std::size_t read_len)
                                 {
                                     if (err)
-                                        error_callback(err.what());
+                                        error_callback(err.value(), err.what());
                                     else
-                                        read_callback(buffer.begin(), buffer.end(), read_len);
+                                        read_callback(buffer, read_len);
                                 });
     }
 }

@@ -8,9 +8,9 @@ namespace Mqtt_port
     class Traffic_sender
     {
     public:
-        using Data_type = std::vector<unsigned char>;
+        using Data = std::vector<unsigned char>;
 
     public:
-        virtual void write(const std::string &channel_name, const Data_type &data) = 0;
+        virtual void write(const std::string &channel_name, const Data &data, std::size_t write_len) = 0;
     };
 }
