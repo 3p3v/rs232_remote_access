@@ -12,8 +12,7 @@ namespace Mqtt_port
     // }
 
     
-    template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6> 
-    void Traffic_paho_controller<T1, T2, T3, T4, T5, T6>::connect_callback(const std::string &cause)
+    void Traffic_paho_controller::connect_callback(const std::string &cause)
     {
         /* Run user callback */
         connect_usr_callback(cause);
@@ -26,15 +25,17 @@ namespace Mqtt_port
             subscribe(get_channel_to_con());
     }
 
-    template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6> 
-    void Traffic_paho_controller<T1, T2, T3, T4, T5, T6>::connect()
+    void Traffic_paho_controller::connect()
     {
 
     }
 
-    template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6> 
-    void Traffic_paho_controller<T1, T2, T3, T4, T5, T6>::run()
+
+    void Traffic_paho_controller::run()
     {
-        // client.set_callback()
+        if (user.)
+        options.
+        
+        connect();
     }
 }

@@ -1,20 +1,27 @@
-#include <Traffic_receiver.hpp>
+#include <Validator.hpp>
 #include <algorithm>
 
 namespace Mqtt_port
 {
-    void Traffic_receiver::read(const std::string &channel_name, const Executor::Data &data)
+    Validator::Validator()
+        : channels() 
     {
-        channels[channel_name].get()->exec(data);
     }
 
-    void Traffic_receiver::validate(std::string channel_name)
+    Validator::Executor_ptr Validator::get_exec(const std::string &channel_name)
+    {
+        return channels[channel_name];
+    }
+
+    bool Validator::validate(std::string channel_name)
     {
         if (!channels[channel_name])
-            throw std::logic_error("User isn't connected to specyfied channel: " + channel_name + ".");
+            return false;
+        else 
+            return true;
     }
 
-    std::unordered_set<std::string> Traffic_receiver::get_channels()
+    std::unordered_set<std::string> Validator::get_channels()
     {
         std::unordered_set<std::string> channels_cpy(channels.size());
         std::for_each(channels.begin(),

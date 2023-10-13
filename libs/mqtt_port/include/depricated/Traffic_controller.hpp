@@ -15,10 +15,10 @@ namespace Mqtt_port
         virtual void write_exec(const std::string &channel_name, const Data &data, std::size_t write_len) = 0;
 
         /* Callbacks */
-        virtual void write_usr_callback(std::size_t write_len) = 0;
-        virtual void read_usr_callback(const Data &begin, std::size_t write_len) = 0;
-        virtual void write_err_usr_callback(const int code) = 0;
-        virtual void read_err_usr_callback(const int code) = 0;
+        // virtual void write_usr_callback(std::size_t write_len) = 0;
+        // virtual void read_usr_callback(const Data &begin, std::size_t write_len) = 0;
+        // virtual void write_err_usr_callback(const int code) = 0;
+        // virtual void read_err_usr_callback(const int code) = 0;
 
     public:
         Traffic_controller() = default;

@@ -9,14 +9,13 @@ cmake_policy(SET CMP0074 NEW)
 find_package(PahoMqttCpp REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC
-            src/Traffic_receiver.cpp
-            src/Traffic_controller.cpp
-            src/Traffic_mqtt_connect_options.cpp
-            src/Traffic_mqtt_controller.cpp
-            src/Traffic_mqtt_ssh.cpp
-            src/Traffic_paho_action_listener.cpp
-            src/Traffic_paho_callback.cpp
-            src/Traffic_paho_controller.cpp)
+            src/Receiver.cpp
+            src/Sender.cpp
+            src/Connector.cpp
+            src/Validator.cpp
+            src/Basic_controller.cpp)
+            # src/Inter_controller.cpp
+            # src/Mqtt_controller.cpp)
 
 # include dirs
 set(mqtt_port_INCLUDE_DIR "include")
