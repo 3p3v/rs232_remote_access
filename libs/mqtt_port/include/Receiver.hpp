@@ -6,14 +6,12 @@
 
 namespace Mqtt_port
 {
-    class Receiver
+    class Receiver //: public Validator
     {
         std::shared_ptr<Validator> validator;
-
-    protected:
-        void read(const std::string &channel_name, std::vector<unsigned char> data);
-
     public:
         Receiver(std::shared_ptr<Validator> validator);
+
+        void read(const std::string &channel_name, std::vector<unsigned char> data);
     };
 }

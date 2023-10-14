@@ -13,15 +13,18 @@ namespace Mqtt_port
 
     class Validator
     {
+    public:
         using Executor_ptr = std::shared_ptr<Executor>;
-        using Cont_type = std::unordered_map<std::string, Executor_ptr>;
+        template <typename E>
+        using Custom_exec_ptr = std::shared_ptr<E>;
+        using Pair_t = std::pair<std::string, Executor_ptr>;
+        // using Cont_tr= std::unordered_map<Pair_t>;
+        using Cont_t = std::unordered_map<Pair_t::first_type, Pair_t::second_type>;
 
     private:
-        Cont_type channels = Cont_type();
+        Cont_t channels = Cont_t();
 
     protected:
-        
-
     public:
         Validator();
         bool validate(std::string channel_name);
@@ -29,8 +32,14 @@ namespace Mqtt_port
         template <typename S, class E>
         void add_channel(S &&channel_name, E &&executor)
         {
-            if (!channels.insert(std::make_pair(std::forward<S>(channel_name), std::make_unique<Executor>(std::forward<E>(executor)))))
+            if (channels.find(channel_name) == channels.end())
+            {
+                channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), std::forward<E>(executor)));
+            }
+            else
+            {
                 throw std::logic_error("Cannot create two instances of same channel.");
+            }
         }
 
         std::unordered_set<std::string> get_channels();
