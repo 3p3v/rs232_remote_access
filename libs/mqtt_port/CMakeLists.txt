@@ -17,6 +17,7 @@ add_library(${PROJECT_NAME} STATIC
             src/User.cpp
             src/User_opt.cpp
             src/Server.cpp
+            src/Callbacks.cpp
             src/impl/User_set_opt.cpp)
             # src/Inter_controller.cpp
             # src/Mqtt_controller.cpp)

@@ -1,13 +1,17 @@
 #pragma once
 
-#include <Inter_controller.hpp>
+// #include <Inter_controller.hpp>
+#include <User.hpp>
 #include <impl\User_set_opt.hpp>
+#include <User.hpp>
 #include <Server.hpp>
 // #include <Traffic_mqtt_connect_options.hpp>
 // #include <Traffic_mqtt_action_listener.hpp>
 // #include <Traffic_mqtt_user.hpp>
 // #include <Traffic_mqtt_ssh.hpp>
 #include <mqtt/async_client.h>
+#include <Callbacks.hpp>
+#include <Def.hpp>
 #include <string>
 #include <set>
 
@@ -15,38 +19,47 @@ namespace Mqtt_port
 {
     namespace Impl
     {
-        template <typename Scallb, typename Rcallb>
-        class Controller;
+        // template <typename Scallb, typename Rcallb>
+        // class Controller;
 
         // template <typename Scallb, typename Rcallb>
-        template <typename Scallb, typename Rcallb>
-        Controller(Server, User_get_intf, Scallb, Rcallb) -> Controller<Scallb, Rcallb>;
-
+        // template <typename Scallb, typename Rcallb>
+        // Controller(Server, User_get_intf, Scallb, Rcallb) -> Controller<Scallb, Rcallb>;
+        
+        template <typename Callb_t>
         class Callb_impl : public mqtt::iaction_listener, public Defs
         {
         protected:
-            std::shared_ptr<mqtt::async_client> client;
+            using Grip = std::unique_ptr<Callb_t>;
+
+        private:
+            Grip &callb;
+
+        protected:
+            Callb_t& get_callb()
+            {
+                return *callb;
+            }
 
         public:
-            Callb_impl(std::shared_ptr<mqtt::async_client> client)
-                : client{client}
+            Callb_impl(Grip &callb)
+                : callb{callb}
             {
             }
         };
 
-        class Send_callb_impl : public Callb_impl
+        class Send_callb_impl : public Callb_impl<Mqtt_port::O_callb>
         {
-            IO_callb &io_callb;
         public:
-            Send_callb_impl(std::shared_ptr<mqtt::async_client> client, IO_callb &io_callb)
-                : Callb_impl(client), io_callb{io_callb}
+            Send_callb_impl(Grip &io_callb)
+                : Callb_impl<O_callb>{io_callb}
             {
             }
 
             virtual void on_failure(const mqtt::token &asyncActionToken)
             {
-                io_callb.fail();
-                client->disconnect(time_to_disconnect);
+                get_callb().fail();
+                // client->disconnect(time_to_disconnect);
             }
 
             virtual void on_success(const mqtt::token &asyncActionToken)
@@ -54,43 +67,40 @@ namespace Mqtt_port
             }
         };
 
-        class Channel_conn_callb_impl : public Callb_impl
+        class Channel_conn_callb_impl : public Callb_impl<C_callb>
         {
-            std::shared_ptr<Connector> connector;
-            C_callb &channel_conn_callback;
         public:
-            Channel_conn_callb_impl(std::shared_ptr<mqtt::async_client> client, std::shared_ptr<Connector> connector, C_callb &channel_conn_callback)
-                : Callb_impl(client), connector{std::move(connector)}, channel_conn_callback{channel_conn_callback}
+            Channel_conn_callb_impl(Grip &channel_conn_callback)
+                : Callb_impl<C_callb>{channel_conn_callback}
             {
             }
 
             virtual void on_failure(const mqtt::token &asyncActionToken)
             {
-                channel_conn_callback.fail();
-                client->disconnect(time_to_disconnect);
+                get_callb().fail();
+                // client->disconnect(time_to_disconnect);
             }
 
             virtual void on_success(const mqtt::token &asyncActionToken)
             {
-                channel_conn_callback.success();
-                if (connector->remaining_channels())
-                    client->subscribe(connector->get_channel_to_con(), qos, nullptr, *this);
+                get_callb().success();
+                // if (connector->remaining_channels())
+                //     client->subscribe(connector->get_channel_to_con(), qos, nullptr, *this);
             }
         };
 
-        class Conn_callb_impl : public Callb_impl
+        class Conn_callb_impl : public Callb_impl<C_callb>
         {
-            C_callb &conn_callback;
         public:
-            Conn_callb_impl(std::shared_ptr<mqtt::async_client> client, C_callb &conn_callback)
-                : Callb_impl(client), conn_callback{conn_callback}
+            Conn_callb_impl(Grip &conn_callback)
+                : Callb_impl<C_callb>{conn_callback}
             {
             }
 
             virtual void on_failure(const mqtt::token &asyncActionToken)
             {
-                conn_callback.fail();
-                client->disconnect(time_to_disconnect);
+                get_callb().fail();
+                // client->disconnect(time_to_disconnect);
             }
 
             virtual void on_success(const mqtt::token &asyncActionToken)
@@ -98,8 +108,8 @@ namespace Mqtt_port
             }
         };
 
-        template <typename Scallb, typename Rcallb>
-        class Controller final : public Basic_controller<Scallb, Rcallb>,
+        // template <typename Scallb, typename Rcallb>
+        class Controller final : //public Basic_controller<Scallb, Rcallb>,
                                  public virtual mqtt::callback,
                                  public Defs
         {
@@ -110,49 +120,44 @@ namespace Mqtt_port
             mqtt::connect_options options;
 
             /* Impl specyfic callbacks */
-            Send_callb_impl send_callb_impl{client, sent_callb};
-            Conn_callb_impl conn_callb_impl{client, conn_callb};
-            Channel_conn_callb_impl ch_conn_callb_impl{client, connector, channel_conn_callb};
-
-            void write_handle(const std::string &channel_name, const Data &data, std::size_t write_len)
-            {
-                auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
-                client.get()->publish(msg, nullptr, send_callb_impl);
-            }
+            std::unique_ptr<O_callb> sent_callb;
+            std::unique_ptr<I_callb> rec_callb;
+            std::unique_ptr<C_callb> conn_callb;
+            std::unique_ptr<C_callb> channel_conn_callb;
+            Send_callb_impl send_callb_impl{sent_callb};
+            Conn_callb_impl conn_callb_impl{conn_callb};
+            Channel_conn_callb_impl ch_conn_callb_impl{channel_conn_callb};
 
             virtual void connected(const std::string & /*cause*/)
             {
-                conn_callb.success();
-                client->subscribe(connector->get_channel_to_con(), qos, nullptr, ch_conn_callb_impl);
+                conn_callb->success();
+                // client->subscribe(connector->get_channel_to_con(), qos, nullptr, ch_conn_callb_impl);
             }
 
             virtual void connection_lost(const std::string & /*cause*/)
             {
-                conn_callb.fail();
+                conn_callb->fail();
             }
 
             virtual void message_arrived(mqtt::const_message_ptr msg)
             {
-                read(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
-                rec_callb.success(msg->get_topic(), msg->get_payload_str().size());
+                // read(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
+                rec_callb->success(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
             }
 
             virtual void delivery_complete(mqtt::delivery_token_ptr token)
             {
-                sent_callb.success(token->get_message()->get_topic(),
+                sent_callb->success(token->get_message()->get_topic(),
                                    token->get_message()->get_payload_str().size());
             }
 
-            void run_handle()
-            {
-                /* Connect to broker */
-                client->connect(options, nullptr, conn_callb_impl);
-            }
 
         public:
-            Controller(Server &server, User_opt &user, Scallb &&sent_msg, Rcallb &&rec_msg)
-                : Basic_controller{std::move(sent_msg), std::move(rec_msg)},
-                  client{new mqtt::async_client{server.get_full_address(), user.get_id(), nullptr}}
+            Controller(Server &server, 
+                       User_opt &user)
+                    //    IO_callb &&rec_callb)
+                : client{new mqtt::async_client{server.get_full_address(), user.get_id(), nullptr}}
+                //   rec_callb{std::make_unique<IO_callb>(std::move(rec_callb))}
             {
                 client->set_callback(*this);
                 /* Set options */
@@ -164,9 +169,71 @@ namespace Mqtt_port
             Controller &operator=(Controller &) = delete;
             ~Controller() = default;
 
-            void disconnect(Time time) override
+            template <typename Callb_t>
+            void connect(Callb_t &&conn_callb)
+            {
+                /* Change callback */
+                this->conn_callb.reset(new Callb_t{std::move(conn_callb)});
+                
+                /* Connect to broker */
+                client->connect(options, nullptr, conn_callb_impl);
+            }
+
+            template <typename Callb_t>
+            void subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb)
+            {
+                /* Change callback */
+                this->channel_conn_callb.reset(new Callb_t{std::move(channel_conn_callb)});
+
+                /* Subscribe */
+                client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+            }
+
+            void subscribe(const std::string &channel_name, unsigned char qos)
+            {
+                /* Subscribe */
+                client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+            }
+
+            void disconnect(Time time)
             {
                 client->disconnect(time);
+            }
+
+            /* Write data, use previous callback */
+            void write(const std::string &channel_name, const Data &data, std::size_t write_len)
+            {
+                /* Send message */
+                auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
+                client.get()->publish(msg, nullptr, send_callb_impl);
+            }
+
+            /* Set callback and write data */
+            template <typename Callb_t>
+            void write(const std::string &channel_name, const Data &data, std::size_t write_len, Callb_t &&sent_callb)
+            {
+                /* Change callback */
+                this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
+
+                /* Send message */
+                auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
+                client.get()->publish(msg, nullptr, send_callb_impl);
+            }
+
+            /* Set write callack */
+            template <typename Callb_t>
+            void set_write_callb(Callb_t &&sent_callb)
+            {
+                /* Change callback */
+                this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
+            }
+
+            /* Set write callack */
+            template <typename Callb_t>
+            void set_read_callb(Callb_t &&rec_callb)
+            {
+                /* Change callback */
+                this->rec_callb.reset(new Callb_t{std::move(rec_callb)});
             }
 
             
