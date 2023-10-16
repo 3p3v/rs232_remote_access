@@ -9,7 +9,7 @@ namespace Mqtt_port
     {
     public:
         // template <typename E>
-        // using Ptr_t = std::unique_ptr<E>;
+        // using Ptr_t = std::shared_ptr<Executor>;
         using Data = std::vector<unsigned char>;
 
     public:

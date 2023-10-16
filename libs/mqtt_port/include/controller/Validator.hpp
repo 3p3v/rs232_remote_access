@@ -14,10 +14,13 @@ namespace Mqtt_port
     class Validator
     {
     public:
-        using Executor_ptr = std::shared_ptr<Executor>;
+        // using Executor_ptr = std::shared_ptr<Executor>;
+        // template <typename E>
+        // using Custom_exec_ptr = std::shared_ptr<E>;
         template <typename E>
-        using Custom_exec_ptr = std::shared_ptr<E>;
-        using Pair_t = std::pair<std::string, Executor_ptr>;
+        using Executor_ptr = std::shared_ptr<E>;
+        using Base_executor_ptr = Executor_ptr<Executor>;
+        using Pair_t = std::pair<std::string, Base_executor_ptr>;
         // using Cont_tr= std::unordered_map<Pair_t>;
         using Cont_t = std::unordered_map<Pair_t::first_type, Pair_t::second_type>;
 
@@ -27,14 +30,14 @@ namespace Mqtt_port
     protected:
     public:
         Validator();
-        bool validate(std::string channel_name);
-        Executor_ptr get_exec(const std::string &channel_name);
-        template <typename S, class E>
-        void add_channel(S &&channel_name, E &&executor)
+        bool validate(const std::string &channel_name);
+        Base_executor_ptr get_exec(const std::string &channel_name);
+        template <class E, typename S, typename... E_rgs>
+        void add_channel(S &&channel_name, E_rgs &&...e_args)
         {
             if (channels.find(channel_name) == channels.end())
             {
-                channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), std::forward<E>(executor)));
+                channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), Base_executor_ptr(new E(std::forward<E_rgs>(e_args)...))));
             }
             else
             {

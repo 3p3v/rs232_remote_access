@@ -3,7 +3,7 @@
 namespace Mqtt_port
 {
     Connector::Connector(std::shared_ptr<Validator> validator)
-        : validator{validator}
+        : validator{std::move(validator)}
     {
     }
 

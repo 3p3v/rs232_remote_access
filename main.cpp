@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Local_serial.hpp>
 // #include <Traffic_mqtt_local.hpp>
-#include <Mqtt_controller.hpp>
+#include <impl/Controller.hpp>
 
 class Exec_console : public Mqtt_port::Executor
 {
@@ -12,16 +12,16 @@ public:
     }
 };
 
-template <typename Call_t>
-decltype(auto) make_mqtt_controller(std::string &&server_address)
-{
-    return Mqtt_port::Mqtt_controller<My_callbacks>(server_address);
-}
+// template <typename Call_t>
+// decltype(auto) make_Impl::Controller(std::string &&server_address)
+// {
+//     return Mqtt_port::Impl::Controller<My_callbacks>(server_address);
+// }
 
 
 int main(int, char **)
 {
-    std::cout << "Hello, from mqtt_client!\n";
+    std::cout << "Hello, from Impl::Client!\n";
 
     try
     {
@@ -29,9 +29,18 @@ int main(int, char **)
         // valid.add_channel("console_device1", Mqtt_port::Validator::Executor_ptr(new Exec_console()));
         // valid.get_exec("console_device1")->exec(Mqtt_port::Data());
 
+        Mqtt_port::User user{"admin", "admin", "1"};
+        Mqtt_port::Server server{"127.0.0.1", "1885"};
+        auto controller = Mqtt_port::Impl::Controller(server, user, 
+                                                      [](const std::string &topic, const size_t len)
+                                                      {
 
-        auto controller = Mqtt_port::Mqtt_controller("127.0.0.1:1885");
-        controller.add_channel("console_device1", Mqtt_port::Validator::Custom_exec_ptr<Exec_console>(new Exec_console()));
+                                                      },
+                                                      [](const std::string &topic, const size_t len)
+                                                      {
+
+                                                      });
+        controller.add_channel<Exec_console>("console_device1");
         controller.run();
 
         while(1);

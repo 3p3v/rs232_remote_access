@@ -8,14 +8,14 @@ namespace Mqtt_port
     {
     }
 
-    Validator::Executor_ptr Validator::get_exec(const std::string &channel_name)
+    Validator::Base_executor_ptr Validator::get_exec(const std::string &channel_name)
     {
         return channels[channel_name];
     }
 
-    bool Validator::validate(std::string channel_name)
+    bool Validator::validate(const std::string &channel_name)
     {
-        if (!channels[channel_name])
+        if (channels.find(channel_name) == channels.end())
             return false;
         else 
             return true;

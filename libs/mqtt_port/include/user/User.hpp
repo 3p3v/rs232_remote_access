@@ -1,17 +1,28 @@
 #pragma once
 
-#include <Traffic_mqtt_connect_options.hpp>
+#include <User_opt.hpp>
+#include <User_get_intf.hpp>
 #include <string>
 
 namespace Mqtt_port
 {
-    class Traffic_mqtt_user final : public Traffic_mqtt_connect_usr_options
+    class User final : public User_opt
     {
         std::string id;
         std::string username;
         std::string password;
 
     public:
+        template <typename S1, typename S2, typename S3>
+        User(S1 &&username, S2 &&password, S3 &&id)
+            : username{std::forward<S1>(username)},
+              password{std::forward<S2>(password)},
+              id{std::forward<S3>(id)},
+              User_opt{User_opt::Option::username,
+                      User_opt::Option::password}
+        {
+        }
+
         template<typename Str>
         void set_id(Str &&id)
         {
@@ -32,5 +43,9 @@ namespace Mqtt_port
             this->password = std::forward<Str>(password);
             add_option(Traffic_mqtt_connect_options::option::password);
         }
+
+        std::string get_username() override;
+        std::string get_password() override;
+        std::string get_id() override;
     };
 }
