@@ -35,13 +35,13 @@ namespace Mqtt_port
         {
         }
 
-        inline void fail() override
+        void fail() override
         {
             throw std::runtime_error("Could not send message!");
             controller.disconnect(time_to_disconnect);
         }
 
-        inline void success(const std::string &channel_name, size_t len) override
+        void success(const std::string &channel_name, size_t len) override
         {
             sent_msg(channel_name, len);
         }
@@ -54,7 +54,7 @@ namespace Mqtt_port
         Rcallb rec_msg;
         std::shared_ptr<Validator> validator;
 
-        inline void read(const std::string &channel_name, Data data)
+        void read(const std::string &channel_name, Data data)
         {
             if (validator->validate(channel_name))
             {
@@ -73,13 +73,13 @@ namespace Mqtt_port
         {
         }
 
-        inline void fail() override
+        void fail() override
         {
             throw std::runtime_error("Could not send message!");
             controller.disconnect(time_to_disconnect);
         }
 
-        inline void success(const std::string &channel_name, const Data &data) override
+        void success(const std::string &channel_name, const Data &data) override
         {
             read(channel_name, data);
             rec_msg(channel_name, data.size());
@@ -94,13 +94,13 @@ namespace Mqtt_port
         {
         }
 
-        inline void fail() override
+        void fail() override
         {
             throw std::runtime_error("Could not subscribe to channel!");
             controller.disconnect(time_to_disconnect);
         }
 
-        inline void success() override
+        void success() override
         {
             if (connector->remaining_channels())
                 controller.subscribe(connector->get_channel_to_con(), qos);
@@ -117,12 +117,12 @@ namespace Mqtt_port
         {
         }
 
-        inline void fail() override
+        void fail() override
         {
             throw std::runtime_error("Could not connect to broker!");
         }
 
-        inline void success() override
+        void success() override
         {
             if (!connector->remaining_channels())
                 throw std::logic_error("No channels to connect were specyfied!");

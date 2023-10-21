@@ -113,9 +113,53 @@ namespace Cmd_ctrl
 
     class Ctrl_cmd
     {
-    public:
         std::string name{};
         std::vector<std::string> args{};
+    public:
+        template <typename Str>
+        Ctrl_cmd(Str &&name)
+            : name{std::forward<Str>(name)}
+        {
+        }
+
+        template <typename Iter>
+        Ctrl_cmd(Iter begin, Iter end)
+            : name{begin, end}
+        {
+        }
+        
+        const std::string& operator[](unsigned char arg_num)
+        {
+            return args[arg_num];
+        }
+
+        size_t size()
+        {
+            return args.size();
+        } 
+
+        template <typename Str>
+        void add_arg(Str &&arg_n)
+        {
+            args.emplace_back(std::forward<Str>arg_n);
+        }
+
+        template <typename Iter>
+        void emplace_back(Iter begin, Iter end)
+        {
+            args.emplace_back(begin, end);
+        }
+
+        const std::string& get_name()
+        {
+            return name;
+        }
+
+        template <typename Str>
+        void set_name(Str &&name)
+        {
+            this->name = std::forward<Str>(name);
+        }
     };
 
     class Ctrl_parser : protected Common_defs
@@ -125,7 +169,7 @@ namespace Cmd_ctrl
         using Ctrl_cmd_data_arg = Ctrl_cmd_data_t;
         using Ctrl_cmd_data_pair = std::pair<Ctrl_cmd_data_name, Ctrl_cmd_data_arg>;
         using Ctrl_cmd_data_pair_con = std::vector<Ctrl_cmd_data_pair>;
-        using Ctrl_cmd_pos_con = std::vector<std::vector<Ctrl_cmd_data_t>>;
+        using Ctrl_cmd_pos_con = std::vector<Ctrl_cmd>;
 
         template <typename Cont_iter_t>
         void find_lines(Ctrl_cmd_pos_con &lines, const Cont_iter_t begin, const Cont_iter_t end)
@@ -148,16 +192,20 @@ namespace Cmd_ctrl
             auto s_begin = begin;
 
             /* Add new cmd */
-            lines.push_back(std::vector<std::string>{});
-
-            /* Find all words in line */
             auto s_pos = std::find(s_begin, s_end, ' ');
-            do
-            {
-                lines[lines.size() - 1].emplace_back(s_begin, s_pos);
-                s_begin = s_pos + 1;
-            } while ((s_pos = std::find(s_begin, s_end, ' ')) != s_end);
+            lines.emplace_back(s_begin, s_pos);
 
+            if (s_pos != s_end)
+            {
+                s_begin = s_pos + 1;
+                
+                /* Find all args in line */
+                while ((s_pos = std::find(s_begin, s_end, ' ')) != s_end)
+                {
+                    lines[lines.size() - 1].emplace_back(s_begin, s_pos);
+                    s_begin = s_pos + 1;
+                }
+            }
             /* Proceed to find next line */
             find_lines(lines, s_end + 1, end);               
         }
@@ -182,13 +230,17 @@ namespace Cmd_ctrl
         Cmds_cont cmds;
         Ctrl_parser parser;
 
-        std::vector<std::string::iterator> find_words(Data::iterator begin, Data::iterator end)
-        {
-        }
-
     public:
-        void exec(const Data &arg)
+        void exec(const Data &data)
         {
+            auto parsed_cmds = parser.parse(data);
+            
+            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this, &data](auto &p_cmd){
+                if (cmds[p_cmd.get_name()]->validate(p_cmd[0]))
+                    cmds[p_cmd.get_name()]->exec(data);
+                else
+                    throw std::runtime_error("Received command: \"" + p_cmd.get_name() + "\" didn't pass validation!");
+            });
         }
 
         template <typename Str, typename handle_t>
