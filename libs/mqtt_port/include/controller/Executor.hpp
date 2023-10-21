@@ -18,7 +18,7 @@ namespace Mqtt_port
     };
 
     template <typename Handle>
-    class Dyn_executor
+    class Dyn_executor : public Executor
     {
         Handle handle;
 

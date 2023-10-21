@@ -166,6 +166,9 @@ namespace Mqtt_port
 
         template <class E, typename S, typename... E_rgs>
         void add_channel(S &&channel_name, E_rgs &&...e_args);
+
+        template <class E, typename S>
+        void add_channel(S &&channel_name, E &&handler);
     };
 
     template <typename Scallb, typename Rcallb>
@@ -227,6 +230,13 @@ namespace Mqtt_port
     void Basic_controller<Scallb, Rcallb>::add_channel(S &&channel_name, E_rgs &&...e_args)
     {
         validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E_rgs>(e_args)...);
+    }
+
+    template <typename Scallb, typename Rcallb>
+    template <class E, typename S>
+    void Basic_controller<Scallb, Rcallb>::add_channel(S &&channel_name, E &&handler)
+    {
+        validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E>(handler));
     }
 
 }

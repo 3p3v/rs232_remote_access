@@ -30,8 +30,8 @@ int main(int, char **)
     {
         Cmd_ctrl::Ctrl_console ctrl{};
         ctrl.add_cmd("cmd",
-                     Policies<NumbersOnly>::Cmd_handle([](const std::string &)
-                                                       { std::cout << 5 << std::endl; }));
+                     Policies<NumbersOnly>::make_dyn_handle([](const std::vector<unsigned char> &)
+                                                            { std::cout << 5 << std::endl; }));
         // auto valid = Mqtt_port::Validator();
         // valid.add_channel("console_device1", Mqtt_port::Validator::Executor_ptr(new Exec_console()));
         // valid.get_exec("console_device1")->exec(Mqtt_port::Data());
@@ -48,7 +48,7 @@ int main(int, char **)
 
             });
         controller.add_channel<Exec_console>("console_device1");
-        controller.add_channel<Mqtt_port::Dyn_executor>("con", [](const Mqtt_port::Executor::Data &data, size_t size){});
+        controller.add_channel("con", Mqtt_port::Dyn_executor{[](const Mqtt_port::Executor::Data &data, size_t size){}});
         controller.run();
 
         std::this_thread::sleep_for(std::chrono::seconds(2));
