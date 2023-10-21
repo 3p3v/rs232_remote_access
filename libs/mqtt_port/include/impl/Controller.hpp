@@ -13,19 +13,13 @@
 #include <Callbacks.hpp>
 #include <Def.hpp>
 #include <string>
+#include <atomic>
 #include <set>
 
 namespace Mqtt_port
 {
     namespace Impl
     {
-        // template <typename Scallb, typename Rcallb>
-        // class Controller;
-
-        // template <typename Scallb, typename Rcallb>
-        // template <typename Scallb, typename Rcallb>
-        // Controller(Server, User_get_intf, Scallb, Rcallb) -> Controller<Scallb, Rcallb>;
-        
         template <typename Callb_t>
         class Callb_impl : public mqtt::iaction_listener, public Defs
         {
@@ -62,8 +56,11 @@ namespace Mqtt_port
                 // client->disconnect(time_to_disconnect);
             }
 
+            // disabled, becaurse doesn't work
             virtual void on_success(const mqtt::token &asyncActionToken)
             {
+                // get_callb().success("unknown",//todo fix
+                //                     0);
             }
         };
 
@@ -78,14 +75,11 @@ namespace Mqtt_port
             virtual void on_failure(const mqtt::token &asyncActionToken)
             {
                 get_callb().fail();
-                // client->disconnect(time_to_disconnect);
             }
 
             virtual void on_success(const mqtt::token &asyncActionToken)
             {
                 get_callb().success();
-                // if (connector->remaining_channels())
-                //     client->subscribe(connector->get_channel_to_con(), qos, nullptr, *this);
             }
         };
 
@@ -100,7 +94,6 @@ namespace Mqtt_port
             virtual void on_failure(const mqtt::token &asyncActionToken)
             {
                 get_callb().fail();
-                // client->disconnect(time_to_disconnect);
             }
 
             virtual void on_success(const mqtt::token &asyncActionToken)
@@ -108,14 +101,10 @@ namespace Mqtt_port
             }
         };
 
-        // template <typename Scallb, typename Rcallb>
-        class Controller final : //public Basic_controller<Scallb, Rcallb>,
-                                 public virtual mqtt::callback,
+        class Controller final : public virtual mqtt::callback,
                                  public Defs
         {
         protected:
-            // std::string server_address;
-
             std::shared_ptr<mqtt::async_client> client;
             mqtt::connect_options options;
 
@@ -131,7 +120,6 @@ namespace Mqtt_port
             virtual void connected(const std::string & /*cause*/)
             {
                 conn_callb->success();
-                // client->subscribe(connector->get_channel_to_con(), qos, nullptr, ch_conn_callb_impl);
             }
 
             virtual void connection_lost(const std::string & /*cause*/)
@@ -141,23 +129,21 @@ namespace Mqtt_port
 
             virtual void message_arrived(mqtt::const_message_ptr msg)
             {
-                // read(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
                 rec_callb->success(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
             }
 
+            // disabled, becaurse doesn't work
             virtual void delivery_complete(mqtt::delivery_token_ptr token)
             {
                 sent_callb->success(token->get_message()->get_topic(),
-                                   token->get_message()->get_payload_str().size());
+                                    token->get_message()->get_payload_str().size());
             }
 
 
         public:
             Controller(Server &server, 
                        User_opt &user)
-                    //    IO_callb &&rec_callb)
                 : client{new mqtt::async_client{server.get_full_address(), user.get_id(), nullptr}}
-                //   rec_callb{std::make_unique<IO_callb>(std::move(rec_callb))}
             {
                 client->set_callback(*this);
                 /* Set options */
@@ -206,6 +192,9 @@ namespace Mqtt_port
                 /* Send message */
                 auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
                 client.get()->publish(msg, nullptr, send_callb_impl);
+                // temporarly moved here, becaurse 
+                sent_callb->success(channel_name,
+                                    write_len);
             }
 
             /* Set callback and write data */

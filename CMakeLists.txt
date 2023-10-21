@@ -30,7 +30,8 @@ set(MQTT_PORT_LIB_NAMES mqtt_port)
 set(MQTT_PORT_LIB_PATHS "libs/mqtt_port")
 add_subdirectory("libs/mqtt_port")
 
-
+set(CTRL_CONSOLE_LIB_PATHS "libs/ctrl_console")
+add_subdirectory("libs/ctrl_console")
 
 
 
@@ -38,9 +39,12 @@ add_subdirectory("libs/mqtt_port")
 target_include_directories(${PROJECT_NAME} PUBLIC "include")
 target_include_directories(${PROJECT_NAME} PUBLIC ${serial_port_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${mqtt_port_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${ctrl_console_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME} serial_port)
 target_link_libraries(${PROJECT_NAME} mqtt_port)
+target_link_libraries(${PROJECT_NAME} ctrl_console)
+
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 

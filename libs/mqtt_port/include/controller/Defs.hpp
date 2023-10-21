@@ -6,6 +6,6 @@ namespace Mqtt_port
     {
     protected:
         static constexpr unsigned int time_to_disconnect = 200;
-        static constexpr unsigned char qos = 0;
+        static constexpr unsigned char qos = 1;
     };
 }
