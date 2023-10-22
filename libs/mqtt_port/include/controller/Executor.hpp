@@ -14,7 +14,7 @@ namespace Mqtt_port
 
     public:
 
-        virtual void exec(const Data &data, size_t size) = 0;
+        virtual void exec(const Executor::Data::const_iterator begin, const Executor::Data::const_iterator end) = 0;
     };
 
     template <typename Handle>
@@ -28,9 +28,9 @@ namespace Mqtt_port
         {
         }
 
-        void exec(const Executor::Data &data, size_t size) override
+        void exec(const Executor::Data::const_iterator begin, const Executor::Data::const_iterator end) override
         {
-            handle(data, size);
+            handle(begin, end);
         }
 
     };

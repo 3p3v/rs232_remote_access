@@ -11,7 +11,7 @@ namespace Cmd_ctrl
     class Common_defs
     {
     public:
-        using Data = std::vector<unsigned char>;
+        using Data = std::string;
 
         virtual ~Common_defs() = 0;
     };
@@ -50,11 +50,13 @@ namespace Cmd_ctrl
 
         bool validate(const std::string &arg)
         {
-            std::for_each(policies.begin(), policies.end(),
-                          [&arg](Policy_ptr &policy)
-                          {
-                              policy->validate(arg);
-                          });
+            auto ret = std::any_of(policies.begin(), policies.end(),
+                                   [&arg](Policy_ptr &policy)
+                                   {
+                                       return policy->validate(arg);
+                                   });
+
+            return ret;
         }
 
         virtual void exec(const Data &arg) = 0;
@@ -114,7 +116,8 @@ namespace Cmd_ctrl
     class Ctrl_cmd
     {
         std::string name{};
-        std::vector<std::string> args{};
+        std::string arg{};
+
     public:
         template <typename Str>
         Ctrl_cmd(Str &&name)
@@ -127,39 +130,56 @@ namespace Cmd_ctrl
             : name{begin, end}
         {
         }
-        
-        const std::string& operator[](unsigned char arg_num)
+
+        template <typename Iter>
+        Ctrl_cmd(Iter begin, Iter end, Iter a_begin, Iter a_end)
+            : name{begin, end}, arg{a_begin, a_end}
         {
-            return args[arg_num];
         }
 
-        size_t size()
-        {
-            return args.size();
-        } 
+        // const std::string &operator[](unsigned char arg_num)
+        // {
+        //     return args[arg_num];
+        // }
+
+        // size_t size()
+        // {
+        //     return args.size();
+        // }
 
         template <typename Str>
-        void add_arg(Str &&arg_n)
+        void set_arg(Str &&arg_n)
         {
-            args.emplace_back(std::forward<Str>arg_n);
+            arg = std::forward<Str>(arg_n);
         }
 
         template <typename Iter>
-        void emplace_back(Iter begin, Iter end)
+        void set_arg(Iter begin, Iter end)
         {
-            args.emplace_back(begin, end);
+            arg = std::string{begin, end};
         }
 
-        const std::string& get_name()
+        std::string get_arg()
+        {
+            return arg;
+        }
+
+        // template <typename Iter>
+        // void emplace_back(Iter begin, Iter end)
+        // {
+        //     args.emplace_back(begin, end);
+        // }
+
+        const std::string &get_name()
         {
             return name;
         }
 
-        template <typename Str>
-        void set_name(Str &&name)
-        {
-            this->name = std::forward<Str>(name);
-        }
+        // template <typename Str>
+        // void set_name(Str &&name)
+        // {
+        //     this->name = std::forward<Str>(name);
+        // }
     };
 
     class Ctrl_parser : protected Common_defs
@@ -193,33 +213,37 @@ namespace Cmd_ctrl
 
             /* Add new cmd */
             auto s_pos = std::find(s_begin, s_end, ' ');
-            lines.emplace_back(s_begin, s_pos);
-
             if (s_pos != s_end)
             {
-                s_begin = s_pos + 1;
-                
-                /* Find all args in line */
-                while ((s_pos = std::find(s_begin, s_end, ' ')) != s_end)
-                {
-                    lines[lines.size() - 1].emplace_back(s_begin, s_pos);
-                    s_begin = s_pos + 1;
-                }
+                lines.emplace_back(s_begin, s_pos, s_pos + 1, s_end);
+            }
+            else
+            {
+                lines.emplace_back(s_begin, s_end);
             }
             /* Proceed to find next line */
-            find_lines(lines, s_end + 1, end);               
+            find_lines(lines, s_end + 1, end);
         }
 
     public:
-        Ctrl_cmd_pos_con parse(const Data &data)
+        template <typename Iter_t>
+        Ctrl_cmd_pos_con parse(const typename Iter_t begin, const typename Iter_t end)
         {
             Ctrl_cmd_pos_con lines;
-            find_lines(lines, data.cbegin(), data.cend());
+            find_lines(lines, begin, end);
             return lines;
         }
     };
 
-    class Ctrl_console final : protected Common_defs
+    class Ctrl_con_defs
+    {
+    public:
+        static constexpr char endl = '\n'; 
+        static constexpr char space = ' '; 
+    };
+
+    template <typename Local_exec_handler>
+    class Ctrl_console final : protected Common_defs, protected Ctrl_con_defs
     {
         using Ctrl_cmd_name = std::string;
         using Ctrl_handle = std::unique_ptr<Base_handle>;
@@ -229,18 +253,32 @@ namespace Cmd_ctrl
 
         Cmds_cont cmds;
         Ctrl_parser parser;
+        Local_exec_handler leh;
 
     public:
-        void exec(const Data &data)
+        Ctrl_console(Local_exec_handler &&leh)
+            : leh{std::move(leh)}
         {
-            auto parsed_cmds = parser.parse(data);
-            
-            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this, &data](auto &p_cmd){
-                if (cmds[p_cmd.get_name()]->validate(p_cmd[0]))
-                    cmds[p_cmd.get_name()]->exec(data);
+        }
+
+        template <typename Iter_t>
+        void exec(const typename Iter_t begin, const typename Iter_t end)
+        {
+            auto parsed_cmds = parser.parse(begin, end);
+
+            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
+                if (cmds[p_cmd.get_name()]->validate(p_cmd.get_arg()))
+                    cmds[p_cmd.get_name()]->exec(p_cmd.get_arg());
                 else
-                    throw std::runtime_error("Received command: \"" + p_cmd.get_name() + "\" didn't pass validation!");
-            });
+                    throw std::runtime_error("Received command: \"" + p_cmd.get_name() + "\" didn't pass validation!"); });
+        }
+
+        void local_exec(const std::string &name, const std::string &arg)
+        {
+            if (cmds[name]->validate(arg))
+            {
+                leh(name + space + arg + endl);
+            }
         }
 
         template <typename Str, typename handle_t>

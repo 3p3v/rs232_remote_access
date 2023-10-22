@@ -58,7 +58,7 @@ namespace Mqtt_port
         {
             if (validator->validate(channel_name))
             {
-                validator->get_exec(channel_name)->exec(data, data.size());
+                validator->get_exec(channel_name)->exec(data.begin(), data.end());
             }
             else
             {
