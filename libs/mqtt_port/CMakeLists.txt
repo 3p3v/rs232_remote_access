@@ -4,10 +4,8 @@ project(mqtt_port VERSION 0.1.0 LANGUAGES CXX)
 # set policies
 cmake_policy(SET CMP0074 NEW)
 
-# find boost lib
 # set(PAHO_BUILD_STATIC ON)
 find_package(PahoMqttCpp REQUIRED)
-
 add_library(${PROJECT_NAME} STATIC
             # src/Receiver.cpp
             src/Sender.cpp

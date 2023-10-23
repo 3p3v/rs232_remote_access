@@ -13,6 +13,8 @@ namespace Mqtt_port
         std::string password;
 
     public:
+        User() = default;
+        
         template <typename S1, typename S2, typename S3>
         User(S1 &&username, S2 &&password, S3 &&id)
             : username{std::forward<S1>(username)},

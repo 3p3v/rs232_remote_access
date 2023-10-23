@@ -190,7 +190,7 @@ namespace Mqtt_port
             void write(const std::string &channel_name, const Data &data, std::size_t write_len)
             {
                 /* Send message */
-                auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
+                auto msg = mqtt::make_message(channel_name, data.data(), write_len);
                 client.get()->publish(msg, nullptr, send_callb_impl);
                 // temporarly moved here, becaurse 
                 sent_callb->success(channel_name,

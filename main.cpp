@@ -5,62 +5,64 @@
 // #include <Traffic_mqtt_local.hpp>
 #include <Basic_controller.hpp>
 #include <Ctrl_console.hpp>
+#include <Setup_loader.hpp>
 
-class Exec_console : public Mqtt_port::Executor
-{
-public:
-    void exec(const Data &data, size_t size)
-    {
-        std::cout << "Got data!" << std::endl;
-    }
-};
-
-// template <typename Call_t>
-// decltype(auto) make_Impl::Controller(std::string &&server_address)
-// {
-//     return Mqtt_port::Impl::Controller<My_callbacks>(server_address);
-// }
 using namespace Cmd_ctrl;
 
-int main(int, char **)
+static constexpr std::string_view file_name{"conf.txt"};
+
+int main()
 {
     std::cout << "Hello, from Impl::Client!\n";
 
     try
     {
+        auto config_data = Setup_loader{file_name}.load_data();
+
+        Mqtt_port::Basic_controller controller{config_data.server, config_data.user,
+                                               /* Write handler */
+                                               [](const std::string &topic, const size_t len) {
+
+                                               },
+                                               /* Read handler */
+                                               [](const std::string &topic, const size_t len) {
+
+                                               }};
+
         /* Create console handling commands from/to device */
-        Cmd_ctrl::Ctrl_console ctrl{};
+        Cmd_ctrl::Ctrl_console ctrl{[&controller, &config_data](const std::string &data)
+                                    {
+                                        controller.write(config_data.device.get_info_ch(), 
+                                                         std::vector<unsigned char>(data.begin(), data.end()), data.size());
+                                    }};
+
+        /* Add commands used to control UART settings */
         ctrl.add_cmd("set_baud_rate",
-                     Policies<NumbersOnly>::make_dyn_handle([](const std::vector<unsigned char> &)
-                                                            { std::cout << 5 << std::endl; }));
-        ctrl.add_cmd("baud_rate_conf",
-                     Policies<NumbersOnly>::make_dyn_handle([](const std::vector<unsigned char> &)
-                                                            { std::cout << 7 << std::endl; }));
+                     Policies<Numbers_only>::make_dyn_handle([&controller](const std::string &)
+                                                             { controller.write(""); }));
+        ctrl.add_cmd("ok_set_baud_rate",
+                     Policies<Numbers_only>::make_dyn_handle([](const std::string &)
+                                                             { std::cout << 7 << std::endl; }));
 
-        /* Run MQTT client */
-        Mqtt_port::User user{"admin", "admin", "1"};
-        Mqtt_port::Server server{"127.0.0.1", "1885"};
-        auto controller = Mqtt_port::Basic_controller(
-            server, user,
-            [](const std::string &topic, const size_t len) {
+        /* Add channels to connect to */
+        controller.add_channel(config_data.device.get_info_ch(),
+                               Mqtt_port::Dyn_executor{[&ctrl](const std::vector<unsigned char>::const_iterator begin,
+                                                               const std::vector<unsigned char>::const_iterator end)
+                                                       {
+                                                           ctrl.exec(begin, end);
+                                                       }});
 
-            },
-            [](const std::string &topic, const size_t len) {
-
-            });
-        /* Add channels to connect */
-        // controller.add_channel<Exec_console>("console_device1");
-        controller.add_channel("console_device1", Mqtt_port::Dyn_executor{[&ctrl](const Mqtt_port::Executor::Data &data, size_t size){
-            ctrl.exec(data);
-        }});
+        controller.add_channel(config_data.device.get_data_ch(),
+                               Mqtt_port::Dyn_executor{[&ctrl](const std::vector<unsigned char>::const_iterator begin,
+                                                               const std::vector<unsigned char>::const_iterator end)
+                                                       {
+                                                        //    ctrl.exec(begin, end);
+                                                       }});
         /* Connect to broker */
         controller.run();
 
         std::this_thread::sleep_for(std::chrono::seconds(2));
-
-        std::string str{"some data to send"};
-        controller.write("console_device1", Mqtt_port::Data(str.begin(), str.end()), str.size());
-
+        ctrl.local_exec("set_baud_rate", "1500");
         while (1)
             ;
     }
