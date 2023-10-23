@@ -16,4 +16,14 @@ namespace Mqtt_port
     {
         return ip + ":" + port;
     }
+
+    std::string Server::get_crt()
+    {
+        return crt_file_name;
+    }
+
+    std::string Server::get_pem()
+    {
+        return pem_file_name;
+    }
 }

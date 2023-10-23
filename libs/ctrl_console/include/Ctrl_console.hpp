@@ -26,7 +26,7 @@ namespace Cmd_ctrl
         virtual bool validate(const std::string &arg) = 0;
     };
 
-    class NumbersOnly : public Policy
+    class Numbers_only : public Policy
     {
     public:
         bool validate(const std::string &arg) override
@@ -35,7 +35,15 @@ namespace Cmd_ctrl
         }
     };
 
-    class Base_handle : protected Common_defs
+    class Base_handle_intf : protected Common_defs
+    {
+    public:
+        virtual bool validate(const std::string &arg) = 0;
+
+        virtual void exec(const Data &arg) = 0;
+    };
+    
+    class Base_handle : public Base_handle_intf
     {
     protected:
         using Policy_ptr = std::unique_ptr<Policy>;
@@ -60,6 +68,50 @@ namespace Cmd_ctrl
         }
 
         virtual void exec(const Data &arg) = 0;
+    };
+
+    class Base_handle_proxy final : public Base_handle_intf
+    {
+        std::unique_ptr<Base_handle> handle;
+
+        bool executed{false};
+    public:
+        enum class Type
+        {
+            mandatory,
+            optional
+        };
+
+        const Type type;
+
+        Base_handle_proxy(Base_handle &&handle, Type type)
+            : handle{std::make_unique<Base_handle>(std::move(handle))},
+              type{type}
+        {
+        }
+
+        bool validate(const std::string &arg) override
+        {
+            handle->validate(arg);
+        }
+
+        virtual void exec(const Data &arg) override
+        {
+            handle->exec(arg);
+            executed = true;
+        }
+
+        bool check()
+        {
+            if (type == Type::mandatory)
+            {
+                return executed;
+            }
+            else
+            {
+                return true;
+            }
+        }
     };
 
     template <typename... Policies_t>
@@ -111,14 +163,20 @@ namespace Cmd_ctrl
         {
             return Dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
         }
+
+        template <typename Handle>
+        static decltype(auto) make_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle)
+        {
+            return Base_handle_proxy{Dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
+        }
     };
 
     class Ctrl_cmd
     {
+    public:
         std::string name{};
         std::string arg{};
 
-    public:
         template <typename Str>
         Ctrl_cmd(Str &&name)
             : name{std::forward<Str>(name)}
@@ -136,50 +194,6 @@ namespace Cmd_ctrl
             : name{begin, end}, arg{a_begin, a_end}
         {
         }
-
-        // const std::string &operator[](unsigned char arg_num)
-        // {
-        //     return args[arg_num];
-        // }
-
-        // size_t size()
-        // {
-        //     return args.size();
-        // }
-
-        template <typename Str>
-        void set_arg(Str &&arg_n)
-        {
-            arg = std::forward<Str>(arg_n);
-        }
-
-        template <typename Iter>
-        void set_arg(Iter begin, Iter end)
-        {
-            arg = std::string{begin, end};
-        }
-
-        std::string get_arg()
-        {
-            return arg;
-        }
-
-        // template <typename Iter>
-        // void emplace_back(Iter begin, Iter end)
-        // {
-        //     args.emplace_back(begin, end);
-        // }
-
-        const std::string &get_name()
-        {
-            return name;
-        }
-
-        // template <typename Str>
-        // void set_name(Str &&name)
-        // {
-        //     this->name = std::forward<Str>(name);
-        // }
     };
 
     class Ctrl_parser : protected Common_defs
@@ -242,43 +256,30 @@ namespace Cmd_ctrl
         static constexpr char space = ' '; 
     };
 
-    template <typename Local_exec_handler>
-    class Ctrl_console final : protected Common_defs, protected Ctrl_con_defs
+    template <typename Base_handle_t>
+    class Base_ctrl_console : protected Common_defs, protected Ctrl_con_defs
     {
+    protected:
         using Ctrl_cmd_name = std::string;
-        using Ctrl_handle = std::unique_ptr<Base_handle>;
+        using Ctrl_handle = std::unique_ptr<Base_handle_t>;
         using Ctrl_cmd_pair = std::pair<Ctrl_cmd_name, Ctrl_handle>;
         using Cmds_cont = std::unordered_map<Ctrl_cmd_pair::first_type,
                                              Ctrl_cmd_pair::second_type>;
 
         Cmds_cont cmds;
         Ctrl_parser parser;
-        Local_exec_handler leh;
 
     public:
-        Ctrl_console(Local_exec_handler &&leh)
-            : leh{std::move(leh)}
-        {
-        }
-
         template <typename Iter_t>
         void exec(const typename Iter_t begin, const typename Iter_t end)
         {
             auto parsed_cmds = parser.parse(begin, end);
 
             std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
-                if (cmds[p_cmd.get_name()]->validate(p_cmd.get_arg()))
-                    cmds[p_cmd.get_name()]->exec(p_cmd.get_arg());
+                if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                    cmds[p_cmd.name]->exec(std::move(p_cmd.arg));
                 else
-                    throw std::runtime_error("Received command: \"" + p_cmd.get_name() + "\" didn't pass validation!"); });
-        }
-
-        void local_exec(const std::string &name, const std::string &arg)
-        {
-            if (cmds[name]->validate(arg))
-            {
-                leh(name + space + arg + endl);
-            }
+                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
         }
 
         template <typename Str, typename handle_t>
@@ -292,6 +293,40 @@ namespace Cmd_ctrl
             else
             {
                 throw std::logic_error{"The comand with specyfied name already exists!"};
+            }
+        }
+    };
+
+    class Setup_console final : public Base_ctrl_console<Base_handle_proxy>
+    {
+    public:
+        void check()
+        {
+            std::for_each(cmds.begin(), cmds.end(), [](Ctrl_cmd_pair &cmd){
+                if (!cmd.second->check())
+                {
+                    throw std::runtime_error("Value: " + cmd.first + " was not given!");
+                }
+            });
+        }
+    };
+
+    template <typename Local_exec_handler>
+    class Ctrl_console final : public Base_ctrl_console<Base_handle>
+    {
+        Local_exec_handler leh;
+
+    public:
+        Ctrl_console(Local_exec_handler &&leh)
+            : leh{std::move(leh)}
+        {
+        }
+
+        void local_exec(const std::string &name, const std::string &arg)
+        {
+            if (cmds[name]->validate(arg))
+            {
+                leh(name + space + arg + endl);
             }
         }
     };
