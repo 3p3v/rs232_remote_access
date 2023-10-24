@@ -38,22 +38,26 @@ int main()
 
         /* Add commands used to control UART settings */
         ctrl.add_cmd("set_baud_rate",
-                     Policies<Numbers_only>::make_dyn_handle([&controller](const std::string &)
-                                                             { controller.write(""); }));
+                     Policies<Numbers_only>::make_dyn_handle([](const std::string &dev_name, 
+                                                                const std::string &arg)
+                                                             { /*Set timer*/ }));
         ctrl.add_cmd("ok_set_baud_rate",
-                     Policies<Numbers_only>::make_dyn_handle([](const std::string &)
+                     Policies<Numbers_only>::make_dyn_handle([](const std::string &dev_name, 
+                                                                const std::string &arg)
                                                              { std::cout << 7 << std::endl; }));
 
         /* Add channels to connect to */
         controller.add_channel(config_data.device.get_info_ch(),
-                               Mqtt_port::Dyn_executor{[&ctrl](const std::vector<unsigned char>::const_iterator begin,
+                               Mqtt_port::Dyn_executor{[&ctrl](const std::string& dev_name,
+                                                               const std::vector<unsigned char>::const_iterator begin,
                                                                const std::vector<unsigned char>::const_iterator end)
                                                        {
-                                                           ctrl.exec(begin, end);
+                                                           ctrl.exec(dev_name, begin, end);
                                                        }});
 
         controller.add_channel(config_data.device.get_data_ch(),
-                               Mqtt_port::Dyn_executor{[&ctrl](const std::vector<unsigned char>::const_iterator begin,
+                               Mqtt_port::Dyn_executor{[&ctrl](const std::string& dev_name,
+                                                               const std::vector<unsigned char>::const_iterator begin,
                                                                const std::vector<unsigned char>::const_iterator end)
                                                        {
                                                         //    ctrl.exec(begin, end);

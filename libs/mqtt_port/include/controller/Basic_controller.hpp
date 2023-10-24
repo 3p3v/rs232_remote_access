@@ -58,7 +58,7 @@ namespace Mqtt_port
         {
             if (validator->validate(channel_name))
             {
-                validator->get_exec(channel_name)->exec(data.begin(), data.end());
+                validator->get_exec(channel_name)->exec(channel_name, data.begin(), data.end());
             }
             else
             {
@@ -75,7 +75,7 @@ namespace Mqtt_port
 
         void fail() override
         {
-            throw std::runtime_error("Could not send message!");
+            throw std::runtime_error("Could not receive message!");
             controller.disconnect(time_to_disconnect);
         }
 

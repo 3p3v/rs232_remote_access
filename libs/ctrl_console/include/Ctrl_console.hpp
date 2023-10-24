@@ -35,24 +35,45 @@ namespace Cmd_ctrl
         }
     };
 
-    class Base_handle_intf : protected Common_defs
+    class Default : protected Common_defs
+    {
+    public:
+        virtual void exec(const Data &arg) = 0;
+    };
+
+    class Extended : protected Common_defs
+    {
+    public:
+        virtual void exec(const std::string& dev_name,const Data &arg) = 0;
+    };
+
+    template <typename Handle_type>
+    class Base_handle_intf : public Handle_type
     {
     public:
         virtual bool validate(const std::string &arg) = 0;
-
-        virtual void exec(const Data &arg) = 0;
     };
     
-    class Base_handle : public Base_handle_intf
+    template <typename Handle_type, typename... Policies_t>
+    class Base_handle : public Base_handle_intf<Handle_type>
     {
     protected:
         using Policy_ptr = std::unique_ptr<Policy>;
         using Policy_cont = std::vector<Policy_ptr>;
         Policy_cont policies;
 
+    private:
+        template <typename... P>
+        Policy_cont make_policy_cont()
+        {
+            Policy_cont cont;
+            cont.emplace_back(Policy_ptr(new P{})...);
+            return cont;
+        }
+
     public:
-        Base_handle(Policy_cont &&policies)
-            : policies(std::move(policies))
+        Base_handle()
+            : policies(std::move(make_policy_cont<Policies_t...>()))
         {
         }
 
@@ -66,13 +87,11 @@ namespace Cmd_ctrl
 
             return ret;
         }
-
-        virtual void exec(const Data &arg) = 0;
     };
 
-    class Base_handle_proxy final : public Base_handle_intf
+    class Base_handle_proxy final : public Base_handle_intf<Default>
     {
-        std::unique_ptr<Base_handle> handle;
+        std::unique_ptr<Base_handle_intf> handle;
 
         bool executed{false};
     public:
@@ -84,8 +103,8 @@ namespace Cmd_ctrl
 
         const Type type;
 
-        Base_handle_proxy(Base_handle &&handle, Type type)
-            : handle{std::make_unique<Base_handle>(std::move(handle))},
+        Base_handle_proxy(Base_handle_intf &&handle, Type type)
+            : handle{std::make_unique<Base_handle_intf>(std::move(handle))},
               type{type}
         {
         }
@@ -95,7 +114,7 @@ namespace Cmd_ctrl
             handle->validate(arg);
         }
 
-        virtual void exec(const Data &arg) override
+        void exec(const Data &arg) override
         {
             handle->exec(arg);
             executed = true;
@@ -114,28 +133,8 @@ namespace Cmd_ctrl
         }
     };
 
-    template <typename... Policies_t>
-    class Def_handle : public Base_handle
-    {
-        template <typename... P>
-        Policy_cont make_policy_cont()
-        {
-            Policy_cont cont;
-            cont.emplace_back(Policy_ptr(new P{})...);
-            return cont;
-        }
-
-    public:
-        Def_handle()
-            : Base_handle{std::move(make_policy_cont<Policies_t...>())}
-        {
-        }
-
-        void exec(const Data &arg) = 0;
-    };
-
     template <typename Handle, typename... Policies_t>
-    class Dyn_handle : public Def_handle<Policies_t...>
+    class Dyn_handle : public Base_handle<Extended, Policies_t...>
     {
         Handle handle;
 
@@ -145,9 +144,9 @@ namespace Cmd_ctrl
         {
         }
 
-        void exec(const Base_handle::Data &arg) override
+        void exec(const std::string &dev_name, const Base_handle::Data &arg) override
         {
-            handle(arg);
+            handle(dev_name, arg);
         }
     };
 
@@ -270,18 +269,6 @@ namespace Cmd_ctrl
         Ctrl_parser parser;
 
     public:
-        template <typename Iter_t>
-        void exec(const typename Iter_t begin, const typename Iter_t end)
-        {
-            auto parsed_cmds = parser.parse(begin, end);
-
-            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
-                if (cmds[p_cmd.name]->validate(p_cmd.arg))
-                    cmds[p_cmd.name]->exec(std::move(p_cmd.arg));
-                else
-                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
-        }
-
         template <typename Str, typename handle_t>
         void add_cmd(Str &&cmd_name, handle_t &&handle)
         {
@@ -300,6 +287,18 @@ namespace Cmd_ctrl
     class Setup_console final : public Base_ctrl_console<Base_handle_proxy>
     {
     public:
+        template <typename Iter_t>
+        void exec(const typename Iter_t begin, const typename Iter_t end)
+        {
+            auto parsed_cmds = parser.parse(begin, end);
+
+            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
+                if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                    cmds[p_cmd.name]->exec(std::move(p_cmd.arg));
+                else
+                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
+        }
+
         void check()
         {
             std::for_each(cmds.begin(), cmds.end(), [](Ctrl_cmd_pair &cmd){
@@ -312,7 +311,7 @@ namespace Cmd_ctrl
     };
 
     template <typename Local_exec_handler>
-    class Ctrl_console final : public Base_ctrl_console<Base_handle>
+    class Ctrl_console final : public Base_ctrl_console<Base_handle_intf<Extended>>
     {
         Local_exec_handler leh;
 
@@ -322,11 +321,23 @@ namespace Cmd_ctrl
         {
         }
 
-        void local_exec(const std::string &name, const std::string &arg)
+        template <typename Iter_t>
+        void exec(const std::string &device_name, const typename Iter_t begin, const typename Iter_t end)
+        {
+            auto parsed_cmds = parser.parse(begin, end);
+
+            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
+                if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                    cmds[p_cmd.name]->exec(device_name, std::move(p_cmd.arg));
+                else
+                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
+        }
+
+        void local_exec(const std::string &info_ch, const std::string &name, const std::string &arg)
         {
             if (cmds[name]->validate(arg))
             {
-                leh(name + space + arg + endl);
+                leh(info_ch, name + space + arg + endl);
             }
         }
     };
