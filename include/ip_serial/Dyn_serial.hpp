@@ -3,9 +3,9 @@
 #include <Serial.hpp>
 
 template <typename Wc, typename Rc, typename Ec>
-class Dyn_serial final : public Serial
+class Dyn_serial final : public Serial_port::Serial
 {
-    static Io_context_ptr io_context_;
+    static Io_context_ptr shared_io_context_;
     /* Callback's definitions */
     Wc wc;
     Rc rc;
@@ -22,4 +22,4 @@ public:
 };
 
 template <typename Wc, typename Rc, typename Ec>
-Dyn_serial(Wc &&, Rc &&, Ec &&)->Dyn_serial<Wc, Rc, Ec>;
+Dyn_serial(Wc &&, Rc &&, Ec &&) -> Dyn_serial<Wc, Rc, Ec>;

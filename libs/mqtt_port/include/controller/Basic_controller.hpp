@@ -17,11 +17,11 @@
 
 namespace Mqtt_port
 {
-    template <typename Scallb, typename Rcallb>
-    class Basic_controller;
+    // template <typename Scallb, typename Rcallb>
+    // class Basic_controller;
 
-    template <typename Scallb, typename Rcallb>
-    Basic_controller(Scallb &&, Rcallb &&) -> Basic_controller<Scallb, Rcallb>;
+    // template <typename Scallb, typename Rcallb>
+    // Basic_controller(Scallb &&, Rcallb &&) -> Basic_controller;
 
     template <typename Scallb>
     class Sent_callb final : public O_callb
@@ -131,7 +131,6 @@ namespace Mqtt_port
         }
     };
 
-    template <typename Scallb, typename Rcallb>
     class Basic_controller : public Sender_intf//, public Disconnector_intf
     {
         /* Low level implementation of mqtt cient */
@@ -150,6 +149,7 @@ namespace Mqtt_port
         // virtual void write_handle(const std::string &channel_name, const Data &data, std::size_t write_len) = 0;
 
     public:
+        template <typename Scallb, typename Rcallb>
         Basic_controller(Server &server,
                          User_opt &user,
                          Scallb &&sent_msg,
@@ -171,8 +171,7 @@ namespace Mqtt_port
         void add_channel(S &&channel_name, E &&handler);
     };
 
-    template <typename Scallb, typename Rcallb>
-    void Basic_controller<Scallb, Rcallb>::run()
+    void Basic_controller::run()
     {
         // started = true;
         if (!connector->load_channels())
@@ -182,7 +181,7 @@ namespace Mqtt_port
     }
 
     template <typename Scallb, typename Rcallb>
-    Basic_controller<Scallb, Rcallb>::Basic_controller(Server &server,
+    Basic_controller::Basic_controller(Server &server,
                                                        User_opt &user,
                                                        Scallb &&sent_msg,
                                                        Rcallb &&rec_msg)
@@ -198,7 +197,7 @@ namespace Mqtt_port
     }
 
     // template <typename Scallb, typename Rcallb>
-    // void Basic_controller<Scallb, Rcallb>::read(const std::string &channel_name, std::vector<unsigned char> data)
+    // void Basic_controller::read(const std::string &channel_name, std::vector<unsigned char> data)
     // {
     //     if (validator->validate(channel_name))
     //         validator->get_exec(channel_name).get()->exec(data);
@@ -206,8 +205,7 @@ namespace Mqtt_port
     //         throw std::logic_error("Somehow tried to write to channel that client was not connected to!");
     // }
 
-    template <typename Scallb, typename Rcallb>
-    void Basic_controller<Scallb, Rcallb>::write(const std::string &channel_name, const Data &data, std::size_t write_len)
+    void Basic_controller::write(const std::string &channel_name, const Data &data, std::size_t write_len)
     {
         if (validator->validate(channel_name))
         {
@@ -219,22 +217,19 @@ namespace Mqtt_port
         }
     }
 
-    template <typename Scallb, typename Rcallb>
-    void Basic_controller<Scallb, Rcallb>::disconnect(Time time)
+    void Basic_controller::disconnect(Time time)
     {
         controller.disconnect(time);
     }
 
-    template <typename Scallb, typename Rcallb>
     template <class E, typename S, typename... E_rgs>
-    void Basic_controller<Scallb, Rcallb>::add_channel(S &&channel_name, E_rgs &&...e_args)
+    void Basic_controller::add_channel(S &&channel_name, E_rgs &&...e_args)
     {
         validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E_rgs>(e_args)...);
     }
 
-    template <typename Scallb, typename Rcallb>
     template <class E, typename S>
-    void Basic_controller<Scallb, Rcallb>::add_channel(S &&channel_name, E &&handler)
+    void Basic_controller::add_channel(S &&channel_name, E &&handler)
     {
         validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E>(handler));
     }

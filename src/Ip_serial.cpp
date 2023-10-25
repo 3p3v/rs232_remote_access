@@ -27,3 +27,8 @@ Ip_serial::Ip_serial(Mqtt_port::Server &&server,
                                                             const std::string &arg)
                                                          { std::cout << 7 << std::endl; }));
 }
+
+Serial_port::Serial& Ip_serial::operator[](const std::string &dev_name)
+{
+   // serials[dev_name]
+}

@@ -38,20 +38,20 @@ namespace Cmd_ctrl
     class Default : protected Common_defs
     {
     public:
-        virtual void exec(const Data &arg) = 0;
+        virtual void exec(const Data &arg) {};
     };
 
     class Extended : protected Common_defs
     {
     public:
-        virtual void exec(const std::string& dev_name,const Data &arg) = 0;
+        virtual void exec(const std::string& dev_name,const Data &arg) {};
     };
 
     template <typename Handle_type>
     class Base_handle_intf : public Handle_type
     {
     public:
-        virtual bool validate(const std::string &arg) = 0;
+        virtual bool validate(const std::string &arg) {};
     };
     
     template <typename Handle_type, typename... Policies_t>
@@ -91,7 +91,7 @@ namespace Cmd_ctrl
 
     class Base_handle_proxy final : public Base_handle_intf<Default>
     {
-        std::unique_ptr<Base_handle_intf> handle;
+        std::unique_ptr<Base_handle_intf<Default>> handle;
 
         bool executed{false};
     public:
@@ -103,15 +103,15 @@ namespace Cmd_ctrl
 
         const Type type;
 
-        Base_handle_proxy(Base_handle_intf &&handle, Type type)
-            : handle{std::make_unique<Base_handle_intf>(std::move(handle))},
+        Base_handle_proxy(Base_handle_intf<Default> &&handle, Type type)
+            : handle{std::make_unique<Base_handle_intf<Default>>(std::move(handle))},
               type{type}
         {
         }
 
         bool validate(const std::string &arg) override
         {
-            handle->validate(arg);
+            return handle->validate(arg);
         }
 
         void exec(const Data &arg) override
@@ -144,7 +144,7 @@ namespace Cmd_ctrl
         {
         }
 
-        void exec(const std::string &dev_name, const Base_handle::Data &arg) override
+        void exec(const std::string &dev_name, const Extended::Data &arg) override
         {
             handle(dev_name, arg);
         }
@@ -262,8 +262,8 @@ namespace Cmd_ctrl
         using Ctrl_cmd_name = std::string;
         using Ctrl_handle = std::unique_ptr<Base_handle_t>;
         using Ctrl_cmd_pair = std::pair<Ctrl_cmd_name, Ctrl_handle>;
-        using Cmds_cont = std::unordered_map<Ctrl_cmd_pair::first_type,
-                                             Ctrl_cmd_pair::second_type>;
+        using Cmds_cont = std::unordered_map<Ctrl_cmd_name,
+                                             Ctrl_handle>;
 
         Cmds_cont cmds;
         Ctrl_parser parser;
@@ -301,7 +301,7 @@ namespace Cmd_ctrl
 
         void check()
         {
-            std::for_each(cmds.begin(), cmds.end(), [](Ctrl_cmd_pair &cmd){
+            std::for_each(cmds.begin(), cmds.end(), [](auto &cmd){
                 if (!cmd.second->check())
                 {
                     throw std::runtime_error("Value: " + cmd.first + " was not given!");
@@ -341,4 +341,7 @@ namespace Cmd_ctrl
             }
         }
     };
+
+    template <typename Local_exec_handler>
+    Ctrl_console(Local_exec_handler &&) ->  Ctrl_console<Local_exec_handler>;
 }
