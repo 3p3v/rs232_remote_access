@@ -18,10 +18,13 @@ add_executable(${PROJECT_NAME} main.cpp  #WIN32
                                src/Local_serial.cpp
                                src/User_channel_monitor.cpp
                                src/Device.cpp
-                               src/Setup_loader.cpp)
+                               src/Setup_loader.cpp
+                               src/Ip_serial.cpp
+                               src/Dyn_serial.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include" 
-                                                  "include/setup_loader")
+                                                  "include/setup_loader"
+                                                  "include/ip_serial")
 
 #find GUI library
 cmake_policy(SET CMP0054 NEW)
