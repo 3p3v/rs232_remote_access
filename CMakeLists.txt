@@ -4,15 +4,12 @@ project(mqtt_client VERSION 0.1.0 LANGUAGES C CXX)
 include(CTest)
 enable_testing()
 
-set(PAHO_MQTT_C_LIBRARIES "C:/Program Files (x86)/Eclipse Paho C/lib/paho-mqtt3as-static.lib")
-set(PAHO_MQTT_C_INCLUDE_DIRS "C:/Program Files (x86)/Eclipse Paho C/include")
-set(wxWidgets_ROOT_DIR "C:/Program Files (x86)/wxWidgets")
-set(wxWidgets_LIB_DIR  "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib")
-set(CMAKE_PREFIX_PATH "C:/Program Files (x86)/Eclipse Paho Cpp/lib/cmake/PahoMqttCpp"
-                      "C:/Program Files (x86)/wxWidgets/lib/cmake/wxWidgets"
-                      "C:/Program Files (x86)/wxWidgets/lib/cmake/wxWidgets/vc_x64_lib"
-                      "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib"
-                      "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/lib/onecore/x64")
+set(PAHO_MQTT_C_LIBRARIES "C:/libs/paho-mqtt-c/win64-1.3.13/lib/paho-mqtt3as-static.lib")
+set(PAHO_MQTT_C_INCLUDE_DIRS "C:/libs/paho-mqtt-c/win64-1.3.13/include")
+# set(wxWidgets_ROOT_DIR "C:/Program Files (x86)/wxWidgets")
+# set(wxWidgets_LIB_DIR  "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib")
+set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/win64_1.2.0/lib/cmake/PahoMqttCpp"
+                      "C:/libs/boost/lib/cmake")
 
 add_executable(${PROJECT_NAME} main.cpp  #WIN32
                                src/Local_serial.cpp
@@ -24,10 +21,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include"
                                                   "include/setup_loader")
 
 #find GUI library
-cmake_policy(SET CMP0054 NEW)
-find_package(wxWidgets REQUIRED)
-include(${wxWidgets_USE_FILE})
-target_include_directories(${PROJECT_NAME} PUBLIC ${wxWidgets_INCLUDE_DIRS})
+# cmake_policy(SET CMP0054 NEW)
+# find_package(wxWidgets REQUIRED)
+# include(${wxWidgets_USE_FILE})
+# target_include_directories(${PROJECT_NAME} PUBLIC ${wxWidgets_INCLUDE_DIRS})
 
 # find serial port library
 set(SERIAL_LIB_NAMES serial_port)
@@ -49,7 +46,7 @@ add_subdirectory("libs/ctrl_console")
 target_include_directories(${PROJECT_NAME} PUBLIC ${ctrl_console_INCLUDE_DIR})
 
 # message(${wxWidgets_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${wxWidgets_LIBRARIES})
+# target_link_libraries(${PROJECT_NAME} PUBLIC ${wxWidgets_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} PUBLIC serial_port)
 target_link_libraries(${PROJECT_NAME} PUBLIC mqtt_port)
 target_link_libraries(${PROJECT_NAME} PUBLIC ctrl_console)
