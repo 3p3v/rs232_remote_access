@@ -12,8 +12,7 @@ set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/win64_1.2.0/lib/cmake/PahoMqttCpp"
                       "C:/libs/boost/lib/cmake")
 
 add_executable(${PROJECT_NAME} main.cpp  #WIN32
-                               src/Local_serial.cpp
-                               src/User_channel_monitor.cpp
+                               src/Flow_monitor.cpp
                                src/Device.cpp
                                src/Setup_loader.cpp
                                src/Ip_serial.cpp

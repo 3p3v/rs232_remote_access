@@ -51,7 +51,7 @@ namespace Cmd_ctrl
     class Base_handle_intf : public Handle_type
     {
     public:
-        virtual bool validate(const std::string &arg) {};
+        virtual bool validate(const std::string &arg) {return false;};
     };
     
     template <typename Handle_type, typename... Policies_t>
@@ -89,35 +89,29 @@ namespace Cmd_ctrl
         }
     };
 
-    class Base_handle_proxy final : public Base_handle_intf<Default>
+    class Base_handle_proxy
     {
-        std::unique_ptr<Base_handle_intf<Default>> handle;
-
-        bool executed{false};
     public:
         enum class Type
         {
             mandatory,
             optional
         };
+    };
+    
+    template <typename Handle_type>
+    class Handle_proxy : public Base_handle_proxy, public Handle_type
+    {
+        bool executed{false};
 
+    public:
         const Type type;
 
-        Base_handle_proxy(Base_handle_intf<Default> &&handle, Type type)
-            : handle{std::make_unique<Base_handle_intf<Default>>(std::move(handle))},
+        template <typename... Args>
+        Handle_proxy(Type type, Args... args)
+            : Handle_type{args ...},
               type{type}
         {
-        }
-
-        bool validate(const std::string &arg) override
-        {
-            return handle->validate(arg);
-        }
-
-        void exec(const Data &arg) override
-        {
-            handle->exec(arg);
-            executed = true;
         }
 
         bool check()
@@ -133,41 +127,130 @@ namespace Cmd_ctrl
         }
     };
 
+    
+ 
+    // class Def_handle_proxy final : public Base_handle_proxy<Default>
+    // {
+    // public:
+    //     Def_handle_proxy(Base_handle_intf<Default> &&handle, Type type)
+    //         : Base_handle_proxy{std::move(handle), type}
+    //     {
+    //     }
+
+    //     void exec(const Data &arg) override
+    //     {
+    //         handle->exec(arg);
+    //         executed = true;
+    //     }
+    // };
+
+    // class Ext_handle_proxy final : public Base_handle_proxy<Extended>
+    // {
+    // public:
+    //     Ext_handle_proxy(Base_handle_intf<Extended> &&handle, Type type)
+    //         : Base_handle_proxy{std::move(handle), type}
+    //     {
+    //     }
+
+    //     void exec(const std::string& dev_name,const Data &arg) override
+    //     {
+    //         handle->exec(dev_name, arg);
+    //         executed = true;
+    //     }
+    // };
+
     template <typename Handle, typename... Policies_t>
-    class Dyn_handle : public Base_handle<Extended, Policies_t...>
+    class Def_dyn_handle : public Base_handle<Default, Policies_t...>
     {
         Handle handle;
 
     public:
-        Dyn_handle(Handle &&handle)
+        Def_dyn_handle(Handle &&handle)
             : handle{std::forward<Handle>(handle)}
         {
         }
 
-        void exec(const std::string &dev_name, const Extended::Data &arg) override
+        void exec(const Common_defs::Data &arg) override
+        {
+            handle(arg);
+        }
+    };
+
+    template <typename Handle, typename... Policies_t>
+    class Ext_dyn_handle : public Base_handle<Extended, Policies_t...>
+    {
+        Handle handle;
+
+    public:
+        Ext_dyn_handle(Handle &&handle)
+            : handle{std::forward<Handle>(handle)}
+        {
+        }
+
+        void exec(const std::string &dev_name, const Common_defs::Data &arg) override
         {
             handle(dev_name, arg);
         }
     };
 
     template <typename Handle, typename... Policies_t>
-    Dyn_handle(Handle &&) -> Dyn_handle<Handle, Policies_t...>;
+    Def_dyn_handle(Handle &&) -> Def_dyn_handle<Handle, Policies_t...>;
 
     template <typename... Policies_t>
     class Policies
     {
     public:
         template <typename Handle>
-        static decltype(auto) make_dyn_handle(Handle &&handle)
+        static decltype(auto) make_def_dyn_handle(Handle &&handle)
         {
-            return Dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
+            return Def_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
         }
 
         template <typename Handle>
-        static decltype(auto) make_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle)
+        static decltype(auto) make_ext_dyn_handle(Handle &&handle)
         {
-            return Base_handle_proxy{Dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
+            return Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
         }
+
+        template <typename Handle, typename... Args>
+        static decltype(auto) make_def_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle, Args... args)
+        {
+            return Handle_proxy<Def_dyn_handle<Handle, Policies_t...>>(type,
+                                                                       std::forward<Handle>(handle),
+                                                                       std::forward<Args>(args)...);
+        }
+
+        template <typename Handle, typename... Args>
+        static decltype(auto) make_ext_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle, Args... args)
+        {
+            return Handle_proxy<Ext_dyn_handle<Handle, Policies_t...>>(type,
+                                                                       std::forward<Handle>(handle),
+                                                                       std::forward<Args>(args)...);
+        }
+
+        // template <typename Handle_t, typename Handle_f, typename... Args>
+        // decltype(auto) make_dyn_proxy(Args... args)
+        // {
+        //     return Handle_proxy<>{};
+        // }
+
+        // template <typename Handle, typename... Args>
+        // static decltype(auto) make_handle_proxy(Ext_handle_proxy::Type type, Handle &&handle, Args&& ...args)
+        // {
+        //     return Ext_handle_proxy{Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
+        // }
+
+        // template <typename Handle, typename... Args>
+        // static decltype(auto) make_def_dyn_proxy(Def_handle_proxy::Type type, Handle&& handle, Args&& ...args)
+        // {
+        //     return Def_handle_proxy{Def_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle), std::forward<Args>(args)...), type};
+        // }
+
+        // template <typename Handle, typename... Args>
+        // static decltype(auto) make_ext_dyn_proxy(Ext_handle_proxy::Type type, Handle &&handle, Args&& ...args)
+        // {
+        //     return Ext_handle_proxy{Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
+        // }
     };
 
     class Ctrl_cmd
@@ -269,13 +352,13 @@ namespace Cmd_ctrl
         Ctrl_parser parser;
 
     public:
-        template <typename Str, typename handle_t>
-        void add_cmd(Str &&cmd_name, handle_t &&handle)
+        template <typename Str, typename Handle_t>
+        void add_cmd(Str &&cmd_name, Handle_t&& handle)
         {
             if (cmds.find(cmd_name) == cmds.end())
             {
                 cmds.insert(Ctrl_cmd_pair{std::forward<Str>(cmd_name),
-                                          Ctrl_handle(new handle_t{std::forward<handle_t>(handle)})});
+                                          Ctrl_handle(new Handle_t{std::forward<Handle_t>(handle)})});
             }
             else
             {
@@ -284,7 +367,7 @@ namespace Cmd_ctrl
         }
     };
 
-    class Setup_console final : public Base_ctrl_console<Base_handle_proxy>
+    class Setup_console final : public Base_ctrl_console<Handle_proxy<Base_handle<Default>>>
     {
     public:
         template <typename Iter_t>
