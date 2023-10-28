@@ -2,7 +2,7 @@
 
 namespace Serial_port
 {
-    class Ctrl_interface
+    class Ctrl_defs
     {
     public:
         enum class Parity
@@ -25,7 +25,11 @@ namespace Serial_port
             onepointfive,
             two
         };
-
+    };
+    
+    class Ctrl_interface : public Ctrl_defs
+    {
+    public:
         unsigned int baud_rate{9600};
         Parity parity{Parity::none};
         unsigned char char_size{8};

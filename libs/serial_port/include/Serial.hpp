@@ -26,21 +26,21 @@ namespace Serial_port
 
         /* Conf */
         std::string get_port();
-        virtual void open(const std::string& port) final;
-        virtual void close() final;
-        virtual void set_baud_rate(unsigned int baud_rate) override final;
-        virtual void set_parity(const Parity parity) override final;
-        virtual void set_char_size(unsigned int char_size) override final;
-        virtual void set_flow_ctrl(const Flow_ctrl flow_ctrf) override final;
-        virtual void set_stop_bits(const Stop_bits stop_bits) override final;
-        virtual void set_baud_rate() override final;
-        virtual void set_parity() override final;
-        virtual void set_char_size() override final;
-        virtual void set_flow_ctrl() override final;
-        virtual void set_stop_bits() override final;
+        void open(const std::string& port);
+        void close();
+        void set_baud_rate(unsigned int baud_rate) override final;
+        void set_parity(const Parity parity) override final;
+        void set_char_size(unsigned int char_size) override final;
+        void set_flow_ctrl(const Flow_ctrl flow_ctrf) override final;
+        void set_stop_bits(const Stop_bits stop_bits) override final;
+        void set_baud_rate() override final;
+        void set_parity() override final;
+        void set_char_size() override final;
+        void set_flow_ctrl() override final;
+        void set_stop_bits() override final;
         
         /* Communication */
-        virtual void write(const Data &data) final;
-        virtual void run() final;
+        void write(const Data &data) override final;
+        void run() override final;
     };
 }

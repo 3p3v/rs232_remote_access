@@ -10,7 +10,7 @@ namespace Mqtt_port
     public:
         enum class Option
         {
-            clean,
+            no_clean,
             username, 
             password
         };

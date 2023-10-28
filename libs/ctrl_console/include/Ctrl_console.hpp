@@ -35,61 +35,21 @@ namespace Cmd_ctrl
         }
     };
 
-    class Default : protected Common_defs
-    {
-    public:
-        virtual void exec(const Data &arg) {};
-    };
+    // class Default : protected Common_defs
+    // {
+    // public:
+    //     virtual void exec(const Data &arg) {};
+    // };
 
-    class Extended : protected Common_defs
-    {
-    public:
-        virtual void exec(const std::string& dev_name,const Data &arg) {};
-    };
+    // class Extended : protected Common_defs
+    // {
+    // public:
+    //     virtual void exec(const std::string& dev_name,const Data &arg) {};
+    // };
 
-    template <typename Handle_type>
-    class Base_handle_intf : public Handle_type
-    {
-    public:
-        virtual bool validate(const std::string &arg) {return false;};
-    };
-    
-    template <typename Handle_type, typename... Policies_t>
-    class Base_handle : public Base_handle_intf<Handle_type>
-    {
-    protected:
-        using Policy_ptr = std::unique_ptr<Policy>;
-        using Policy_cont = std::vector<Policy_ptr>;
-        Policy_cont policies;
+    // template <typename... Args_t>
 
-    private:
-        template <typename... P>
-        Policy_cont make_policy_cont()
-        {
-            Policy_cont cont;
-            cont.emplace_back(Policy_ptr(new P{})...);
-            return cont;
-        }
-
-    public:
-        Base_handle()
-            : policies(std::move(make_policy_cont<Policies_t...>()))
-        {
-        }
-
-        bool validate(const std::string &arg)
-        {
-            auto ret = std::any_of(policies.begin(), policies.end(),
-                                   [&arg](Policy_ptr &policy)
-                                   {
-                                       return policy->validate(arg);
-                                   });
-
-            return ret;
-        }
-    };
-
-    class Base_handle_proxy
+    class Mandatority
     {
     public:
         enum class Type
@@ -97,21 +57,15 @@ namespace Cmd_ctrl
             mandatory,
             optional
         };
-    };
-    
-    template <typename Handle_type>
-    class Handle_proxy : public Base_handle_proxy, public Handle_type
-    {
+
+    private:    
         bool executed{false};
+        Type type{Type::optional};
 
     public:
-        const Type type;
-
-        template <typename... Args>
-        Handle_proxy(Type type, Args... args)
-            : Handle_type{args ...},
-              type{type}
+        void set_mandatority(Type type)
         {
+            this->type = type;
         }
 
         bool check()
@@ -127,130 +81,81 @@ namespace Cmd_ctrl
         }
     };
 
-    
- 
-    // class Def_handle_proxy final : public Base_handle_proxy<Default>
-    // {
-    // public:
-    //     Def_handle_proxy(Base_handle_intf<Default> &&handle, Type type)
-    //         : Base_handle_proxy{std::move(handle), type}
-    //     {
-    //     }
-
-    //     void exec(const Data &arg) override
-    //     {
-    //         handle->exec(arg);
-    //         executed = true;
-    //     }
-    // };
-
-    // class Ext_handle_proxy final : public Base_handle_proxy<Extended>
-    // {
-    // public:
-    //     Ext_handle_proxy(Base_handle_intf<Extended> &&handle, Type type)
-    //         : Base_handle_proxy{std::move(handle), type}
-    //     {
-    //     }
-
-    //     void exec(const std::string& dev_name,const Data &arg) override
-    //     {
-    //         handle->exec(dev_name, arg);
-    //         executed = true;
-    //     }
-    // };
-
-    template <typename Handle, typename... Policies_t>
-    class Def_dyn_handle : public Base_handle<Default, Policies_t...>
-    {
-        Handle handle;
-
-    public:
-        Def_dyn_handle(Handle &&handle)
-            : handle{std::forward<Handle>(handle)}
-        {
-        }
-
-        void exec(const Common_defs::Data &arg) override
-        {
-            handle(arg);
-        }
-    };
-
-    template <typename Handle, typename... Policies_t>
-    class Ext_dyn_handle : public Base_handle<Extended, Policies_t...>
-    {
-        Handle handle;
-
-    public:
-        Ext_dyn_handle(Handle &&handle)
-            : handle{std::forward<Handle>(handle)}
-        {
-        }
-
-        void exec(const std::string &dev_name, const Common_defs::Data &arg) override
-        {
-            handle(dev_name, arg);
-        }
-    };
-
-    template <typename Handle, typename... Policies_t>
-    Def_dyn_handle(Handle &&) -> Def_dyn_handle<Handle, Policies_t...>;
-
-    template <typename... Policies_t>
-    class Policies
+    template <typename... Args_t>
+    class Exec
     {
     public:
-        template <typename Handle>
-        static decltype(auto) make_def_dyn_handle(Handle &&handle)
+        template <typename... Adds_t>
+        class Addons
         {
-            return Def_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
-        }
+        public:
+            class Base_handle_intf : public Adds_t...
+            {
+            public:
+                virtual bool validate(const std::string &arg) = 0;
+                virtual void exec(Args_t... args) = 0;
+            };
 
-        template <typename Handle>
-        static decltype(auto) make_ext_dyn_handle(Handle &&handle)
-        {
-            return Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle));
-        }
+            template <typename... Policies_t>
+            class Policies
+            {
+            public:
+                class Base_handle : public Base_handle_intf
+                {
+                protected:
+                    using Policy_ptr = std::unique_ptr<Policy>;
+                    using Policy_cont = std::vector<Policy_ptr>;
+                    Policy_cont policies;
 
-        template <typename Handle, typename... Args>
-        static decltype(auto) make_def_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle, Args... args)
-        {
-            return Handle_proxy<Def_dyn_handle<Handle, Policies_t...>>(type,
-                                                                       std::forward<Handle>(handle),
-                                                                       std::forward<Args>(args)...);
-        }
+                private:
+                    template <typename... P>
+                    Policy_cont make_policy_cont()
+                    {
+                        Policy_cont cont;
+                        cont.emplace_back(Policy_ptr(new P{})...);
+                        return cont;
+                    }
 
-        template <typename Handle, typename... Args>
-        static decltype(auto) make_ext_dyn_proxy(Base_handle_proxy::Type type, Handle &&handle, Args... args)
-        {
-            return Handle_proxy<Ext_dyn_handle<Handle, Policies_t...>>(type,
-                                                                       std::forward<Handle>(handle),
-                                                                       std::forward<Args>(args)...);
-        }
+                public:
+                    Base_handle()
+                        : policies(std::move(make_policy_cont<Policies_t...>()))
+                    {
+                    }
 
-        // template <typename Handle_t, typename Handle_f, typename... Args>
-        // decltype(auto) make_dyn_proxy(Args... args)
-        // {
-        //     return Handle_proxy<>{};
-        // }
+                    bool validate(const std::string &arg)
+                    {
+                        auto ret = std::any_of(policies.begin(), policies.end(),
+                                               [&arg](Policy_ptr &policy)
+                                               {
+                                                   return policy->validate(arg);
+                                               });
 
-        // template <typename Handle, typename... Args>
-        // static decltype(auto) make_handle_proxy(Ext_handle_proxy::Type type, Handle &&handle, Args&& ...args)
-        // {
-        //     return Ext_handle_proxy{Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
-        // }
+                        return ret;
+                    }
+                };
 
-        // template <typename Handle, typename... Args>
-        // static decltype(auto) make_def_dyn_proxy(Def_handle_proxy::Type type, Handle&& handle, Args&& ...args)
-        // {
-        //     return Def_handle_proxy{Def_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle), std::forward<Args>(args)...), type};
-        // }
+                template <typename Handle_f>
+                class Dyn_handle : public Base_handle
+                {
+                    Handle_f handle;
 
-        // template <typename Handle, typename... Args>
-        // static decltype(auto) make_ext_dyn_proxy(Ext_handle_proxy::Type type, Handle &&handle, Args&& ...args)
-        // {
-        //     return Ext_handle_proxy{Ext_dyn_handle<Handle, Policies_t...>(std::forward<Handle>(handle)), type};
-        // }
+                public:
+                    Dyn_handle(Handle_f &&handle)
+                        : handle{std::forward<Handle_f>(handle)}
+                    {
+                    }
+
+                    void exec(Args_t... args)
+                    {
+                        handle(std::forward<Args_t>(args)...);
+                    }
+                };
+
+                template <typename Handle_f>
+                Dyn_handle(Handle_f &&) -> Dyn_handle<Handle_f>;
+
+            };
+        };
     };
 
     class Ctrl_cmd
@@ -334,8 +239,8 @@ namespace Cmd_ctrl
     class Ctrl_con_defs
     {
     public:
-        static constexpr char endl = '\n'; 
-        static constexpr char space = ' '; 
+        static constexpr char endl = '\n';
+        static constexpr char space = ' ';
     };
 
     template <typename Base_handle_t>
@@ -353,12 +258,12 @@ namespace Cmd_ctrl
 
     public:
         template <typename Str, typename Handle_t>
-        void add_cmd(Str &&cmd_name, Handle_t&& handle)
+        void add_cmd(Str &&cmd_name, Handle_t &&handle)
         {
             if (cmds.find(cmd_name) == cmds.end())
             {
-                cmds.insert(Ctrl_cmd_pair{std::forward<Str>(cmd_name),
-                                          Ctrl_handle(new Handle_t{std::forward<Handle_t>(handle)})});
+                cmds.emplace(std::forward<Str>(cmd_name),
+                             Ctrl_handle(new Handle_t{std::forward<Handle_t>(handle)}));
             }
             else
             {
@@ -367,64 +272,76 @@ namespace Cmd_ctrl
         }
     };
 
-    class Setup_console final : public Base_ctrl_console<Handle_proxy<Base_handle<Default>>>
+    namespace Setup
     {
-    public:
-        template <typename Iter_t>
-        void exec(const typename Iter_t begin, const typename Iter_t end)
+        using Handle_t = Exec<std::string &&>::Addons<Mandatority>;
+
+        class Setup_console final : public Base_ctrl_console<Handle_t::Base_handle_intf>
         {
-            auto parsed_cmds = parser.parse(begin, end);
-
-            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
-                if (cmds[p_cmd.name]->validate(p_cmd.arg))
-                    cmds[p_cmd.name]->exec(std::move(p_cmd.arg));
-                else
-                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
-        }
-
-        void check()
-        {
-            std::for_each(cmds.begin(), cmds.end(), [](auto &cmd){
-                if (!cmd.second->check())
-                {
-                    throw std::runtime_error("Value: " + cmd.first + " was not given!");
-                }
-            });
-        }
-    };
-
-    template <typename Local_exec_handler>
-    class Ctrl_console final : public Base_ctrl_console<Base_handle_intf<Extended>>
-    {
-        Local_exec_handler leh;
-
-    public:
-        Ctrl_console(Local_exec_handler &&leh)
-            : leh{std::move(leh)}
-        {
-        }
-
-        template <typename Iter_t>
-        void exec(const std::string &device_name, const typename Iter_t begin, const typename Iter_t end)
-        {
-            auto parsed_cmds = parser.parse(begin, end);
-
-            std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd){
-                if (cmds[p_cmd.name]->validate(p_cmd.arg))
-                    cmds[p_cmd.name]->exec(device_name, std::move(p_cmd.arg));
-                else
-                    throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
-        }
-
-        void local_exec(const std::string &info_ch, const std::string &name, const std::string &arg)
-        {
-            if (cmds[name]->validate(arg))
+        public:
+            template <typename Iter_t>
+            void exec(const typename Iter_t begin, const typename Iter_t end)
             {
-                leh(info_ch, name + space + arg + endl);
-            }
-        }
-    };
+                auto parsed_cmds = parser.parse(begin, end);
 
-    template <typename Local_exec_handler>
-    Ctrl_console(Local_exec_handler &&) ->  Ctrl_console<Local_exec_handler>;
+                std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd)
+                              {
+                    if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                        cmds[p_cmd.name]->exec(std::move(p_cmd.arg));
+                    else
+                        throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
+            }
+
+            void check()
+            {
+                std::for_each(cmds.begin(), cmds.end(), [](auto &cmd)
+                              {
+                    if (!cmd.second->check())
+                    {
+                        throw std::runtime_error("Value: " + cmd.first + " was not given!");
+                    } });
+            }
+        };
+    }
+
+    namespace Ctrl
+    {
+        using Handle_t = Exec<const std::string &, const std::string &>::Addons<>;
+
+        template <typename Local_exec_handler>
+        class Ctrl_console final : public Base_ctrl_console<Handle_t::Base_handle_intf>
+        {
+            Local_exec_handler leh;
+
+        public:
+            Ctrl_console(Local_exec_handler &&leh)
+                : leh{std::move(leh)}
+            {
+            }
+
+            template <typename Iter_t>
+            void exec(const std::string &device_name, const typename Iter_t begin, const typename Iter_t end)
+            {
+                auto parsed_cmds = parser.parse(begin, end);
+
+                std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this](auto &p_cmd)
+                              {
+                    if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                        cmds[p_cmd.name]->exec(device_name, std::move(p_cmd.arg));
+                    else
+                        throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
+            }
+
+            void local_exec(const std::string &info_ch, const std::string &name, const std::string &arg)
+            {
+                if (cmds[name]->validate(arg))
+                {
+                    leh(info_ch, name + space + arg + endl);
+                }
+            }
+        };
+
+        template <typename Local_exec_handler>
+        Ctrl_console(Local_exec_handler &&) -> Ctrl_console<Local_exec_handler>;
+    }
 }

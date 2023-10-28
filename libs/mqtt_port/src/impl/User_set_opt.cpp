@@ -8,15 +8,17 @@ namespace Mqtt_port
     {
         void User_set_opt::set_options(User_opt &user, mqtt::connect_options &options)
         {
+            options.set_clean_session(true);
+            
             std::for_each(user.get_options().begin(),
                           user.get_options().end(),
                           [&user, &options](auto opt)
                           {
                             switch (opt)
                             {
-                            case User_opt::Option::clean:
+                            case User_opt::Option::no_clean:
                             {
-                                options.set_clean_session(true);
+                                options.set_clean_session(false);
                                 break;
                             }
                             case User_opt::Option::username:

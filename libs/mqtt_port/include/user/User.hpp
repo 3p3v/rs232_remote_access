@@ -29,21 +29,21 @@ namespace Mqtt_port
         void set_id(Str &&id)
         {
             this->id = std::forward<Str>(id);
-            add_option(Traffic_mqtt_connect_options::option::id);
+            add_option(User_opt::Option::no_clean);
         }
 
         template<typename Str>
         void set_username(Str &&username)
         {
             this->username = std::forward<Str>(username);
-            add_option(Traffic_mqtt_connect_options::option::username);
+            add_option(User_opt::Option::username);
         }
 
         template<typename Str>
         void set_password(Str &&password)
         {
             this->password = std::forward<Str>(password);
-            add_option(Traffic_mqtt_connect_options::option::password);
+            add_option(User_opt::Option::password);
         }
 
         std::string get_username() override;
