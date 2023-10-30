@@ -21,3 +21,13 @@ const std::string &Device::get_name()
 {
     return name;
 }
+
+std::string Device::get_info_ch(const std::string &name)
+{
+    return name + std::string{info_ch};
+}
+
+std::string Device::get_data_ch(const std::string &name)
+{
+    return name + std::string{data_ch};
+}

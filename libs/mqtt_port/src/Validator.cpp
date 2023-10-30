@@ -3,11 +3,6 @@
 
 namespace Mqtt_port
 {
-    Validator::Validator()
-        : channels() 
-    {
-    }
-
     Validator::Base_executor_ptr Validator::get_exec(const std::string &channel_name)
     {
         return channels[channel_name];

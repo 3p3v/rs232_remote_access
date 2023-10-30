@@ -22,6 +22,9 @@ public:
     std::string get_info_ch();
     std::string get_data_ch();
     const std::string& get_name();
+
+    static std::string get_info_ch(const std::string &name);
+    static std::string get_data_ch(const std::string &name);
 };
 
 template <typename Str>

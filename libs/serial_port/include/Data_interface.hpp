@@ -8,7 +8,7 @@ namespace Serial_port
     {
     public:
         using Data = std::vector<unsigned char>;
-    public:
-        virtual void write(const Data &data) = 0;
+    // public:
+    //     virtual void write(const Data &data) = 0;
     };
 }

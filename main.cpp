@@ -22,7 +22,7 @@ int main()
         Ip_serial serial_controller{std::move(config_data.server), std::move(config_data.user)};
 
 
-        // Mqtt_port::Basic_controller controller{config_data.server, config_data.user,
+        // Mqtt_port::Controller controller{config_data.server, config_data.user,
         //                                        /* Write handler */
         //                                        [](const std::string &topic, const size_t len) {
 

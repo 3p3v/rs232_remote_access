@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME} main.cpp  #WIN32
                                src/Device.cpp
                                src/Setup_loader.cpp
                                src/Ip_serial.cpp
+                               src/Ip_defs.cpp
                                src/Dyn_serial.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include" 

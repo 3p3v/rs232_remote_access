@@ -21,7 +21,7 @@ namespace Mqtt_port
     namespace Impl
     {
         template <typename Callb_t>
-        class Callb_impl : public mqtt::iaction_listener, public Defs
+        class Callb_impl : public mqtt::iaction_listener, public Callbacks_defs
         {
         protected:
             using Grip = std::unique_ptr<Callb_t>;
@@ -102,15 +102,18 @@ namespace Mqtt_port
         };
 
         class Controller final : public virtual mqtt::callback,
-                                 public Defs
+                                 protected Callbacks_defs
         {
+        public:
+            using Data = std::string;
+
         protected:
             std::shared_ptr<mqtt::async_client> client;
             mqtt::connect_options options;
 
             /* Impl specyfic callbacks */
             std::unique_ptr<O_callb> sent_callb;
-            std::unique_ptr<I_callb> rec_callb;
+            std::unique_ptr<I_callb<Data>> rec_callb;
             std::unique_ptr<C_callb> conn_callb;
             std::unique_ptr<C_callb> channel_conn_callb;
             Send_callb_impl send_callb_impl{sent_callb};
@@ -129,7 +132,7 @@ namespace Mqtt_port
 
             virtual void message_arrived(mqtt::const_message_ptr msg)
             {
-                rec_callb->success(msg->get_topic(), Data(msg->get_payload().begin(), msg->get_payload().end()));
+                rec_callb->success(msg->get_topic(), msg->get_payload().begin(), msg->get_payload().end());
             }
 
             // disabled, becaurse doesn't work
@@ -187,26 +190,31 @@ namespace Mqtt_port
             }
 
             /* Write data, use previous callback */
-            void write(const std::string &channel_name, const Data &data, std::size_t write_len)
+            template <typename Iter>
+            void write(const std::string &channel_name, const Iter begin, const Iter end)
             {
                 /* Send message */
-                auto msg = mqtt::make_message(channel_name, data.data(), write_len);
+                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
                 client.get()->publish(msg, nullptr, send_callb_impl);
-                // temporarly moved here, becaurse 
+                // TODO delete, temporarly moved here 
                 sent_callb->success(channel_name,
-                                    write_len);
+                                    end - begin);
             }
 
             /* Set callback and write data */
-            template <typename Callb_t>
-            void write(const std::string &channel_name, const Data &data, std::size_t write_len, Callb_t &&sent_callb)
+            template <typename Iter, typename Callb_t>
+            void write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb)
             {
                 /* Change callback */
                 this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
 
                 /* Send message */
-                auto msg = mqtt::make_message(channel_name, &data.begin(), write_len);
+                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
                 client.get()->publish(msg, nullptr, send_callb_impl);
+
+                // TODO delete, temporarly moved here 
+                sent_callb->success(channel_name,
+                                    end - begin);
             }
 
             /* Set write callack */
@@ -217,7 +225,7 @@ namespace Mqtt_port
                 this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
             }
 
-            /* Set write callack */
+            /* Set read callack */
             template <typename Callb_t>
             void set_read_callb(Callb_t &&rec_callb)
             {

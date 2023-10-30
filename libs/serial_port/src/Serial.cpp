@@ -6,13 +6,10 @@
 
 namespace Serial_port
 {
-    Serial::Serial(Io_context_ptr io_context_)
-        : Connection{io_context_}, serial{get_io_context()}
-    {
-    }
-
     Serial::~Serial()
     {
+        if (serial.is_open())
+            serial.close();
     }
 
     std::string Serial::get_port()
@@ -20,25 +17,38 @@ namespace Serial_port
         return port;
     }
 
-    void Serial::open(const std::string &port)
+    void Serial::open()
     {
-        boost::system::error_code ec;
-        this->port = port;
+        if (!serial.is_open())
+        {
+            boost::system::error_code ec;
 
-        serial.open(port, ec);
+            serial.open(this->port, ec);
 
-        if (ec.failed())
-            throw std::runtime_error("Could not open serial port" + this->port + "! " + ec.what());
+            if (ec.failed())
+                throw std::runtime_error{"Could not open serial port" + this->port + "! " + ec.what()};
+        }
+        else
+        {
+            throw std::logic_error{"Port: " + this->port + " was already serial.is_open()!"};
+        }
     }
 
     void Serial::close()
     {
-        boost::system::error_code ec;
-        
-        serial.close(ec);
+        if (serial.is_open())
+        {
+            boost::system::error_code ec;
+            
+            serial.close(ec);
 
-        if (ec.failed())
-            throw std::runtime_error("Could not close serial port" + this->port + "! " + ec.what());
+            if (ec.failed())
+                throw std::runtime_error("Could not close serial port" + this->port + "! " + ec.what());
+        }
+        else
+        {
+            throw std::logic_error{"Port: " + this->port + " was already closed!"};
+        }
     }
 
     void Serial::set_baud_rate(unsigned int baud_rate)
@@ -182,17 +192,14 @@ namespace Serial_port
         set_stop_bits(this->stop_bits);
     }
 
-    void Serial::write(const Data &data)
+    void Serial::write(const std::vector<unsigned char> &data, const size_t data_len)
     {
-        boost::asio::async_write(serial,
-                                 boost::asio::buffer(data),
-                                 [this](const boost::system::error_code &err, std::size_t write_len)
-                                 {
-                                     if (err)
-                                        error_callback(err.value(), err.what());
-                                     else
-                                        write_callback(write_len);
-                                 });
+        write<std::vector<unsigned char>>(data, data_len);
+    }
+
+    void Serial::write(const std::string &data, const size_t data_len)
+    {
+        write<std::string>(data, data_len);
     }
 
     void Serial::run()
@@ -202,9 +209,14 @@ namespace Serial_port
                                 [this](const boost::system::error_code &err, std::size_t read_len)
                                 {
                                     if (err)
+                                    {
                                         error_callback(err.value(), err.what());
+                                    }
                                     else
+                                    {
                                         read_callback(buffer, read_len);
+                                        run();
+                                    }
                                 });
     }
 }

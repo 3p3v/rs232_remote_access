@@ -308,16 +308,17 @@ namespace Cmd_ctrl
     {
         using Handle_t = Exec<const std::string &, const std::string &>::Addons<>;
 
-        template <typename Local_exec_handler>
-        class Ctrl_console final : public Base_ctrl_console<Handle_t::Base_handle_intf>
+        // template <typename Local_exec_handler>
+        class Ctrl_console : public Base_ctrl_console<Handle_t::Base_handle_intf>
         {
-            Local_exec_handler leh;
+        protected:
+            virtual void leh(const std::string &dev_name, std::string &&data) = 0;
 
         public:
-            Ctrl_console(Local_exec_handler &&leh)
-                : leh{std::move(leh)}
-            {
-            }
+            // Ctrl_console(Local_exec_handler &&leh)
+            //     : leh{std::move(leh)}
+            // {
+            // }
 
             template <typename Iter_t>
             void exec(const std::string &device_name, const typename Iter_t begin, const typename Iter_t end)
@@ -332,16 +333,16 @@ namespace Cmd_ctrl
                         throw std::runtime_error("Received command: \"" + p_cmd.name + "\" didn't pass validation!"); });
             }
 
-            void local_exec(const std::string &info_ch, const std::string &name, const std::string &arg)
+            void local_exec(const std::string &dev_name, const std::string &name, const std::string &arg)
             {
                 if (cmds[name]->validate(arg))
                 {
-                    leh(info_ch, name + space + arg + endl);
+                    leh(dev_name, name + space + arg + endl);
                 }
             }
         };
 
-        template <typename Local_exec_handler>
-        Ctrl_console(Local_exec_handler &&) -> Ctrl_console<Local_exec_handler>;
+        // template <typename Local_exec_handler>
+        // Ctrl_console(Local_exec_handler &&) -> Ctrl_console<Local_exec_handler>;
     }
 }
