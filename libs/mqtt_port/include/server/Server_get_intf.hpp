@@ -5,9 +5,9 @@
 class Server_get_intf
 {
 public:
-    Server_get_intf() = default;
-    Server_get_intf(Server_get_intf&) = default;
-    Server_get_intf& operator=(Server_get_intf&) = default;
+    // Server_get_intf() = default;
+    Server_get_intf(Server_get_intf&) = delete;
+    Server_get_intf& operator=(Server_get_intf&) = delete;
     Server_get_intf(Server_get_intf&&) = default;
     Server_get_intf& operator=(Server_get_intf&&) = default;
     virtual ~Server_get_intf() = default;

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <set>
-#include <User_get_intf.hpp>
+#include <vector>
 
 namespace Mqtt_port
 {
-    class User_opt : public User_get_intf
+    class User_opt
     {
     public:
         enum class Option
@@ -15,17 +14,13 @@ namespace Mqtt_port
             password
         };
 
-        using Options_cont_type = std::set<Option>;
-
-    private:
-        Options_cont_type options{};
-
-    protected:
-        void add_option(Option option);
-
     public:
         User_opt() = default;
         User_opt(std::initializer_list<Option> options);
-        Options_cont_type& get_options();
+        User_opt(User_opt&) = default;
+        User_opt& operator=(User_opt&) = default;
+        User_opt(User_opt&&) = default;
+        User_opt& operator=(User_opt&&) = default;
+        virtual ~User_opt() = 0;
     };
 }

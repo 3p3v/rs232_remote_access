@@ -3,6 +3,8 @@
 #include <memory>
 #include <stdexcept>
 #include <impl/Controller.hpp>
+#include <Validator.hpp>
+#include <Connector.hpp>
 #include <Channel_conn_callb.hpp>
 #include <Conn_callb.hpp>
 #include <Rec_callb.hpp>

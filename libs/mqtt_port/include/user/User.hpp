@@ -6,7 +6,7 @@
 
 namespace Mqtt_port
 {
-    class User final : public User_opt
+    class User final : public User_opt, public User_get_intf
     {
         std::string id;
         std::string username;
@@ -21,7 +21,8 @@ namespace Mqtt_port
               password{std::forward<S2>(password)},
               id{std::forward<S3>(id)},
               User_opt{User_opt::Option::username,
-                      User_opt::Option::password}
+                      User_opt::Option::password,
+                      User_opt::Option::no_clean}
         {
         }
 

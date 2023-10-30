@@ -1,108 +1,17 @@
 #pragma once
 
-// #include <Inter_controller.hpp>
-#include <User.hpp>
-#include <impl\User_set_opt.hpp>
-#include <User.hpp>
-#include <Server.hpp>
-// #include <Traffic_mqtt_connect_options.hpp>
-// #include <Traffic_mqtt_action_listener.hpp>
-// #include <Traffic_mqtt_user.hpp>
-// #include <Traffic_mqtt_ssh.hpp>
-#include <mqtt/async_client.h>
-#include <Callbacks.hpp>
-#include <Def.hpp>
 #include <string>
 #include <atomic>
 #include <set>
+#include <User.hpp>
+#include <Server.hpp>
+#include <mqtt/async_client.h>
 
 namespace Mqtt_port
 {
     namespace Impl
     {
-        template <typename Callb_t>
-        class Callb_impl : public mqtt::iaction_listener, public Callbacks_defs
-        {
-        protected:
-            using Grip = std::unique_ptr<Callb_t>;
-
-        private:
-            Grip &callb;
-
-        protected:
-            Callb_t& get_callb()
-            {
-                return *callb;
-            }
-
-        public:
-            Callb_impl(Grip &callb)
-                : callb{callb}
-            {
-            }
-        };
-
-        class Send_callb_impl : public Callb_impl<Mqtt_port::O_callb>
-        {
-        public:
-            Send_callb_impl(Grip &io_callb)
-                : Callb_impl<O_callb>{io_callb}
-            {
-            }
-
-            virtual void on_failure(const mqtt::token &asyncActionToken)
-            {
-                get_callb().fail();
-                // client->disconnect(time_to_disconnect);
-            }
-
-            // disabled, becaurse doesn't work
-            virtual void on_success(const mqtt::token &asyncActionToken)
-            {
-                // get_callb().success("unknown",//todo fix
-                //                     0);
-            }
-        };
-
-        class Channel_conn_callb_impl : public Callb_impl<C_callb>
-        {
-        public:
-            Channel_conn_callb_impl(Grip &channel_conn_callback)
-                : Callb_impl<C_callb>{channel_conn_callback}
-            {
-            }
-
-            virtual void on_failure(const mqtt::token &asyncActionToken)
-            {
-                get_callb().fail();
-            }
-
-            virtual void on_success(const mqtt::token &asyncActionToken)
-            {
-                get_callb().success();
-            }
-        };
-
-        class Conn_callb_impl : public Callb_impl<C_callb>
-        {
-        public:
-            Conn_callb_impl(Grip &conn_callback)
-                : Callb_impl<C_callb>{conn_callback}
-            {
-            }
-
-            virtual void on_failure(const mqtt::token &asyncActionToken)
-            {
-                get_callb().fail();
-            }
-
-            virtual void on_success(const mqtt::token &asyncActionToken)
-            {
-            }
-        };
-
-        class Controller final : public virtual mqtt::callback,
-                                 protected Callbacks_defs
+        class Controller final : public virtual mqtt::callback
         {
         public:
             using Data = std::string;
@@ -120,38 +29,17 @@ namespace Mqtt_port
             Conn_callb_impl conn_callb_impl{conn_callb};
             Channel_conn_callb_impl ch_conn_callb_impl{channel_conn_callb};
 
-            virtual void connected(const std::string & /*cause*/)
-            {
-                conn_callb->success();
-            }
+            void connected(const std::string & /*cause*/) override;
 
-            virtual void connection_lost(const std::string & /*cause*/)
-            {
-                conn_callb->fail();
-            }
+            void connection_lost(const std::string & /*cause*/) override;
 
-            virtual void message_arrived(mqtt::const_message_ptr msg)
-            {
-                rec_callb->success(msg->get_topic(), msg->get_payload().begin(), msg->get_payload().end());
-            }
+            void message_arrived(mqtt::const_message_ptr msg) override;
 
             // disabled, becaurse doesn't work
-            virtual void delivery_complete(mqtt::delivery_token_ptr token)
-            {
-                sent_callb->success(token->get_message()->get_topic(),
-                                    token->get_message()->get_payload_str().size());
-            }
-
+            void delivery_complete(mqtt::delivery_token_ptr token) override;
 
         public:
-            Controller(Server &server, 
-                       User_opt &user)
-                : client{new mqtt::async_client{server.get_full_address(), user.get_id(), nullptr}}
-            {
-                client->set_callback(*this);
-                /* Set options */
-                User_set_opt::set_options(user, options);
-            }
+            Controller(Server &server, User_opt &user);
             Controller(Controller &&) = default;
             Controller &operator=(Controller &&) = default;
             Controller(Controller &) = delete;
@@ -159,82 +47,96 @@ namespace Mqtt_port
             ~Controller() = default;
 
             template <typename Callb_t>
-            void connect(Callb_t &&conn_callb)
-            {
-                /* Change callback */
-                this->conn_callb.reset(new Callb_t{std::move(conn_callb)});
-                
-                /* Connect to broker */
-                client->connect(options, nullptr, conn_callb_impl);
-            }
+            void connect(Callb_t &&conn_callb);
 
             template <typename Callb_t>
-            void subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb)
-            {
-                /* Change callback */
-                this->channel_conn_callb.reset(new Callb_t{std::move(channel_conn_callb)});
+            void subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb);
 
-                /* Subscribe */
-                client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
-            }
+            void subscribe(const std::string &channel_name, unsigned char qos);
 
-            void subscribe(const std::string &channel_name, unsigned char qos)
-            {
-                /* Subscribe */
-                client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
-            }
-
-            void disconnect(Time time)
-            {
-                client->disconnect(time);
-            }
+            void disconnect(Time time);
 
             /* Write data, use previous callback */
             template <typename Iter>
-            void write(const std::string &channel_name, const Iter begin, const Iter end)
-            {
-                /* Send message */
-                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
-                client.get()->publish(msg, nullptr, send_callb_impl);
-                // TODO delete, temporarly moved here 
-                sent_callb->success(channel_name,
-                                    end - begin);
-            }
+            void write(const std::string &channel_name, const Iter begin, const Iter end);
 
             /* Set callback and write data */
             template <typename Iter, typename Callb_t>
-            void write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb)
-            {
-                /* Change callback */
-                this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
-
-                /* Send message */
-                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
-                client.get()->publish(msg, nullptr, send_callb_impl);
-
-                // TODO delete, temporarly moved here 
-                sent_callb->success(channel_name,
-                                    end - begin);
-            }
+            void write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb);
 
             /* Set write callack */
             template <typename Callb_t>
-            void set_write_callb(Callb_t &&sent_callb)
-            {
-                /* Change callback */
-                this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
-            }
+            void set_write_callb(Callb_t &&sent_callb);
 
             /* Set read callack */
             template <typename Callb_t>
-            void set_read_callb(Callb_t &&rec_callb)
-            {
-                /* Change callback */
-                this->rec_callb.reset(new Callb_t{std::move(rec_callb)});
-            }
-
-            
+            void set_read_callb(Callb_t &&rec_callb);
         };
+
+        template <typename Callb_t>
+        void Controller::connect(Callb_t &&conn_callb)
+        {
+            /* Change callback */
+            this->conn_callb.reset(new Callb_t{std::move(conn_callb)});
+
+            /* Connect to broker */
+            client->connect(options, nullptr, conn_callb_impl);
+        }
+
+        template <typename Callb_t>
+        void Controller::subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb)
+        {
+            /* Change callback */
+            this->channel_conn_callb.reset(new Callb_t{std::move(channel_conn_callb)});
+
+            /* Subscribe */
+            client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+        }
+
+        /* Write data, use previous callback */
+        template <typename Iter>
+        void Controller::write(const std::string &channel_name, const Iter begin, const Iter end)
+        {
+            /* Send message */
+            auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
+            client.get()->publish(msg, nullptr, send_callb_impl);
+            
+            // TODO delete, temporarly moved here
+            sent_callb->success(channel_name,
+                                end - begin);
+        }
+
+        /* Set callback and write data */
+        template <typename Iter, typename Callb_t>
+        void Controller::write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb)
+        {
+            /* Change callback */
+            this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
+
+            /* Send message */
+            auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
+            client.get()->publish(msg, nullptr, send_callb_impl);
+
+            // TODO delete, temporarly moved here
+            sent_callb->success(channel_name,
+                                end - begin);
+        }
+
+        /* Set write callack */
+        template <typename Callb_t>
+        void Controller::set_write_callb(Callb_t &&sent_callb)
+        {
+            /* Change callback */
+            this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
+        }
+
+        /* Set read callack */
+        template <typename Callb_t>
+        void Controller::set_read_callb(Callb_t &&rec_callb)
+        {
+            /* Change callback */
+            this->rec_callb.reset(new Callb_t{std::move(rec_callb)});
+        }
     }
 
 }

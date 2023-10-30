@@ -6,7 +6,7 @@ namespace Mqtt_port
 {
     namespace Impl
     {
-        void User_set_opt::set_options(User_opt &user, mqtt::connect_options &options)
+        void Impl_user::set_options(User_opt &user, mqtt::connect_options &options)
         {
             options.set_clean_session(true);
             

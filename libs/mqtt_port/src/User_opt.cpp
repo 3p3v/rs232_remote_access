@@ -8,14 +8,9 @@ namespace Mqtt_port
     {
     }
 
-    void User_opt::add_option(Option option)
+    User_opt::~User_opt()
     {
-        options.emplace(option);
-    }
 
-    User_opt::Options_cont_type &User_opt::get_options()
-    {
-        return options;
     }
 
 }
