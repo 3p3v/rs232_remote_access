@@ -1,118 +1,60 @@
 #pragma once
 
+#include <algorithm>
+#include <stdexcept>
+
 namespace Mqtt_port
 {
     /// @brief Universal getter class used to store options and corresponding arguments
     /// @tparam Class_opt class containing definition of options in enum
-    template <typename Class_opt, typename Val_type>
-    class Universal_get_opt : public Class_opt
+    template <typename Option, typename Val_type>
+    class Universal_get_opt
     {
     public:
-        using Option = typename Class_opt::Option;
-        using Opt_pair = std::pair<const Option, Val_type>;
+        using Opt_pair = std::tuple<const Option, Val_type, bool>;
         using Opt_cont_type = std::vector<Opt_pair>;
 
-    private:
-        Opt_cont_type options;
-        bool used{false};
-
-        bool find(Option option);
-
     protected:
-        bool push_option(const Opt_pair &option);
-        bool push_option(Opt_pair &&option);
-        bool emplace_option(Option option, Val_type &&val);
-        bool emplace_option(Option option, const Val_type &val);
+        Opt_cont_type options;
 
     public:
-        Opt_cont_type::iterator begin();
+        template <typename Func>
+        void for_each(Func &&func) noexcept;
 
-        Opt_cont_type::iterator end();
+        std::string get(Option opt);
     };
 
-    template <typename Class_opt, typename Val_type>
-    bool Universal_get_opt<Class_opt, Val_type>::find(Option option)
+    template <typename Option, typename Val_type>
+    template <typename Func>
+    void Universal_get_opt<Option, Val_type>::for_each(Func &&func) noexcept
     {
-        if (std::find(options.begin(), options.end(), option) == options.end())
-            return false;
-        else 
-            return true;
-    }
-    
-    template <typename Class_opt, typename Val_type>
-    bool Universal_get_opt<Class_opt, Val_type>::push_option(const Opt_pair &option)
-    {
-        if (auto found = find(option.first))
-        {
-            return !found;
-        }
-        else
-        {
-            options.push_back(option);
-            return !found;
-        }
+        std::for_each(options.begin(), options.end(),
+                      [](Opt_pair &opt)
+                      {
+                          if (get<2>(opt) == true)
+                              func(get<1>(opt));
+                      });
     }
 
-    template <typename Class_opt, typename Val_type>
-    bool Universal_get_opt<Class_opt, Val_type>::push_option(Opt_pair &&option)
+    template <typename Option, typename Val_type>
+    std::string Universal_get_opt<Option, Val_type>::get(Option opt)
     {
-        if (auto found = find(option.first))
-        {
-            return !found;
-        }
-        else
-        {
-            options.push_back(std::move(option));
-            return !found;
-        }
+        std::for_each(options.begin(), options.end(),
+                      [](Opt_pair &option)
+                      {
+                          if (get<0>(option) == opt && get<2>(option) == true)
+                          {
+                              get<2>(option) return std::move(get<1>(option));
+                          }
+                          else if (get<2>(option) = false)
+                          {
+                              std::logic_error{"Parameter was already used!"};
+                          }
+                          else
+                          {
+                              std::logic_error{"Parameter not provided!"};
+                          }
+                      });
     }
 
-    template <typename Class_opt, typename Val_type>
-    bool Universal_get_opt<Class_opt, Val_type>::emplace_option(Option option, Val_type &&val)
-    {
-        if (auto found = find(option))
-        {
-            return !found;
-        }
-        else
-        {
-            options.emplace_back(option, std::move(val));
-            return !found;
-        }
-    }
-
-    template <typename Class_opt, typename Val_type>
-    bool Universal_get_opt<Class_opt, Val_type>::emplace_option(Option option, const Val_type &val)
-    {
-        if (auto found = find(option))
-        {
-            return !found;
-        }
-        else
-        {
-            options.emplace_back(option, val);
-            return !found;
-        }
-    }
-
-    template <typename Class_opt, typename Val_type>
-    Universal_get_opt<Class_opt, Val_type>::Opt_cont_type::iterator Universal_get_opt<Class_opt, Val_type>::begin()
-    {
-        if (!used)
-        {
-            used = true
-            return options.begin();
-        }
-        else
-        {
-            return options.end();
-        }
-    }
-
-    template <typename Class_opt, typename Val_type>
-    Universal_get_opt<Class_opt, Val_type>::Opt_cont_type::iterator Universal_get_opt<Class_opt, Val_type>::end()
-    {
-        return options.end();
-    }
-    
 }

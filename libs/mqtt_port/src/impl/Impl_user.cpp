@@ -1,4 +1,4 @@
-#include <impl/User_set_opt.hpp>
+#include <Impl_user.hpp>
 #include <algorithm>
 #include <stdexcept>
 
@@ -6,9 +6,11 @@ namespace Mqtt_port
 {
     namespace Impl
     {
-        void Impl_user::set_options(User_opt &user, mqtt::connect_options &options)
+        void Impl_user::set_options(Mqtt_port::User::Get_cont &user, mqtt::connect_options &options)
         {
             options.set_clean_session(true);
+            
+            user.for_each([](std::string &opt))
             
             std::for_each(user.get_options().begin(),
                           user.get_options().end(),

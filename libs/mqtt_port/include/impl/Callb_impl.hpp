@@ -33,7 +33,7 @@ namespace Mqtt_port
         }
 
         template <typename Callb_t>
-        Callb_impl<Callb_t>::Callb_t &get_callb()
+        Callb_t &Callb_impl<Callb_t>::get_callb()
         {
             return *callb;
         }

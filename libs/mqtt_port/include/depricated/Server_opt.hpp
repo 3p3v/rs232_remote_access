@@ -10,7 +10,10 @@ namespace Mqtt_port
     public:
         enum class Option
         {
-            ssl
+            ip,
+            port,
+            cert,
+            pem
         };
 
         using Options_cont_type = std::set<Option>;

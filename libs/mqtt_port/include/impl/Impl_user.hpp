@@ -10,7 +10,7 @@ namespace Mqtt_port
         class Impl_user final
         {
         public:
-            static void set_options(User_opt &user, mqtt::connect_options &options);
+            static void set_options(User::Get_cont &user, mqtt::connect_options &options);
         };
     }
 }

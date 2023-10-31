@@ -30,11 +30,13 @@ namespace Mqtt_port
 
         Controller::Controller(Server &server,
                                User_opt &user)
-            : client{new mqtt::async_client{server.get_full_address(), user.get_id(), nullptr}}
+            : client{new mqtt::async_client{server.get(Server::Options::ip) + server.get(Server::Options::port), 
+                                            user.get(User::Options::id), nullptr}}
         {
             client->set_callback(*this);
             /* Set options */
-            User_set_opt::set_options(user, options);
+            Impl_user::set_options(user, options);
+            Impl_server::set_options(server, options);
         }
 
         void Controller::subscribe(const std::string &channel_name, unsigned char qos)

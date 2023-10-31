@@ -23,8 +23,8 @@ namespace Mqtt_port
 
     public:
         template <typename Scallb, typename Rcallb>
-        Controller(Server &server,
-                   User_opt &user,
+        Controller(Server::Get_cont &server,
+                   User::Get_cont &user,
                    Scallb &&sent_msg,
                    Rcallb &&rec_msg);
         Controller(Controller &&) = default;
@@ -46,8 +46,8 @@ namespace Mqtt_port
     };
 
     template <typename Scallb, typename Rcallb>
-    Controller::Controller(Server &server,
-                           User_opt &user,
+    Controller::Controller(Server::Get_cont &server,
+                           User::Get_cont &user,
                            Scallb &&sent_msg,
                            Rcallb &&rec_msg)
         : validator{new Validator{}},

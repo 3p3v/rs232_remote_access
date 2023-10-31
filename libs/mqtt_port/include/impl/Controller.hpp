@@ -39,7 +39,7 @@ namespace Mqtt_port
             void delivery_complete(mqtt::delivery_token_ptr token) override;
 
         public:
-            Controller(Server &server, User_opt &user);
+            Controller(Server::Get_cont &server, User::Get_cont &user);
             Controller(Controller &&) = default;
             Controller &operator=(Controller &&) = default;
             Controller(Controller &) = delete;
@@ -100,7 +100,7 @@ namespace Mqtt_port
             /* Send message */
             auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
             client.get()->publish(msg, nullptr, send_callb_impl);
-            
+
             // TODO delete, temporarly moved here
             sent_callb->success(channel_name,
                                 end - begin);

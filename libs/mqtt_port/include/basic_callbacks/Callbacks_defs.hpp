@@ -11,6 +11,7 @@ namespace Mqtt_port
         static constexpr unsigned char qos = 1;
 
     public:
+        Callbacks_defs() = default;
         Callbacks_defs(Callbacks_defs&&) = default;
         Callbacks_defs& operator=(Callbacks_defs&&) = default;
         Callbacks_defs(Callbacks_defs&) = default;

@@ -8,24 +8,29 @@ cmake_policy(SET CMP0074 NEW)
 find_package(PahoMqttCpp REQUIRED)
 add_library(${PROJECT_NAME} STATIC
             # src/Receiver.cpp
-            src/Sender.cpp
+            # src/Basic_controller.cpp
+            src/Callb.cpp
+            src/Channel_conn_callb_impl.cpp
+            src/Channel_conn_callb.cpp
+            src/Conn_callb_impl.cpp
             src/Connector.cpp
+            src/Controller.cpp
+            src/I_callb.cpp
+            src/O_callb.cpp
+            src/Send_callb_impl.cpp
+            src/Sender.cpp
             src/Validator.cpp
-            src/Basic_controller.cpp
-            src/User.cpp
-            src/User_opt.cpp
-            src/Server.cpp
-            src/Callbacks.cpp
-            src/impl/User_set_opt.cpp)
-            # src/Inter_controller.cpp
-            # src/Mqtt_controller.cpp)
+            src/impl/Controller.cpp
+            src/impl/Impl_server.cpp
+            src/impl/Impl_user.cpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 # include dirs
 set(mqtt_port_INCLUDE_DIR "include" 
-                          "include/impl" 
-                          "include/fix" 
+                          "include/basic_callbacks" 
+                          "include/callbacks" 
                           "include/controller"
+                          "include/impl"
                           "include/server"
                           "include/user")
 # include libs
