@@ -12,7 +12,7 @@
 
 namespace Mqtt_port
 {
-    class Controller final
+    class Controller final : protected Callbacks_defs
     {
         /* Low level implementation of mqtt cient */
         Impl::Controller controller;
@@ -23,8 +23,8 @@ namespace Mqtt_port
 
     public:
         template <typename Scallb, typename Rcallb>
-        Controller(Server::Get_cont &server,
-                   User::Get_cont &user,
+        Controller(Server::Get_cont &&server,
+                   User::Get_cont &&user,
                    Scallb &&sent_msg,
                    Rcallb &&rec_msg);
         Controller(Controller &&) = default;
@@ -37,25 +37,26 @@ namespace Mqtt_port
         template <typename Iter>
         void write(const std::string &channel_name, const Iter begin, const Iter end);
         void disconnect(Time time);
+        void connect_channels();
 
-        template <class E, typename S, typename... E_rgs>
-        void add_channel(S &&channel_name, E_rgs &&...e_args);
+        // template <class E, typename S, typename... E_rgs>
+        // void add_channel(S &&channel_name, E_rgs &&...e_args);
 
         template <class E, typename S>
-        void add_channel(S &&channel_name, E &&handler);
+        Controller& add_channel(S &&channel_name, E &&handler);
     };
 
     template <typename Scallb, typename Rcallb>
-    Controller::Controller(Server::Get_cont &server,
-                           User::Get_cont &user,
+    Controller::Controller(Server::Get_cont &&server,
+                           User::Get_cont &&user,
                            Scallb &&sent_msg,
                            Rcallb &&rec_msg)
         : validator{new Validator{}},
-          connector{new Connector{validator}},
-          controller{server, user}
+          connector{new Connector{}},
+          controller{std::move(server), std::move(user)}
     {
-        controller.set_write_callb(Sent_callb<Scallb>{controller, std::move(sent_msg)});
-        controller.set_read_callb(Rec_callb<Impl::Controller::Data, Rcallb>{controller, validator, std::move(rec_msg)});
+        controller.set_write_callb(Sent_callb<Scallb>{controller, std::forward<Scallb>(sent_msg)});
+        controller.set_read_callb(Rec_callb<Impl::Controller::Data, Rcallb>{controller, validator, std::forward<Rcallb>(rec_msg)});
     }
 
     template <typename Iter>
@@ -71,16 +72,19 @@ namespace Mqtt_port
         }
     }
 
-    template <class E, typename S, typename... E_rgs>
-    void Controller::add_channel(S &&channel_name, E_rgs &&...e_args)
-    {
-        validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E_rgs>(e_args)...);
-    }
+    // template <class E, typename S, typename... E_rgs>
+    // void Controller::add_channel(S &&channel_name, E_rgs &&...e_args)
+    // {
+    //     validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E_rgs>(e_args)...);
+    // }
 
     template <class E, typename S>
-    void Controller::add_channel(S &&channel_name, E &&handler)
+    Controller& Controller::add_channel(S &&channel_name, E &&handler)
     {
-        validator->add_channel<E>(std::forward<S>(channel_name), std::forward<E>(handler));
+        validator->add_channel<E>(S{channel_name}, std::forward<E>(handler));
+        connector->load_channel(std::forward<S>(channel_name));
+
+        return *this;
     }
 
 }

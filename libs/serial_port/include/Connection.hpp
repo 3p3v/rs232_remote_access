@@ -10,11 +10,11 @@ namespace Serial_port
     {
     public:
         using Io_context = boost::asio::io_context;
-        using Io_context_ptr = const std::shared_ptr<boost::asio::io_context>;
+        using Io_context_ptr = std::shared_ptr<boost::asio::io_context>;
         using Ptr_base = std::shared_ptr<Connection>;
 
     private:
-        Io_context_ptr io_context_;
+        const Io_context_ptr io_context_;
 
     protected:
         Connection(Connection &) = delete;

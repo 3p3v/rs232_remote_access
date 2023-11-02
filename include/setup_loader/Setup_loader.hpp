@@ -6,6 +6,7 @@
 #include <Server.hpp>
 #include <Ctrl_console.hpp>
 #include <Device.hpp>
+#include <Setup_console.hpp>
 
 using namespace Cmd_ctrl;
 using namespace Cmd_ctrl::Setup;
@@ -19,8 +20,8 @@ public:
     class Data_pack
     {
     public:
-        Mqtt_port::User user{};
-        Mqtt_port::Server server{};
+        Mqtt_port::User::Cont user{};
+        Mqtt_port::Server::Cont server{};
         Device device;
     };
 
@@ -49,45 +50,46 @@ Setup_loader::Setup_loader(Str &&file_name)
     console.add_cmd("username", Handle::Policies<>::Dyn_handle(
                                     [this](std::string &&str)
                                     {
-                                        data_pack.user.set_username(std::move(str));
+                                        data_pack.user.emplace(Mqtt_port::User::Option::username, std::move(str));
                                     }));
 
     console.add_cmd("password", Handle::Policies<>::Dyn_handle(
                                     [this](std::string &&str)
                                     {
-                                        data_pack.user.set_password(std::move(str));
+                                        data_pack.user.emplace(Mqtt_port::User::Option::password, std::move(str));
                                     }));
 
     console.add_cmd("user_id", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
                                    {
-                                       data_pack.user.set_id(std::move(str));
+                                       data_pack.user.emplace(Mqtt_port::User::Option::id, std::move(str));
+                                       data_pack.user.emplace(Mqtt_port::User::Option::no_clean, "");
                                    }));
 
     auto handle = Handle::Policies<>::Dyn_handle{[this](std::string &&str)
                                                  {
-                                                     data_pack.server.ip = std::move(str);
+                                                     data_pack.server.emplace(Mqtt_port::Server::Option::ip, std::move(str));
                                                  }};
     handle.set_mandatority(Handle_type::mandatory);
     console.add_cmd("ip", std::move(handle));
 
     auto handle1 = Handle::Policies<>::Dyn_handle{[this](std::string &&str)
                                             {
-                                                data_pack.server.port = std::move(str);
+                                                data_pack.server.emplace(Mqtt_port::Server::Option::port, std::move(str));
                                             }};
     handle1.set_mandatority(Handle_type::mandatory);
     console.add_cmd("port", std::move(handle1));
 
     auto handle2 = Handle::Policies<>::Dyn_handle{[this](std::string &&str)
                                             {
-                                                data_pack.server.pem_file_name = std::move(str);
+                                                data_pack.server.emplace(Mqtt_port::Server::Option::pem, std::move(str));
                                             }};
     handle2.set_mandatority(Handle_type::mandatory);
     console.add_cmd("pem", std::move(handle2));
 
     auto handle3 = Handle::Policies<>::Dyn_handle{[this](std::string &&str)
                                             {
-                                                data_pack.server.crt_file_name = std::move(str);
+                                                data_pack.server.emplace(Mqtt_port::Server::Option::cert, std::move(str));
                                             }};
     handle3.set_mandatority(Handle_type::mandatory);
     console.add_cmd("crt", std::move(handle3));

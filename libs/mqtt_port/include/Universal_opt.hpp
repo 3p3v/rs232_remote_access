@@ -1,56 +1,43 @@
 #pragma once
 
 #include <Universal_get_opt.hpp>
+#include <string>
 
 namespace Mqtt_port
 {
-    template <tyename Class_opt, typename Val_type>
-    class Universal_opt : public Universal_get_opt<Class_opt, Val_type>
+    template <typename Option, typename Val_type = std::string>
+    class Universal_opt : public Universal_get_opt<Option, Val_type>
     {
-        bool find(Option option);
+        void find(Option option);
 
     public:
-        // bool push_option(const Opt_pair &option);
-        // bool push_option(Opt_pair &&option);
-        bool emplace(Option option, Val_type &&val);
-        bool emplace(Option option, const Val_type &val);
+        void emplace(Option option, Val_type &&val);
+        void emplace(Option option, const Val_type &val);
     };
-    
-    template <typename Class_opt, typename Val_type>
-    bool Universal_opt<Class_opt, Val_type>::find(Option option)
+
+    template <typename Option, typename Val_type>
+    void Universal_opt<Option, Val_type>::find(Option option)
     {
-        if (std::find(options.begin(), options.end(), option) == options.end())
-            return false;
-        else 
-            return true;
+        std::for_each(options.begin(), options.end(), [&option](auto &opt)
+                      {
+                                                        if (std::get<0>(opt) == option)
+                                                        {
+                                                            throw std::logic_error{"Seme parameter was used twice!"};
+                                                        } });
     }
 
-    template <typename Class_opt, typename Val_type>
-    bool Universal_opt<Class_opt, Val_type>::emplace(Option option, Val_type &&val)
+    template <typename Option, typename Val_type>
+    void Universal_opt<Option, Val_type>::emplace(Option option, Val_type &&val)
     {
-        if (auto found = find(option))
-        {
-            return !found;
-        }
-        else
-        {
-            options.emplace_back(option, std::move(val));
-            return !found;
-        }
+        find(option);
+        options.emplace_back(option, std::move(val), true);
     }
 
-    template <typename Class_opt, typename Val_type>
-    bool Universal_opt<Class_opt, Val_type>::emplace(Option option, const Val_type &val)
+    template <typename Option, typename Val_type>
+    void Universal_opt<Option, Val_type>::emplace(Option option, const Val_type &val)
     {
-        if (auto found = find(option))
-        {
-            return !found;
-        }
-        else
-        {
-            options.emplace_back(option, val);
-            return !found;
-        }
+        find(option);
+        options.emplace_back(option, val, true);
     }
-    
+
 }

@@ -17,12 +17,12 @@ namespace Mqtt_port
 
     template <typename Handle>
     Dyn_executor<Handle>::Dyn_executor(Handle &&handle)
-        : handle{std::move(handle)}
+        : handle{std::forward<Handle>(handle)}
     {
     }
 
     template <typename Handle>
-    void Dyn_executor<Handle>::exec(const std::string &ch_name, const Executor::Data::const_iterator begin, const Executor::Data::const_iterator end) override
+    void Dyn_executor<Handle>::exec(const std::string &ch_name, const Executor::Data::const_iterator begin, const Executor::Data::const_iterator end)
     {
         handle(ch_name, begin, end);
     }

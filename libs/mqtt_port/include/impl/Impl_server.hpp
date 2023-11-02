@@ -10,7 +10,7 @@ namespace Mqtt_port
         class Impl_server final
         {
         public:
-            static void set_options(Server::Get_cont &server, mqtt::connect_options &options);
+            static void set_options(Server::Get_cont &&server, mqtt::connect_options &options);
         };
     }   
 }

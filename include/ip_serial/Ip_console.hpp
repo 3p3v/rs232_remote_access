@@ -2,6 +2,7 @@
 
 #include <Ctrl_console.hpp>
 #include <Device.hpp>
+#include <Controller.hpp>
 
 class Ip_console final : public Cmd_ctrl::Ctrl::Ctrl_console
 {
@@ -13,15 +14,3 @@ protected:
 public:
     Ip_console(Mqtt_port::Controller &controller);
 };
-
-Ip_console::Ip_console(Mqtt_port::Controller &controller)
-    : controller{controller}
-{
-}
-
-void Ip_console::leh(const std::string &dev_name, std::string &&data)
-{
-    controller.write(Device::get_info_ch(dev_name),
-                     data.cbegin(),
-                     data.cend());
-}

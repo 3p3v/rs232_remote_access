@@ -21,6 +21,7 @@ namespace Mqtt_port
         Callb(Callb &) = delete;
         Callb &operator=(Callb &) = delete;
         ~Callb() = default;
+        
         virtual void fail() = 0;
     };
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <impl/Controller.hpp>
+#include <impl/Impl_server.hpp>
+#include <impl/Impl_user.hpp>
 
 namespace Mqtt_port
 {
@@ -8,11 +10,31 @@ namespace Mqtt_port
     {
         void Controller::connected(const std::string & /*cause*/)
         {
+            is_conn = true;
             conn_callb->success();
+
+            if (!delayed_pub.empty())
+            {
+                std::for_each(delayed_pub.cbegin(), delayed_pub.cend(),
+                              [this](auto &pub)
+                              {
+                                write(pub.first, pub.second.cbegin(), pub.second.cend());
+                              });
+            }
+
+            if (!delayed_sub.empty())
+            {
+                std::for_each(delayed_sub.cbegin(), delayed_sub.cend(),
+                              [this](auto &sub)
+                              {
+                                subscribe(sub.first, sub.second);
+                              });
+            }
         }
 
         void Controller::connection_lost(const std::string & /*cause*/)
         {
+            is_conn = false;
             conn_callb->fail();
         }
 
@@ -28,21 +50,28 @@ namespace Mqtt_port
             //                     token->get_message()->get_payload_str().size());
         }
 
-        Controller::Controller(Server &server,
-                               User_opt &user)
-            : client{new mqtt::async_client{server.get(Server::Options::ip) + server.get(Server::Options::port), 
-                                            user.get(User::Options::id), nullptr}}
+        Controller::Controller(Server::Get_cont &&server,
+                               User::Get_cont &&user)
+            : client{new mqtt::async_client{"tcp://" + server.get(Server::Option::ip) + ":" + server.get(Server::Option::port), 
+                                            user.get(User::Option::id)}}
         {
             client->set_callback(*this);
             /* Set options */
-            Impl_user::set_options(user, options);
-            Impl_server::set_options(server, options);
+            Impl_user::set_options(std::move(user), options);
+            Impl_server::set_options(std::move(server), options);
         }
 
         void Controller::subscribe(const std::string &channel_name, unsigned char qos)
         {
-            /* Subscribe */
-            client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+            if (!is_conn)
+            {
+                delayed_sub.emplace_back(channel_name, qos);
+            }
+            else
+            {
+                /* Subscribe */
+                client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+            }
         }
 
         void Controller::disconnect(Time time)

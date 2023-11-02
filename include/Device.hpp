@@ -39,7 +39,7 @@ void Device::set_name(Str &&name)
 {
     if (!name_set)
     {
-        name = std::forward<Str>(name);
+        this->name = std::forward<Str>(name);
         name_set = true;
     }
     else

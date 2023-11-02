@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <vector>
 #include <stdexcept>
 
 namespace Mqtt_port
@@ -11,8 +12,10 @@ namespace Mqtt_port
     class Universal_get_opt
     {
     public:
-        using Opt_pair = std::tuple<const Option, Val_type, bool>;
-        using Opt_cont_type = std::vector<Opt_pair>;
+        using Opt_tuple = std::tuple<const Option, Val_type, bool>;
+
+    private:
+        using Opt_cont_type = std::vector<Opt_tuple>;
 
     protected:
         Opt_cont_type options;
@@ -29,24 +32,28 @@ namespace Mqtt_port
     void Universal_get_opt<Option, Val_type>::for_each(Func &&func) noexcept
     {
         std::for_each(options.begin(), options.end(),
-                      [](Opt_pair &opt)
+                      [&func](Opt_tuple &opt)
                       {
-                          if (get<2>(opt) == true)
-                              func(get<1>(opt));
+                          if (std::get<2>(opt) == true)
+                              func(opt);
                       });
     }
 
     template <typename Option, typename Val_type>
     std::string Universal_get_opt<Option, Val_type>::get(Option opt)
     {
+        std::string ret;
+        
         std::for_each(options.begin(), options.end(),
-                      [](Opt_pair &option)
+                      [&opt, &ret](Opt_tuple &option)
                       {
-                          if (get<0>(option) == opt && get<2>(option) == true)
+                          if (std::get<0>(option) == opt && std::get<2>(option) == true)
                           {
-                              get<2>(option) return std::move(get<1>(option));
+                               std::get<2>(option) = false;
+                               ret = std::move(std::get<1>(option));
+                               return;
                           }
-                          else if (get<2>(option) = false)
+                          else if (std::get<2>(option) == false)
                           {
                               std::logic_error{"Parameter was already used!"};
                           }
@@ -55,6 +62,8 @@ namespace Mqtt_port
                               std::logic_error{"Parameter not provided!"};
                           }
                       });
+
+        return ret;
     }
 
 }

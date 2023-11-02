@@ -4,7 +4,9 @@ project(mqtt_client VERSION 0.1.0 LANGUAGES C CXX)
 include(CTest)
 enable_testing()
 
-set(PAHO_MQTT_C_LIBRARIES "C:/libs/paho-mqtt-c/win64-1.3.13/lib/paho-mqtt3as-static.lib")
+set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")
+set(OPENSSL_USE_STATIC_LIBS true)
+set(PAHO_MQTT_C_LIBRARIES "C:/libs/paho-mqtt-c/win64-1.3.13-ssl/lib/paho-mqtt3as-static.lib")
 set(PAHO_MQTT_C_INCLUDE_DIRS "C:/libs/paho-mqtt-c/win64-1.3.13/include")
 # set(wxWidgets_ROOT_DIR "C:/Program Files (x86)/wxWidgets")
 # set(wxWidgets_LIB_DIR  "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib")
@@ -16,7 +18,9 @@ add_executable(${PROJECT_NAME} main.cpp  #WIN32
                                src/Device.cpp
                                src/Setup_loader.cpp
                                src/Ip_serial.cpp
+                               src/Ip_console.cpp
                                src/Ip_defs.cpp
+                               src/Serial_context.cpp
                                src/Dyn_serial.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include" 

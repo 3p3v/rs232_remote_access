@@ -1,4 +1,7 @@
 #include <Conn_callb.hpp>
+#include <stdexcept>
+#include <Channel_conn_callb.hpp>
+#include <impl/Controller.hpp>
 
 namespace Mqtt_port
 {
@@ -14,9 +17,8 @@ namespace Mqtt_port
 
     void Conn_callb::success()
     {
-        if (!connector->remaining_channels())
-            throw std::logic_error("No channels to connect were specyfied!");
-        else
+        // Connect to channels if there are any
+        if (connector->remaining_channels())
             controller.subscribe(connector->get_channel_to_con(), qos, Channel_conn_callb{controller, connector});
     }
 

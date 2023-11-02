@@ -27,35 +27,38 @@ namespace Mqtt_port
         bool validate(const std::string &channel_name);
         Base_executor_ptr get_exec(const std::string &channel_name);
 
-        template <class E, typename S, typename... E_rgs>
-        void add_channel(S &&channel_name, E_rgs &&...e_args);
+        // template <class E, typename S, typename... E_rgs>
+        // void add_channel(S &&channel_name, E_rgs &&...e_args);
+
+        template <class E, typename S>
+        void add_channel(S &&channel_name, E &&handler);
 
         std::unordered_set<std::string> get_channels();
     };
 
-    template <class E, typename S, typename... E_rgs>
-    void add_channel(S &&channel_name, E_rgs &&...e_args)
-    {
-        if (channels.find(channel_name) == channels.end())
-        {
-            channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), Base_executor_ptr(new E(std::forward<E_rgs>(e_args)...))));
-        }
-        else
-        {
-            throw std::logic_error("Cannot create two instances of same channel.");
-        }
-    }
-
-    // template <class E, typename S>
-    // void add_channel(S &&channel_name, E &&handler)
+    // template <class E, typename S, typename... E_rgs>
+    // void Validator::add_channel(S &&channel_name, E_rgs &&...e_args)
     // {
     //     if (channels.find(channel_name) == channels.end())
     //     {
-    //         channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), Base_executor_ptr(new E(std::forward<E>(handler)))));
+    //         channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), Base_executor_ptr(new E(std::forward<E_rgs>(e_args)...))));
     //     }
     //     else
     //     {
     //         throw std::logic_error("Cannot create two instances of same channel.");
     //     }
     // }
+
+    template <class E, typename S>
+    void Validator::add_channel(S &&channel_name, E &&handler)
+    {
+        if (channels.find(channel_name) == channels.end())
+        {
+            channels.insert(std::pair<Pair_t::first_type, Pair_t::second_type>(std::forward<S>(channel_name), Base_executor_ptr(new E(std::forward<E>(handler)))));
+        }
+        else
+        {
+            throw std::logic_error("Cannot create two instances of same channel.");
+        }
+    }
 }

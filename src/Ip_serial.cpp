@@ -1,9 +1,11 @@
 #include <Ip_serial.hpp>
+#include <Policy.hpp>
+#include <policies/Numbers_only.hpp>
 
 using namespace Cmd_ctrl::Ctrl;
 
-Ip_serial::Ip_serial(Mqtt_port::Server &&server,
-                     Mqtt_port::User &&user)
+Ip_serial::Ip_serial(Mqtt_port::Server::Get_cont &&server,
+                     Mqtt_port::User::Get_cont &&user)
     : controller{std::move(server),
                  std::move(user),
                  /* Write handler */
@@ -68,8 +70,15 @@ Ip_serial::Ip_serial(Mqtt_port::Server &&server,
                                                               { serials[dev_name]->set_stop_bits(stop_bits_trans(arg)); }));
 }
 
+void Ip_serial::run()
+{
+   controller.run();
+   Serial_context::run();
+}
+
 void Ip_serial::set_baud_rate(const std::string &dev_name, const unsigned int baud_rate)
 {
+   /*Set timer*///TODO set callback
    console.local_exec(dev_name, std::string{set_baud_rate_s}, std::to_string(baud_rate));
 }
 
@@ -97,5 +106,5 @@ void Ip_serial::close(const std::string &dev_name)
 {
    // serials[dev_name]->close();
    serials.erase(dev_name);
-   //TODO delete channels
+   // TODO delete channels
 }

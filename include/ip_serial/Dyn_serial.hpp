@@ -1,12 +1,13 @@
 #pragma once
 
 #include <Serial.hpp>
+#include <atomic>
+#include <mutex>
+#include <Serial_context.hpp>
 
 template <typename Wc, typename Rc, typename Ec>
-class Dyn_serial final : public Serial_port::Serial
+class Dyn_serial final : public Serial_port::Serial, public Serial_context
 {
-    /* Io_context used by every serial */
-    static Io_context_ptr shared_io_context_;
     /* Callback's definitions */
     Wc wc;
     Rc rc;
@@ -30,10 +31,11 @@ template <typename Wc, typename Rc, typename Ec>
 template <typename Str>
 Dyn_serial<Wc, Rc, Ec>::Dyn_serial(Str &&port, Wc &&wc, Rc &&rc, Ec &&ec)
     : Serial{shared_io_context_, std::forward<Str>(port)},
-      wc{std:::froward<Wc>(wc)},
-      rc{std:::froward<Rc>(rc)},
-      ec{std:::froward<Ec>(ec)}
+      wc{std::forward<Wc>(wc)},
+      rc{std::forward<Rc>(rc)},
+      ec{std::forward<Ec>(ec)}
 {
+    // std::lock_guard<std::mutex> guard(run_guard);
 }
 
 template <typename Wc, typename Rc, typename Ec>

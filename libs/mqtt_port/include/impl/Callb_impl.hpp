@@ -19,7 +19,7 @@ namespace Mqtt_port
             Callb_t &get_callb();
 
         public:
-            Callb_impl(Grip &&callb);
+            Callb_impl(Grip &callb);
 
             void on_failure(const mqtt::token &asyncActionToken) = 0;
 
@@ -27,8 +27,8 @@ namespace Mqtt_port
         };
 
         template <typename Callb_t>
-        Callb_impl<Callb_t>::Callb_impl(Grip &&callb)
-            : callb{std::move(callb)}
+        Callb_impl<Callb_t>::Callb_impl(Grip &callb)
+            : callb{callb}
         {
         }
 

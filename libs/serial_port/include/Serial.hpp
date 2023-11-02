@@ -11,9 +11,6 @@ namespace Serial_port
 {
     class Serial : public Connection, public Io_interface, public Ctrl_interface
     {
-        Serial(Serial &) = delete;
-        Serial &operator=(Serial &) = delete;
-
         boost::asio::serial_port serial;
         std::string port;
 
@@ -23,12 +20,15 @@ namespace Serial_port
     protected:
         void open();
         void close();
+        void listen();
 
     public:
         template <typename Str>
         Serial(Io_context_ptr io_context_, Str &&port);
         Serial(Serial &&) = default;
         Serial &operator=(Serial &&) = default;
+        Serial(Serial &) = delete;
+        Serial &operator=(Serial &) = delete;
         virtual ~Serial() = 0;
 
         /* Conf */
@@ -49,7 +49,7 @@ namespace Serial_port
         void write(const std::string &data, const size_t data_len);
         template <typename Cont>
         void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end); // override final;
-        
+
         /* Start */
         void run() override final;
     };
@@ -77,8 +77,8 @@ namespace Serial_port
     template <typename Cont>
     void Serial::write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end)
     {
-        static constexpr size_ = sizeof(typename std::iterator_traits<typename Cont::const_iterator>::value_type);
-        
+        static constexpr auto size_ = sizeof(typename std::iterator_traits<typename Cont::const_iterator>::value_type);
+
         boost::asio::async_write(serial,
                                  boost::asio::buffer(&(*begin), (end - begin) * size_),
                                  [this](const boost::system::error_code &err, std::size_t write_len)

@@ -39,7 +39,7 @@ namespace Serial_port
         if (serial.is_open())
         {
             boost::system::error_code ec;
-            
+
             serial.close(ec);
 
             if (ec.failed())
@@ -49,6 +49,37 @@ namespace Serial_port
         {
             throw std::logic_error{"Port: " + this->port + " was already closed!"};
         }
+    }
+
+    void Serial::listen()
+    {
+        serial.async_read_some(boost::asio::buffer(buffer, 2000), [this](const boost::system::error_code &err, std::size_t read_len)
+                                {
+                                    if (err)
+                                    {
+                                        error_callback(err.value(), err.what());
+                                    }
+                                    else
+                                    {
+                                        read_callback(buffer, read_len);
+                                        listen();
+                                    }
+                                });
+        
+        // boost::asio::async_read(serial,
+        //                         boost::asio::dynamic_buffer(buffer),
+        //                         [this](const boost::system::error_code &err, std::size_t read_len)
+        //                         {
+        //                             if (err)
+        //                             {
+        //                                 error_callback(err.value(), err.what());
+        //                             }
+        //                             else
+        //                             {
+        //                                 read_callback(buffer, read_len);
+        //                                 listen();
+        //                             }
+        //                         });
     }
 
     void Serial::set_baud_rate(unsigned int baud_rate)
@@ -67,7 +98,7 @@ namespace Serial_port
     void Serial::set_parity(const Parity parity)
     {
         this->parity = parity;
-        
+
         boost::asio::serial_port_base::parity::type b_parity;
         boost::asio::serial_port_base::parity b_parity_set;
 
@@ -97,7 +128,7 @@ namespace Serial_port
     void Serial::set_char_size(unsigned int char_size)
     {
         this->char_size = char_size;
-        
+
         boost::asio::serial_port_base::character_size b_char_size_set;
 
         serial.set_option(boost::asio::serial_port_base::character_size(char_size));
@@ -140,7 +171,7 @@ namespace Serial_port
     void Serial::set_stop_bits(const Stop_bits stop_bits)
     {
         this->stop_bits = stop_bits;
-        
+
         boost::asio::serial_port_base::stop_bits::type b_stop_bits;
         boost::asio::serial_port_base::stop_bits b_stop_bits_set;
 
@@ -204,19 +235,7 @@ namespace Serial_port
 
     void Serial::run()
     {
-        boost::asio::async_read(serial,
-                                boost::asio::dynamic_buffer(buffer),
-                                [this](const boost::system::error_code &err, std::size_t read_len)
-                                {
-                                    if (err)
-                                    {
-                                        error_callback(err.value(), err.what());
-                                    }
-                                    else
-                                    {
-                                        read_callback(buffer, read_len);
-                                        run();
-                                    }
-                                });
+        open();
+        listen();
     }
 }

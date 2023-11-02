@@ -10,6 +10,7 @@ namespace Mqtt_port
         using Data = std::string;
 
     public:
+        Executor() = default;
         Executor(Executor&&) = default;
         Executor& operator=(Executor&&) = default;
         Executor(Executor&) = delete;

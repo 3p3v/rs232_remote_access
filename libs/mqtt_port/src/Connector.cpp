@@ -2,15 +2,15 @@
 
 namespace Mqtt_port
 {
-    Connector::Connector(std::shared_ptr<Validator> validator)
-        : validator{std::move(validator)}
-    {
-    }
+    // Connector::Connector(std::shared_ptr<Validator> validator)
+    //     : validator{std::move(validator)}
+    // {
+    // }
 
     
-    size_t Connector::load_channels()
+    size_t Connector::load_channel(std::string &&ch_name)
     {
-        channels = std::move(validator->get_channels());
+        channels.insert(std::move(ch_name));
         return channels.size(); 
     }
 

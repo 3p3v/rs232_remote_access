@@ -1,12 +1,13 @@
 #pragma once
 
 #include <Callb_impl.hpp>
+#include <O_callb.hpp>
 
 namespace Mqtt_port
 {
     namespace Impl
     {
-        class Send_callb_impl : public Callb_impl<Mqtt_port::O_callb>
+        class Send_callb_impl : public Callb_impl<O_callb>
         {
         public:
             Send_callb_impl(Grip &io_callb);

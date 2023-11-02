@@ -3,8 +3,15 @@
 #include <string>
 #include <atomic>
 #include <set>
+#include <Def.hpp>
 #include <User.hpp>
 #include <Server.hpp>
+#include <I_callb.hpp>
+#include <O_callb.hpp>
+#include <C_callb.hpp>
+#include <Send_callb_impl.hpp>
+#include <Conn_callb_impl.hpp>
+#include <Channel_conn_callb_impl.hpp>
 #include <mqtt/async_client.h>
 
 namespace Mqtt_port
@@ -13,6 +20,10 @@ namespace Mqtt_port
     {
         class Controller final : public virtual mqtt::callback
         {
+            std::atomic_bool is_conn{false};
+            std::vector<std::pair<std::string, std::string>> delayed_pub;
+            std::vector<std::pair<std::string, unsigned char>> delayed_sub;
+
         public:
             using Data = std::string;
 
@@ -39,7 +50,7 @@ namespace Mqtt_port
             void delivery_complete(mqtt::delivery_token_ptr token) override;
 
         public:
-            Controller(Server::Get_cont &server, User::Get_cont &user);
+            Controller(Server::Get_cont &&server, User::Get_cont &&user);
             Controller(Controller &&) = default;
             Controller &operator=(Controller &&) = default;
             Controller(Controller &) = delete;
@@ -90,20 +101,27 @@ namespace Mqtt_port
             this->channel_conn_callb.reset(new Callb_t{std::move(channel_conn_callb)});
 
             /* Subscribe */
-            client->subscribe(channel_name, qos, nullptr, ch_conn_callb_impl);
+            subscribe(channel_name, qos);
         }
 
         /* Write data, use previous callback */
         template <typename Iter>
         void Controller::write(const std::string &channel_name, const Iter begin, const Iter end)
         {
-            /* Send message */
-            auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
-            client.get()->publish(msg, nullptr, send_callb_impl);
+            if (!is_conn)
+            {
+                delayed_pub.emplace_back(channel_name, std::string{begin, end});
+            }
+            else
+            {
+                /* Send message */
+                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
+                client.get()->publish(msg, nullptr, send_callb_impl);
 
-            // TODO delete, temporarly moved here
-            sent_callb->success(channel_name,
-                                end - begin);
+                // TODO delete, temporarly moved here
+                sent_callb->success(channel_name,
+                                    end - begin);
+            }
         }
 
         /* Set callback and write data */
@@ -114,12 +132,7 @@ namespace Mqtt_port
             this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
 
             /* Send message */
-            auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
-            client.get()->publish(msg, nullptr, send_callb_impl);
-
-            // TODO delete, temporarly moved here
-            sent_callb->success(channel_name,
-                                end - begin);
+            write(channel_name, begin, end);
         }
 
         /* Set write callack */

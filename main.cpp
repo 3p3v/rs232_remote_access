@@ -3,13 +3,13 @@
 #include <thread>
 // #include <Local_serial.hpp>
 #include <Ip_serial.hpp>
-#include <Basic_controller.hpp>
+// #include <Basic_controller.hpp>
 #include <Ctrl_console.hpp>
 #include <Setup_loader.hpp>
 
 using namespace Cmd_ctrl;
 
-static constexpr std::string_view file_name{"conf.txt"};
+static std::string file_name{"conf.txt"};
 
 int main()
 {
@@ -20,7 +20,10 @@ int main()
         auto config_data = Setup_loader{file_name}.load_data();
 
         Ip_serial serial_controller{std::move(config_data.server), std::move(config_data.user)};
+        
+        serial_controller.add_device(std::move(config_data.device));
 
+        serial_controller.run();
 
         // Mqtt_port::Controller controller{config_data.server, config_data.user,
         //                                        /* Write handler */
@@ -70,10 +73,11 @@ int main()
 
         // std::this_thread::sleep_for(std::chrono::seconds(2));
         // ctrl.local_exec("set_baud_rate", "1500");
-        while (1)
-            ;
+        // while (1)
+        //     ;
     }
-    catch (std::exception &)
+    catch (std::exception &except)
     {
+        std::cout << except.what();
     }
 }
