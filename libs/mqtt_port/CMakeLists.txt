@@ -11,17 +11,20 @@ add_library(${PROJECT_NAME} STATIC
             # src/Receiver.cpp
             # src/Basic_controller.cpp
             src/Callb.cpp
-            src/Channel_conn_callb_impl.cpp
-            src/Channel_conn_callb.cpp
-            src/Conn_callb_impl.cpp
-            src/Conn_callb.cpp
+            # src/Channel_conn_callb_impl.cpp
+            # src/Channel_conn_callb.cpp
+            # src/Conn_callb_impl.cpp
+            # src/Conn_callb.cpp
             src/Connector.cpp
             src/Controller.cpp
             src/C_callb.cpp
             src/O_callb.cpp
+            src/Device.cpp
             src/Send_callb_impl.cpp
             src/Validator.cpp
             src/impl/Controller.cpp
+            src/impl/Sub.cpp
+            src/impl/Pub.cpp
             src/impl/Impl_server.cpp
             src/impl/Impl_user.cpp)
 
@@ -32,8 +35,13 @@ set(mqtt_port_INCLUDE_DIR "include"
                           "include/callbacks" 
                           "include/controller"
                           "include/impl"
+                          "include/impl/basic_callbacks"
+                          "include/impl/delay"
+                          "include/impl/callbacks"
+                          "include/impl/emulated_callbacks"
                           "include/server"
-                          "include/user")
+                          "include/user"
+                          "include/device")
 # include libs
 # target_include_directories(${PROJECT_NAME} PUBLIC ${PahoMqttCpp_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${mqtt_port_INCLUDE_DIR})

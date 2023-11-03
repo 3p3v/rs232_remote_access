@@ -14,12 +14,12 @@ namespace Mqtt_port
 {
     class Controller final : protected Callbacks_defs
     {
-        /* Low level implementation of mqtt cient */
+        /* Low level implementation of mqtt client */
         Impl::Controller controller;
 
         /* Logic behind channels */
         std::shared_ptr<Validator> validator;
-        std::shared_ptr<Connector> connector;
+        // std::shared_ptr<Connector> connector;
 
     public:
         template <typename Scallb, typename Rcallb>
@@ -34,9 +34,15 @@ namespace Mqtt_port
         ~Controller() = default;
 
         void run();
+
         template <typename Iter>
         void write(const std::string &channel_name, const Iter begin, const Iter end);
+
+        template <typename Iter, typename Ok_callb, typename Ec_callb>
+        void write(const std::string &channel_name, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+
         void disconnect(Time time);
+
         void connect_channels();
 
         // template <class E, typename S, typename... E_rgs>
@@ -52,7 +58,7 @@ namespace Mqtt_port
                            Scallb &&sent_msg,
                            Rcallb &&rec_msg)
         : validator{new Validator{}},
-          connector{new Connector{}},
+        //   connector{new Connector{}},
           controller{std::move(server), std::move(user)}
     {
         controller.set_write_callb(Sent_callb<Scallb>{controller, std::forward<Scallb>(sent_msg)});
@@ -64,7 +70,20 @@ namespace Mqtt_port
     {
         if (validator->validate(channel_name))
         {
-            controller.write(channel_name, begin, end);
+            controller.write(channel_name, qos, begin, end);
+        }
+        else
+        {
+            throw std::runtime_error("Tried to write to unknown channel " + channel_name + ".");
+        }
+    }
+
+    template <typename Iter, typename Ok_callb, typename Ec_callb>
+    void Controller::write(const std::string &channel_name, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+    {
+        if (validator->validate(channel_name))
+        {
+            controller.write(channel_name, qos, begin, end);
         }
         else
         {
@@ -82,7 +101,7 @@ namespace Mqtt_port
     Controller& Controller::add_channel(S &&channel_name, E &&handler)
     {
         validator->add_channel<E>(S{channel_name}, std::forward<E>(handler));
-        connector->load_channel(std::forward<S>(channel_name));
+        // connector->load_channel(std::forward<S>(channel_name));
 
         return *this;
     }

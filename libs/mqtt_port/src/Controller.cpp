@@ -14,9 +14,9 @@ namespace Mqtt_port
     {
         controller.disconnect(time);
     }
-    void Controller::connect_channels()
-    {
-        if (connector->remaining_channels())
-            controller.subscribe(connector->get_channel_to_con(), qos, Channel_conn_callb{controller, connector});
-    }
+    // void Controller::connect_channels()
+    // {
+    //     if (connector->remaining_channels())
+    //         controller.subscribe(connector->get_channel_to_con(), qos, Channel_conn_callb{controller, connector});
+    // }
 }

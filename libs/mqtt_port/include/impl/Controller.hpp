@@ -3,26 +3,36 @@
 #include <string>
 #include <atomic>
 #include <set>
+#include <unordered_map>
 #include <Def.hpp>
 #include <User.hpp>
 #include <Server.hpp>
-#include <I_callb.hpp>
-#include <O_callb.hpp>
-#include <C_callb.hpp>
-#include <Send_callb_impl.hpp>
-#include <Conn_callb_impl.hpp>
-#include <Channel_conn_callb_impl.hpp>
+#include <Sub.hpp>
+#include <Pub.hpp>
+#include <Delay_handler.hpp>
+#include <IO_callb.hpp>
+#include <IO_callb_data.hpp>
+#include <Vanilla_callb.hpp>
+#include <impl/emulated_callbacks/Rec_callb.hpp>
+#include <impl/emulated_callbacks/Conn_callb.hpp>
 #include <mqtt/async_client.h>
 
 namespace Mqtt_port
 {
     namespace Impl
     {
+        /// @brief Overlay for the poor-designed paho.mqtt.cpp library
         class Controller final : public virtual mqtt::callback
         {
+            /* Storing data while connection wasn't established */
             std::atomic_bool is_conn{false};
-            std::vector<std::pair<std::string, std::string>> delayed_pub;
-            std::vector<std::pair<std::string, unsigned char>> delayed_sub;
+            Delay_handler<Sub> sub_delay;
+            Delay_handler<Pub> pub_delay;
+
+            /* Callbacks for receiving data */
+            std::unordered_map<std::string, std::unique_ptr<Rec_callb_intf>> rec_callb;
+            /* Callback for connecting to broker */
+            std::unique_ptr<Conn_callb_intf> conn_callb;
 
         public:
             using Data = std::string;
@@ -30,15 +40,6 @@ namespace Mqtt_port
         protected:
             std::shared_ptr<mqtt::async_client> client;
             mqtt::connect_options options;
-
-            /* Impl specyfic callbacks */
-            std::unique_ptr<O_callb> sent_callb;
-            std::unique_ptr<I_callb<Data>> rec_callb;
-            std::unique_ptr<C_callb> conn_callb;
-            std::unique_ptr<C_callb> channel_conn_callb;
-            Send_callb_impl send_callb_impl{sent_callb};
-            Conn_callb_impl conn_callb_impl{conn_callb};
-            Channel_conn_callb_impl ch_conn_callb_impl{channel_conn_callb};
 
             void connected(const std::string & /*cause*/) override;
 
@@ -57,98 +58,151 @@ namespace Mqtt_port
             Controller &operator=(Controller &) = delete;
             ~Controller() = default;
 
-            template <typename Callb_t>
-            void connect(Callb_t &&conn_callb);
+            /// @brief Connect, with callback
+            /// @tparam Ok_callb
+            /// @tparam Ec_callb
+            /// @param ok_callb
+            /// @param ec_callb
+            template <typename Ok_callb, typename Ec_callb>
+            void connect(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
-            template <typename Callb_t>
-            void subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb);
+            /// @brief Subscribe, with receive data callback and subscribe callback
+            /// @tparam Ok_callb
+            /// @tparam Ec_callb
+            /// @tparam Sub_ok_callb
+            /// @tparam Sub_ec_callb
+            /// @param channel_name
+            /// @param qos
+            /// @param ok_callb
+            /// @param ec_callb
+            /// @param sub_ok_callb
+            /// @param sub_ec_callb
+            template <typename Ok_callb, typename Ec_callb, typename Sub_ok_callb, typename Sub_ec_callb>
+            void subscribe(const std::string &channel_name,
+                           unsigned char qos,
+                           Ok_callb &&ok_callb,
+                           Ec_callb &&ec_callb,
+                           Sub_ok_callb &&sub_ok_callb,
+                           Sub_ec_callb &&sub_ec_callb);
 
+            /// @brief Subscribe, with receive data callback
+            /// @tparam Ok_callb
+            /// @tparam Ec_callb
+            /// @param channel_name
+            /// @param qos
+            /// @param ok_callb
+            /// @param ec_callb
+            template <typename Ok_callb, typename Ec_callb>
+            void subscribe(const std::string &channel_name, unsigned char qos, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+
+            /// @brief Subscribe, without any callbacks
+            /// @param channel_name
+            /// @param qos
             void subscribe(const std::string &channel_name, unsigned char qos);
 
             void disconnect(Time time);
 
-            /* Write data, use previous callback */
+            /// @brief Write data, without callback
+            /// @tparam Iter
+            /// @param channel_name
+            /// @param qos
+            /// @param begin
+            /// @param end
             template <typename Iter>
-            void write(const std::string &channel_name, const Iter begin, const Iter end);
+            void write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end);
 
-            /* Set callback and write data */
-            template <typename Iter, typename Callb_t>
-            void write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb);
-
-            /* Set write callack */
-            template <typename Callb_t>
-            void set_write_callb(Callb_t &&sent_callb);
-
-            /* Set read callack */
-            template <typename Callb_t>
-            void set_read_callb(Callb_t &&rec_callb);
+            /// @brief Write data, with callback
+            /// @tparam Iter
+            /// @tparam Ok_callb
+            /// @tparam Ec_callb
+            /// @param channel_name
+            /// @param qos
+            /// @param begin
+            /// @param end
+            /// @param ok_callb
+            /// @param ec_callb
+            template <typename Iter, typename Ok_callb, typename Ec_callb>
+            void write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
         };
 
-        template <typename Callb_t>
-        void Controller::connect(Callb_t &&conn_callb)
+        template <typename Ok_callb, typename Ec_callb>
+        void Controller::connect(Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            /* Change callback */
-            this->conn_callb.reset(new Callb_t{std::move(conn_callb)});
-
             /* Connect to broker */
-            client->connect(options, nullptr, conn_callb_impl);
+            client->connect(options, nullptr, std::make_unique<Vanilla_callb>(std::move(ok_callb), std::move(ec_callb)));
         }
 
-        template <typename Callb_t>
-        void Controller::subscribe(const std::string &channel_name, unsigned char qos, Callb_t &&channel_conn_callb)
+        template <typename Ok_callb, typename Ec_callb, typename Sub_ok_callb, typename Sub_ec_callb>
+        void Controller::subscribe(const std::string &channel_name,
+                       unsigned char qos,
+                       Ok_callb &&ok_callb,
+                       Ec_callb &&ec_callb,
+                       Sub_ok_callb &&sub_ok_callb,
+                       Sub_ec_callb &&sub_ec_callb)
         {
-            /* Change callback */
-            this->channel_conn_callb.reset(new Callb_t{std::move(channel_conn_callb)});
-
-            /* Subscribe */
-            subscribe(channel_name, qos);
+            /* Save data receive callback */
+            rec_callb.emplace(channel_name, Rec_callb{std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)});
+            
+            if (!is_conn)
+            {
+                /* Subscribe later */
+                sub_delay.emplace(channel_name, qos, std::make_unique<Vanilla_callb>(std::forward<Sub_ok_callb>(sub_ok_callb), std::forward<Sub_ec_callb>(sub_ec_callb)));
+            }
+            else
+            {
+                /* Subscribe */
+                client->subscribe(channel_name, qos, nullptr, std::make_unique<Vanilla_callb>(std::forward<Sub_ok_callb>(sub_ok_callb), std::forward<Sub_ec_callb>(sub_ec_callb)));
+            }
         }
 
-        /* Write data, use previous callback */
+        template <typename Ok_callb, typename Ec_callb>
+        void Controller::subscribe(const std::string &channel_name, unsigned char qos, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+        {
+            /* Save data receive callback */
+            rec_callb.emplace(channel_name, Rec_callb{std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)});
+            
+            if (!is_conn)
+            {
+                /* Subscribe later */
+                sub_delay.emplace(channel_name, qos);
+            }
+            else
+            {
+                /* Subscribe */
+                client->subscribe(channel_name, qos);
+            }
+        }
+
         template <typename Iter>
-        void Controller::write(const std::string &channel_name, const Iter begin, const Iter end)
+        void Controller::write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end)
         {
             if (!is_conn)
             {
-                delayed_pub.emplace_back(channel_name, std::string{begin, end});
+                auto data = std::make_shared<std::string>(begin, end);
+
+                pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size()));
             }
             else
             {
                 /* Send message */
-                auto msg = mqtt::make_message(channel_name, &(*begin), end - begin);
-                client.get()->publish(msg, nullptr, send_callb_impl);
-
-                // TODO delete, temporarly moved here
-                sent_callb->success(channel_name,
-                                    end - begin);
+                client->publish(channel_name, &(*begin), end - begin, qos, false);
             }
         }
 
-        /* Set callback and write data */
-        template <typename Iter, typename Callb_t>
-        void Controller::write(const std::string &channel_name, const Iter begin, const Iter end, Callb_t &&sent_callb)
+        template <typename Iter, typename Ok_callb, typename Ec_callb>
+        void Controller::write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            /* Change callback */
-            this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
+            if (!is_conn)
+            {
+                auto data = std::make_shared<std::string>(begin, end);
 
-            /* Send message */
-            write(channel_name, begin, end);
-        }
-
-        /* Set write callack */
-        template <typename Callb_t>
-        void Controller::set_write_callb(Callb_t &&sent_callb)
-        {
-            /* Change callback */
-            this->sent_callb.reset(new Callb_t{std::move(sent_callb)});
-        }
-
-        /* Set read callack */
-        template <typename Callb_t>
-        void Controller::set_read_callb(Callb_t &&rec_callb)
-        {
-            /* Change callback */
-            this->rec_callb.reset(new Callb_t{std::move(rec_callb)});
+                pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size(), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+            }
+            else
+            {
+                /* Send message */
+                client->publish(channel_name, &(*begin), end - begin, qos, false, nullptr, IO_callb{end - begin, std::move(ok_callb), std::move(ec_callb)});
+            }
         }
     }
 

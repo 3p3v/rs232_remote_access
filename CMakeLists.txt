@@ -10,7 +10,7 @@ set(PAHO_MQTT_C_LIBRARIES "C:/libs/paho-mqtt-c/win64-1.3.13-ssl/lib/paho-mqtt3as
 set(PAHO_MQTT_C_INCLUDE_DIRS "C:/libs/paho-mqtt-c/win64-1.3.13/include")
 # set(wxWidgets_ROOT_DIR "C:/Program Files (x86)/wxWidgets")
 # set(wxWidgets_LIB_DIR  "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib")
-set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/win64_1.2.0/lib/cmake/PahoMqttCpp"
+set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/enhanced/lib/cmake/PahoMqttCpp"
                       "C:/libs/boost/lib/cmake")
 
 add_executable(${PROJECT_NAME} main.cpp  #WIN32
