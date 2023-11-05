@@ -15,13 +15,13 @@ add_library(${PROJECT_NAME} STATIC
             # src/Channel_conn_callb.cpp
             # src/Conn_callb_impl.cpp
             # src/Conn_callb.cpp
-            src/Connector.cpp
-            src/Controller.cpp
+            # src/Connector.cpp
+            # src/Controller.cpp
             src/C_callb.cpp
             src/O_callb.cpp
-            src/Device.cpp
+            # src/Device.cpp
             src/Send_callb_impl.cpp
-            src/Validator.cpp
+            # src/Validator.cpp
             src/impl/Controller.cpp
             src/impl/Sub.cpp
             src/impl/Pub.cpp
@@ -33,7 +33,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 set(mqtt_port_INCLUDE_DIR "include" 
                           "include/basic_callbacks" 
                           "include/callbacks" 
-                          "include/controller"
+                        #   "include/controller"
                           "include/impl"
                           "include/impl/basic_callbacks"
                           "include/impl/delay"

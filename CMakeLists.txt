@@ -16,16 +16,25 @@ set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/enhanced/lib/cmake/PahoMqttCpp"
 add_executable(${PROJECT_NAME} main.cpp  #WIN32
                                src/Flow_monitor.cpp
                                src/Device.cpp
+                               src/Connector.cpp
+                               src/Controller.cpp
+                               src/Validator.cpp
                                src/Setup_loader.cpp
                                src/Ip_serial.cpp
                                src/Ip_console.cpp
                                src/Ip_defs.cpp
                                src/Serial_context.cpp
-                               src/Dyn_serial.cpp)
+                               src/Dyn_serial.cpp
+                               src/Flow_get.cpp
+                               src/Flow.cpp
+                               src/Serial_ext.cpp
+                               src/Serial_info.cpp
+                               src/Setup_ctrl.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include" 
                                                   "include/setup_loader"
-                                                  "include/ip_serial")
+                                                  "include/ip_serial"
+                                                  "include/controller")
 
 #find GUI library
 # cmake_policy(SET CMP0054 NEW)
