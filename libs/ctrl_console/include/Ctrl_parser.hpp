@@ -25,11 +25,11 @@ namespace Cmd_ctrl
         using Ctrl_cmd_pos_con = std::vector<Ctrl_cmd>;
 
         template <typename Cont_iter_t>
-        void find_lines(Ctrl_cmd_pos_con &lines, const Cont_iter_t begin, const Cont_iter_t end);
+        void find_lines(Ctrl_cmd_pos_con &lines, const Cont_iter_t begin, const Cont_iter_t end) const;
 
     public:
         template <typename Iter_t>
-        Ctrl_cmd_pos_con parse(const typename Iter_t begin, const typename Iter_t end)
+        Ctrl_cmd_pos_con parse(const Iter_t begin, const Iter_t end) const
         {
             if (begin == end)
             {
@@ -44,7 +44,7 @@ namespace Cmd_ctrl
 
     template <Endl_opt endl_opt, char endl, char space>
     template <typename Cont_iter_t>
-    void Ctrl_parser<endl_opt, endl, space>::find_lines(Ctrl_cmd_pos_con &lines, const Cont_iter_t begin, const Cont_iter_t end)
+    void Ctrl_parser<endl_opt, endl, space>::find_lines(Ctrl_cmd_pos_con &lines, const Cont_iter_t begin, const Cont_iter_t end) const
     {
         /* No endl specyfied */
         if constexpr (endl_opt == Endl_opt::without)

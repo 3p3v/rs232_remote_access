@@ -141,7 +141,7 @@ namespace Mqtt_port
                        Sub_ec_callb &&sub_ec_callb)
         {
             /* Save data receive callback */
-            rec_callb.emplace(channel_name, Rec_callb{std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)});
+            rec_callb.emplace(channel_name, make_rec_callb{std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)});
             
             if (!is_conn)
             {
@@ -159,7 +159,7 @@ namespace Mqtt_port
         void Controller::subscribe(const std::string &channel_name, unsigned char qos, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
             /* Save data receive callback */
-            rec_callb.emplace(channel_name, Rec_callb{std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)});
+            rec_callb.emplace(channel_name, make_rec_callb(std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
             
             if (!is_conn)
             {
@@ -178,9 +178,9 @@ namespace Mqtt_port
         {
             if (!is_conn)
             {
-                auto data = std::make_shared<std::string>(begin, end);
+                // auto data = std::make_shared<std::string>(begin, end);
 
-                pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size()));
+                // pub_delay.emplace(channel_name, qos, data);//, std::unique_ptr<mqtt::iaction_listener>{new IO_callb_data{data, data->size(), [](size_t){}, [](int){}}});
             }
             else
             {
@@ -194,9 +194,9 @@ namespace Mqtt_port
         {
             if (!is_conn)
             {
-                auto data = std::make_shared<std::string>(begin, end);
+                // auto data = std::make_shared<std::string>(begin, end);
 
-                pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size(), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+                // pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size(), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
             }
             else
             {

@@ -1,19 +1,19 @@
 #pragma once
 
-#include <Base_ctrl_hpp>
-#include <Serial_info.hpp>
+#include <Base_ctrl_console.hpp>
+#include <Serial_ctrl_helper.hpp>
 
 using namespace Cmd_ctrl;
 
 namespace Ip_serial
 {
-    using Handle_t = Cmd_ctrl::Exec<const Serial_info&, const std::string &>::Addons<>;
+    using Handle_t = Cmd_ctrl::Exec<Serial_ctrl_helper&, const std::string &>::Addons<>;
 
     class Console : protected Base_ctrl_console<Handle_t::Base_handle_intf, Endl_opt::with>
     {
     public:
         template <typename Iter_t>
-        void exec(const Serial_info& info, const typename Iter_t begin, const typename Iter_t end) const
+        void exec(Serial_ctrl_helper& info, const Iter_t begin, const Iter_t end) const
         {
             auto parsed_cmds = parser.parse(begin, end);
 

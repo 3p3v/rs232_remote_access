@@ -16,13 +16,13 @@ namespace Cmd_ctrl
         {
         public:
             template <typename Iter_t>
-            void exec(const typename Iter_t begin, const typename Iter_t end);
+            void exec(const Iter_t begin, const Iter_t end);
 
             void check();
         };
 
         template <typename Iter_t>
-        void Setup_console::exec(const typename Iter_t begin, const typename Iter_t end)
+        void Setup_console::exec(const Iter_t begin, const Iter_t end)
         {
             auto parsed_cmds = parser.parse(begin, end);
 

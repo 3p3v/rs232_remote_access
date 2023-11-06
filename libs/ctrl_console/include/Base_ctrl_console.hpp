@@ -22,7 +22,7 @@ namespace Cmd_ctrl
         static constexpr char endl = endl_;
         static constexpr char space = space_;
 
-        Cmds_cont cmds;
+        mutable Cmds_cont cmds;
         Ctrl_parser<endl_opt, endl, space> parser;
 
     public:

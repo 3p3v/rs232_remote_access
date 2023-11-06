@@ -1,0 +1,95 @@
+#include <main/Controller.hpp>
+#include <Serial_ctrl.hpp>
+#include <Ip_serial_ctrl.hpp>
+
+namespace Main_serial
+{
+   Controller::Controller(Mqtt_port::Server::Get_cont &&server,
+                          Mqtt_port::User::Get_cont &&user,
+                          Monitor &monitor)
+       : ip_controller{std::move(server),
+                       std::move(user)},
+         monitor{monitor}
+   {
+   }
+
+   void Controller::add_device(Device &&device, bool write_access)
+   {
+      add_device(std::move(device), Serial_info{}, write_access, false);
+   }
+
+   void Controller::add_device(Device &&device, Serial_info &&info, bool write_access)
+   {
+      add_device(std::move(device), std::move(info), write_access, true);
+   }
+
+   void Controller::add_device(Device &&device, Serial_info &&info, bool write_access, bool settings_known)
+   {
+      // Device shared between monitor and serials
+      auto device_ptr = std::make_shared<Device>(std::forward<Device>(device));
+
+      // Base objects containing information shared resources
+      Base_serial_ctrl serial_base{device_ptr, monitor};
+
+      // Create virtual com ports (com0com)
+      auto coms = com_controller.create_virtual_coms();
+
+      // Serial connected to virtual serial
+      auto serial_pair = Phy_serial::Serial_ctrl{serial_base,
+                                                 ip_controller,
+                                                 std::move(coms.first),
+                                                 std::move(coms.second),
+                                                 write_access}
+                             .connect();
+
+      // Serial connected to mqtt broker
+      auto ip_serial = Ip_serial::Ip_serial_ctrl{std::move(serial_base),
+                                                 std::move(serial_pair.first),
+                                                 cmds_console,
+                                                 std::move(info),
+                                                 settings_known}
+                           .connect();
+
+      // Add serial to monitor
+      monitor.add_device(std::move(device_ptr), std::move(ip_serial), std::move(serial_pair.second));
+   }
+
+   void Controller::run()
+   {
+      controller.run();
+      Serial_context::run();
+   }
+
+   void Controller::set_baud_rate(const std::string &dev_name, const unsigned int baud_rate)
+   {
+      /*Set timer*/ // TODO set callback
+      // console.local_exec(dev_name, std::string{set_baud_rate_s}, std::to_string(baud_rate));
+   }
+
+   void Controller::set_parity(const std::string &dev_name, const Parity parity)
+   {
+      // console.local_exec(dev_name, std::string{set_baud_rate_s}, parity_trans(parity));
+   }
+
+   void Controller::set_char_size(const std::string &dev_name, const unsigned int char_size)
+   {
+      // console.local_exec(dev_name, std::string{set_char_size_s}, std::to_string(char_size));
+   }
+
+   void Controller::set_flow_ctrl(const std::string &dev_name, const Flow_ctrl flow_ctrl)
+   {
+      // console.local_exec(dev_name, std::string{set_baud_rate_s}, flow_ctrl_trans(flow_ctrl));
+   }
+
+   void Controller::set_stop_bits(const std::string &dev_name, const Stop_bits stop_bits)
+   {
+      // console.local_exec(dev_name, std::string{set_baud_rate_s}, stop_bits_trans(stop_bits));
+   }
+
+   void Controller::close(const std::string &dev_name)
+   {
+      // serials[dev_name]->close();
+      // serials.erase(dev_name);
+      // TODO delete channels
+   }
+}

@@ -10,10 +10,6 @@ namespace Mqtt_port
         template <typename Ok_callb, typename Ec_callb>
         class Callb : public Basic_callb<Ok_callb, Ec_callb>, public mqtt::iaction_listener
         {
-        protected:
-            Ok_callb ok_callb;
-            Ec_callb ec_callb;
-
         public:
             Callb(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 

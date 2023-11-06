@@ -7,7 +7,7 @@ namespace Mqtt_port
     namespace Impl
     {
         template <typename Ok_callb, typename Ec_callb>
-        class IO_callb final : public Callb<Ok_callb, Ec_callb>
+        class IO_callb : public Callb<Ok_callb, Ec_callb>
         {
             size_t len;
 
@@ -30,6 +30,6 @@ namespace Mqtt_port
         }
 
         template <typename Ok_callb, typename Ec_callb>
-        IO_callb(Ok_callb &&, Ec_callb &&, size_t) -> IO_callb<Ok_callb, Ec_callb>;
+        IO_callb(size_t, Ok_callb &&, Ec_callb &&) -> IO_callb<Ok_callb, Ec_callb>;
     }
 }

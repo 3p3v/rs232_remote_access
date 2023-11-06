@@ -5,8 +5,6 @@
 
 class Serial_settings_intf
 {
-private:
-    /* data */
 public:
     virtual void set_baud_rate(const std::string &dev_name, const unsigned int baud_rate) = 0;
     virtual void set_parity(const std::string &dev_name, const Serial_port::Ctrl_defs::Parity parity) = 0;

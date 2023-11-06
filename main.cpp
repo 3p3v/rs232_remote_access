@@ -1,11 +1,11 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
-// #include <Local_serial.hpp>
-#include <Ip_serial.hpp>
+#include <main/Controller.hpp>
 // #include <Basic_controller.hpp>
 #include <Ctrl_console.hpp>
 #include <Setup_loader.hpp>
+#include <Monitor_impl.hpp>
 
 using namespace Cmd_ctrl;
 
@@ -17,11 +17,13 @@ int main()
 
     try
     {
+        Monitor_impl monitor{};
+        
         auto config_data = Setup_loader{file_name}.load_data();
 
-        Ip_serial serial_controller{std::move(config_data.server), std::move(config_data.user)};
+        Main_serial::Controller serial_controller{std::move(config_data.server), std::move(config_data.user), monitor};
         
-        serial_controller.add_device(std::move(config_data.device));
+        serial_controller.add_device(std::move(config_data.device), false);
 
         serial_controller.run();
 

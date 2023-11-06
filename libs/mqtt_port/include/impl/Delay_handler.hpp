@@ -30,7 +30,7 @@ namespace Mqtt_port
         template <typename... Args>
         void Delay_handler<Delayed_t>::emplace(Args &&...args)
         {
-            d_cont.emplace_back(args...);
+            d_cont.emplace_back(std::forward<Args>(args)...);
         }
 
         template <typename Delayed_t>

@@ -3,6 +3,7 @@
 #include <impl/Controller.hpp>
 #include <impl/Impl_server.hpp>
 #include <impl/Impl_user.hpp>
+#include "Controller.hpp"
 
 namespace Mqtt_port
 {
@@ -15,45 +16,45 @@ namespace Mqtt_port
 
             if (!pub_delay.empty())
             {
-                /* Send overdue messages */
-                pub_delay.for_each([this](auto &&pub)
-                                   { 
-                                        if (pub->util_callb())
-                                        {
-                                            client->publish(pub->channel_name, 
-                                                            &(*pub->data.begin()), 
-                                                            pub->data.end() - pub->data.begin(), 
-                                                            pub->qos, 
-                                                            false, 
-                                                            nullptr, 
-                                                            std::move(pub->callb));
-                                        }
-                                        else
-                                        {
-                                            client->publish(pub->channel_name, 
-                                                            &(*pub->data.begin()),
-                                                            pub->data.end() - pub->data.begin(), 
-                                                            pub->qos, 
-                                                            false);
-                                        } });
+                // /* Send overdue messages */
+                // pub_delay.for_each([this](auto &&pub)
+                //                    { 
+                //                         if (pub.util_callb())
+                //                         {
+                //                             client->publish(pub.channel_name, 
+                //                                             &(*pub.data->begin()), 
+                //                                             pub.data->end() - pub.data->begin(), 
+                //                                             pub.qos, 
+                //                                             false, 
+                //                                             nullptr, 
+                //                                             std::move(pub.callb));
+                //                         }
+                //                         else
+                //                         {
+                //                             client->publish(pub.channel_name, 
+                //                                             &(*pub.data->begin()),
+                //                                             pub.data->end() - pub.data->begin(), 
+                //                                             pub.qos, 
+                //                                             false);
+                //                         } });
             }
 
             if (!sub_delay.empty())
             {
-                sub_delay.for_each([this](auto &sub)
-                                   { 
-                                    if (pub->util_callb())
-                                        {
-                                            client->subscribe(pub->channel_name, 
-                                                              pub->qos, 
-                                                              nullptr, 
-                                                              std::move(pub->callb));
-                                        }
-                                        else
-                                        {
-                                            client->subscribe(pub->channel_name, 
-                                                            pub->qos);
-                                        } });
+                // sub_delay.for_each([this](auto &pub)
+                //                    { 
+                //                     if (pub.util_callb())
+                //                         {
+                //                             client->subscribe(pub.channel_name, 
+                //                                               pub.qos, 
+                //                                               nullptr, 
+                //                                               std::move(pub.callb));
+                //                         }
+                //                         else
+                //                         {
+                //                             client->subscribe(pub.channel_name, 
+                //                                             pub.qos);
+                //                         } });
             }
         }
 
@@ -92,12 +93,12 @@ namespace Mqtt_port
         {
             if (!is_conn)
             {
-                sub_delay.emplace(channel_name, qos);
+                sub_delay.emplace(std::move(channel_name), qos);
             }
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, qos);
+                client->subscribe(std::move(channel_name), qos);
             }
         }
 
@@ -106,5 +107,4 @@ namespace Mqtt_port
             client->disconnect(time);
         }
     }
-
 }

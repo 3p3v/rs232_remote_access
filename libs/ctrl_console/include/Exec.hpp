@@ -16,8 +16,8 @@ namespace Cmd_ctrl
             class Base_handle_intf : public Adds_t...
             {
             public:
-                virtual bool validate(const std::string &arg) = 0;
-                virtual void exec(Args_t... args) = 0;
+                virtual bool validate(const std::string &arg) const = 0;
+                virtual void exec(Args_t... args) const = 0;
             };
 
             template <typename... Policies_t>
@@ -31,7 +31,7 @@ namespace Cmd_ctrl
                     {
                     }
 
-                    bool validate(const std::string &arg)
+                    bool validate(const std::string &arg) const
                     {
                         return (Policies_t::validate_t(arg) && ...);
                         // int sum = (Policies_t::validate_t(arg) + ... + 0);
@@ -58,7 +58,7 @@ namespace Cmd_ctrl
                     {
                     }
 
-                    void exec(Args_t... args)
+                    void exec(Args_t... args) const
                     {
                         handle(std::forward<Args_t>(args)...);
                     }

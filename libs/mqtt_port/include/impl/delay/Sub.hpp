@@ -18,13 +18,28 @@ namespace Mqtt_port
 
             bool util_callb();
 
-            Sub(std::string &&channel_name, unsigned char qos, std::unique_ptr<mqtt::iaction_listener> &&callb);
-            Sub(std::string &&channel_name, unsigned char qos);
+            template <typename Str>
+            Sub(Str &&channel_name, unsigned char qos, std::unique_ptr<mqtt::iaction_listener> &&callb);
+            template <typename Str>
+            Sub(Str &&channel_name, unsigned char qos);
             Sub(Sub&&) = default;
             Sub& operator=(Sub&&) = default;
             Sub(Sub&) = delete;
             Sub& operator=(Sub&) = delete;
             virtual ~Sub() = default;
         };
+
+        template <typename Str>
+        Sub::Sub(Str &&channel_name, unsigned char qos, std::unique_ptr<mqtt::iaction_listener> &&callb)
+            : channel_name{std::move(channel_name)}, qos{qos}, callb{std::move(callb)}
+        {
+
+        }
+
+        template <typename Str>
+        Sub::Sub(Str &&channel_name, unsigned char qos)
+            : channel_name{std::forward<Str>(channel_name)}, qos{qos}
+        {
+        }
     }
 }

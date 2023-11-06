@@ -13,28 +13,43 @@ set(PAHO_MQTT_C_INCLUDE_DIRS "C:/libs/paho-mqtt-c/win64-1.3.13/include")
 set(CMAKE_PREFIX_PATH "C:/libs/paho-mqtt-cpp/enhanced/lib/cmake/PahoMqttCpp"
                       "C:/libs/boost/lib/cmake")
 
-add_executable(${PROJECT_NAME} main.cpp  #WIN32
-                               src/Flow_monitor.cpp
-                               src/Device.cpp
-                               src/Connector.cpp
-                               src/Controller.cpp
-                               src/Validator.cpp
-                               src/Setup_loader.cpp
-                               src/Ip_serial.cpp
-                               src/Ip_console.cpp
-                               src/Ip_defs.cpp
-                               src/Serial_context.cpp
-                               src/Dyn_serial.cpp
-                               src/Flow_get.cpp
-                               src/Flow.cpp
-                               src/Serial_ext.cpp
-                               src/Serial_info.cpp
-                               src/Setup_ctrl.cpp)
+add_executable(${PROJECT_NAME}   #WIN32
+                               # device
+                               src/device/Device.cpp
+                               # serial control objects
+                               src/serial_ctrl/Flow.cpp
+                               src/serial_ctrl/Serial_info.cpp
+                               src/serial_ctrl/Base_serial_ctrl.cpp
+                            #    src/serial_ctrl/Ext_serial_ctrl.cpp
+                               src/serial_ctrl/Serial_ctrl.cpp
+                               src/serial_ctrl/Serial_ctrl_helper.cpp
+                               src/serial_ctrl/Ip_serial_ctrl.cpp
+                               # serial
+                               src/serial/Serial_context.cpp
+                               src/serial/Dyn_serial.cpp
+                               src/serial/Controller.cpp
+                               # ip/mqtt serial
+                               src/ip_serial/Ip_console.cpp
+                               src/ip_serial/Ip_defs.cpp
+                            #    src/ip_serial/Controller.cpp
+                               # main serial
+                               src/main/Controller.cpp
+                               # setup loader
+                               src/setup_loader/Setup_loader.cpp
+                               # monitor
+                               src/monitor/Monitor.cpp
+                               # main
+                               main.cpp)
 
-target_include_directories(${PROJECT_NAME} PUBLIC "include" 
-                                                  "include/setup_loader"
+target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
+                                                  "include/device"
+                                                  "include/serial"
                                                   "include/ip_serial"
-                                                  "include/controller")
+                                                #   "include" 
+                                                  "include/main"
+                                                  "include/setup_loader"
+                                                  "include/monitor"
+                                                  "include")
 
 #find GUI library
 # cmake_policy(SET CMP0054 NEW)
