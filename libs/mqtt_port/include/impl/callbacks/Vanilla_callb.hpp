@@ -26,5 +26,11 @@ namespace Mqtt_port
         {
             ok_callb();
         }
+
+        template <typename Ok_callb, typename Ec_callb>
+        decltype(auto) make_vanilla_callb(Ok_callb &&ok_callb, Ec_callb&& ec_callb)
+        {
+            return std::make_unique<Vanilla_callb<Ok_callb, Ec_callb>>(std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
+        }
     }
 }

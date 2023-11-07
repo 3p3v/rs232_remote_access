@@ -13,7 +13,7 @@ namespace Mqtt_port
         public:
             Callb(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
-            void on_failure(const mqtt::token &asyncActionToken) override final;
+            void on_failure(const mqtt::token &asyncActionToken) override;
 
             void on_success(const mqtt::token &asyncActionToken) = 0;
         };

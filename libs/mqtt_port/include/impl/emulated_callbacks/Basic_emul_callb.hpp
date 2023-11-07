@@ -10,7 +10,7 @@ namespace Mqtt_port
         {
         public:
             virtual void ok_callb(Args ...args) = 0;
-            virtual void ec_callb(int code, std::string cause) = 0;
+            virtual void ec_callb(int code) = 0;
         };
     }
 }

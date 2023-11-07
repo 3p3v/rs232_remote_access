@@ -4,6 +4,7 @@
 #include <impl/Impl_server.hpp>
 #include <impl/Impl_user.hpp>
 #include "Controller.hpp"
+// #include <Controller.hpp>
 
 namespace Mqtt_port
 {
@@ -41,27 +42,28 @@ namespace Mqtt_port
 
             if (!sub_delay.empty())
             {
-                // sub_delay.for_each([this](auto &pub)
-                //                    { 
-                //                     if (pub.util_callb())
-                //                         {
-                //                             client->subscribe(pub.channel_name, 
-                //                                               pub.qos, 
-                //                                               nullptr, 
-                //                                               std::move(pub.callb));
-                //                         }
-                //                         else
-                //                         {
-                //                             client->subscribe(pub.channel_name, 
-                //                                             pub.qos);
-                //                         } });
+                sub_delay.for_each([this](auto &sub)
+                                   { 
+                                    if (sub.util_callb())
+                                        {
+                                            client->subscribe(sub.channel_name, 
+                                                              sub.qos, 
+                                                              nullptr, 
+                                                              std::move(sub.callb));
+                                        }
+                                        else
+                                        {
+                                            client->subscribe(sub.channel_name, 
+                                                            sub.qos);
+                                        } });
             }
         }
 
         void Controller::connection_lost(const std::string &cause)
         {
             is_conn = false;
-            conn_callb->ec_callb(-1, cause);
+            // TODO translate string to int, doesn't matter really, paho returns empty string...
+            conn_callb->ec_callb(-1);
         }
 
         void Controller::message_arrived(mqtt::const_message_ptr msg)
@@ -71,11 +73,8 @@ namespace Mqtt_port
                 rec_callb[msg->get_topic()]->ok_callb(msg->get_payload().cbegin(), msg->get_payload().cend());
         }
 
-        // Temporarly disabled
         void Controller::delivery_complete(mqtt::delivery_token_ptr token)
         {
-            // sent_callb->success(token->get_message()->get_topic(),
-            //                     token->get_message()->get_payload_str().size());
         }
 
         Controller::Controller(Server::Get_cont &&server,
@@ -102,9 +101,14 @@ namespace Mqtt_port
             }
         }
 
-        void Controller::disconnect(Time time)
+        void Controller::disconnect(Time time) 
         {
             client->disconnect(time);
+        }
+
+        void Controller::unsubscribe(const std::string &channel_name)
+        {
+            client->unsubscribe(channel_name);
         }
     }
 }

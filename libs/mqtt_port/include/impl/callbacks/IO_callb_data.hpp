@@ -14,14 +14,16 @@ namespace Mqtt_port
             std::shared_ptr<Data> data;
 
         public:
-            IO_callb_data(std::shared_ptr<Data> data, size_t len, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+            template <typename Data_ptr>
+            IO_callb_data(Data_ptr &&data, size_t len, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
             // void on_success(const mqtt::token &asyncActionToken) override;
         };
 
         template <typename Ok_callb, typename Ec_callb>
-        IO_callb_data<Ok_callb, Ec_callb>::IO_callb_data(std::shared_ptr<Data> data, size_t len, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-            : IO_callb{len, std::move(ok_callb), std::move(ec_callb)}, data{std::move(data)}
+        template <typename Data_ptr>
+        IO_callb_data<Ok_callb, Ec_callb>::IO_callb_data(Data_ptr &&data, size_t len, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+            : IO_callb{len, std::move(ok_callb), std::move(ec_callb)}, data{std::forward<Data_ptr>(data)}
         {
         }
 
@@ -31,8 +33,14 @@ namespace Mqtt_port
         //     ok_callb(len);
         // }
 
-        template <typename Ok_callb, typename Ec_callb>
-        IO_callb_data(std::shared_ptr<Data>, size_t, Ok_callb &&, Ec_callb &&) -> IO_callb_data<Ok_callb, Ec_callb>;
+        template <typename Data_ptr, typename Ok_callb, typename Ec_callb>
+        IO_callb_data(Data_ptr &&, size_t, Ok_callb &&, Ec_callb &&) -> IO_callb_data<Ok_callb, Ec_callb>;
+
+        template <typename Data_ptr, typename Ok_callb, typename Ec_callb>
+        decltype(auto) make_io_callb_data(Data_ptr &&data, size_t len, Ok_callb &&ok_callb, Ec_callb&& ec_callb)
+        {
+            return std::make_unique<IO_callb_data<Ok_callb, Ec_callb>>(std::forward<Data_ptr>(data), len, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
+        }
 
     }
 }

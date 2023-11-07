@@ -9,7 +9,7 @@
 
 using namespace Cmd_ctrl;
 
-static std::string file_name{"conf.txt"};
+static std::string file_name{"../../resources/conf.txt"};
 
 int main()
 {

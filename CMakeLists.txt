@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}   #WIN32
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
                                                   "include/device"
+                                                  "include/timer"
                                                   "include/serial"
                                                   "include/ip_serial"
                                                 #   "include" 

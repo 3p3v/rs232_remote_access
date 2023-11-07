@@ -31,5 +31,11 @@ namespace Mqtt_port
 
         template <typename Ok_callb, typename Ec_callb>
         IO_callb(size_t, Ok_callb &&, Ec_callb &&) -> IO_callb<Ok_callb, Ec_callb>;
+
+        template <typename Ok_callb, typename Ec_callb>
+        decltype(auto) make_io_callb(size_t len, Ok_callb &&ok_callb, Ec_callb&& ec_callb)
+        {
+            return std::make_unique<IO_callb<Ok_callb, Ec_callb>>(len, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
+        }
     }
 }

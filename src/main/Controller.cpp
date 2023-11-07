@@ -1,6 +1,7 @@
 #include <main/Controller.hpp>
 #include <Serial_ctrl.hpp>
 #include <Ip_serial_ctrl.hpp>
+#include <Serial_context.hpp>
 
 namespace Main_serial
 {
@@ -35,29 +36,42 @@ namespace Main_serial
       auto coms = com_controller.create_virtual_coms();
 
       // Serial connected to virtual serial
-      auto serial_pair = Phy_serial::Serial_ctrl{serial_base,
-                                                 ip_controller,
-                                                 std::move(coms.first),
-                                                 std::move(coms.second),
-                                                 write_access}
-                             .connect();
+      auto serial_ctrl_pair = std::make_shared<Phy_serial::Serial_ctrl>(serial_base,
+                                                                   ip_controller,
+                                                                   std::move(coms.first),
+                                                                   std::move(coms.second),
+                                                                   write_access);
+      auto serial_ptr = serial_ctrl_pair->connect();
 
       // Serial connected to mqtt broker
-      auto ip_serial = Ip_serial::Ip_serial_ctrl{std::move(serial_base),
-                                                 std::move(serial_pair.first),
-                                                 cmds_console,
-                                                 std::move(info),
-                                                 settings_known}
-                           .connect();
+      auto ip_serial = std::make_shared<Ip_serial::Ip_serial_ctrl>(std::move(serial_base),
+                                                                   ip_controller,
+                                                                   std::move(serial_ptr),
+                                                                   cmds_console,
+                                                                   std::move(info),
+                                                                   settings_known);
+      ip_serial->connect();
 
       // Add serial to monitor
-      monitor.add_device(std::move(device_ptr), std::move(ip_serial), std::move(serial_pair.second));
+      monitor.add_device(std::move(device_ptr), std::move(ip_serial), std::move(serial_ctrl_pair));
    }
 
    void Controller::run()
    {
-      controller.run();
-      Serial_context::run();
+      ip_controller.connect([]()
+                            {
+
+                            },
+                            [](int)
+                            {
+
+                            },
+                            [](int)
+                            {
+
+                            });
+
+      Phy_serial::Serial_context::run();
    }
 
    void Controller::set_baud_rate(const std::string &dev_name, const unsigned int baud_rate)

@@ -28,6 +28,11 @@ protected:
     std::unordered_map<Device_ptr, Serial_pair> devices;
 
 public:
+    virtual void error(int code) = 0;
+    virtual void error(int code, std::string&& what) = 0;
+    virtual void error(int code, const std::string& what) = 0;
+    virtual void error(std::string&& what) = 0;
+    virtual void error(const std::string& what);
     virtual void wake(const Device_ptr &device) = 0;
     virtual void wake_delete(const Device_ptr &device) = 0;
     virtual void validate(const std::string &name) = 0;
@@ -35,7 +40,7 @@ public:
                     Ip_serial_ctrl_ptr ip_serial,
                     Serial_ctrl_ptr serial);
 
-    Monitor();
+    Monitor() = default;
     Monitor(Monitor&&) = default;
     Monitor& operator=(Monitor&&) = default;
     Monitor(const Monitor&) = default;

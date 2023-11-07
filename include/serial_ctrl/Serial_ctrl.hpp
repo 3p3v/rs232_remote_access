@@ -16,7 +16,8 @@ namespace Phy_serial
     class Serial_ctrl : public Base_serial_ctrl, protected Ip_serial::Mqtt_defs, public std::enable_shared_from_this<Serial_ctrl>
     {
     public:
-        using Serial_Ctrl_pair = std::pair<std::unique_ptr<Serial_port::Serial>, std::shared_ptr<Serial_ctrl>>;
+        using Serial_ptr = std::unique_ptr<Serial_port::Serial>;
+        // using Serial_Ctrl_pair = std::pair<std::unique_ptr<Serial_port::Serial>, std::shared_ptr<Serial_ctrl>>;
 
     private:
         Mqtt_port::Impl::Controller &controller; // 2
@@ -35,7 +36,7 @@ namespace Phy_serial
 
         /// @brief Connect to virtual port
         /// @return 
-        Serial_Ctrl_pair connect() &&;
+        Serial_ptr connect();
 
         /// @brief Get virtual COM ports
         /// @return 
@@ -57,7 +58,7 @@ namespace Phy_serial
                              bool write_access)
         : Base_serial_ctrl{std::move(base)},
           controller{controller},
-          channel_name{device->get_info_ch()},
+          channel_name{device->get_data_ch()},
           com1{std::forward<Str1>(com1)},
           com2{std::forward<Str2>(com2)},
           write_access{write_access}

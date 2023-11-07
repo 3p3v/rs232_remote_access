@@ -15,7 +15,7 @@ namespace Mqtt_port
             Emul_callb(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
             void ok_callb(Args ...args) override;
-            void ec_callb(int code, std::string cause) override;
+            void ec_callb(int code) override;
         };
 
         template <typename Ok_callb, typename Ec_callb, typename ...Args>
@@ -32,9 +32,9 @@ namespace Mqtt_port
         }
 
         template <typename Ok_callb, typename Ec_callb, typename ...Args>
-        void Emul_callb<Ok_callb, Ec_callb, Args...>::ec_callb(int code, std::string cause)
+        void Emul_callb<Ok_callb, Ec_callb, Args...>::ec_callb(int code)
         {
-            ec_callb_(code, std::move(cause));
+            ec_callb_(code);
         }
     }
 }

@@ -17,7 +17,6 @@ namespace Main_serial
     /// @brief Used to create and manage connection
     class Controller final : public Serial_port::Ctrl_defs, public Serial_settings_intf
     {
-        // Ip_serial::Controller ip_controller;
         Phy_serial::Controller com_controller;
         Monitor &monitor;
         Mqtt_port::Impl::Controller ip_controller;
@@ -54,6 +53,7 @@ namespace Main_serial
         void set_char_size(const std::string &dev_name, const unsigned int char_size) override;
         void set_flow_ctrl(const std::string &dev_name, const Flow_ctrl flow_ctrl) override;
         void set_stop_bits(const std::string &dev_name, const Stop_bits stop_bits) override;
-        void close(const std::string &dev_name);
+        void disconnect_device(const std::string &dev_name);
+        void close();
     };
 }

@@ -12,7 +12,7 @@ namespace Phy_serial
     return std::make_pair(com1, com2);
   }
 
-  Serial_ctrl::Serial_Ctrl_pair Serial_ctrl::connect() &&
+  Serial_ctrl::Serial_ptr Serial_ctrl::connect()
   {
     auto serial = std::unique_ptr<Serial_port::Serial>(new Dyn_serial{com1,
                                                                    [](std::size_t write_len)
@@ -23,7 +23,7 @@ namespace Phy_serial
                                                                    {
                                                                      /* Increment number of data that has to be sent */
                                                                      /* Write data to channel */
-                                                                     serial_ctrl->write(data.cbegin(), data.cend() + read_len);
+                                                                     serial_ctrl->write(data.cbegin(), data.cbegin() + read_len);
                                                                    },
                                                                    [](const unsigned int code, const std::string &err)
                                                                    {
@@ -32,7 +32,7 @@ namespace Phy_serial
 
     serial->run();
 
-    return std::make_pair(std::move(serial), shared_from_this());
+    return std::move(serial);
   }
 
 }
