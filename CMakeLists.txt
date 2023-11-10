@@ -38,6 +38,10 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/setup_loader/Setup_loader.cpp
                                # monitor
                                src/monitor/Monitor.cpp
+                               # timer
+                               src/timer/Timer.cpp
+                               # exception
+                               src/exception/Exception.cpp
                                # main
                                main.cpp)
 
@@ -46,6 +50,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
                                                   "include/timer"
                                                   "include/serial"
                                                   "include/ip_serial"
+                                                  "include/exception"
                                                 #   "include" 
                                                   "include/main"
                                                   "include/setup_loader"

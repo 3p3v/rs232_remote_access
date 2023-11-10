@@ -14,7 +14,6 @@ namespace Serial_port
         Data buffer;
         
         /* Callbacks */
-        virtual void write_callback(std::size_t write_len) = 0;
         virtual void read_callback(const Data &data, std::size_t write_len) = 0;
         virtual void error_callback(const unsigned int code, const std::string &err) = 0;
     };

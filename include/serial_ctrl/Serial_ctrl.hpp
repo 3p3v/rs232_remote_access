@@ -16,30 +16,31 @@ namespace Phy_serial
     class Serial_ctrl : public Base_serial_ctrl, protected Ip_serial::Mqtt_defs, public std::enable_shared_from_this<Serial_ctrl>
     {
     public:
-        using Serial_ptr = std::unique_ptr<Serial_port::Serial>;
+        using Serial_ptr = std::shared_ptr<Serial_port::Serial>;
         // using Serial_Ctrl_pair = std::pair<std::unique_ptr<Serial_port::Serial>, std::shared_ptr<Serial_ctrl>>;
 
     private:
         Mqtt_port::Impl::Controller &controller; // 2
-        const std::string com1;                        // 1
-        const std::string com2;                        // 1
-        bool write_access;                             // 1
-        const std::string channel_name;                // 1
+        const std::string com1;                  // 1
+        const std::string com2;                  // 1
+        bool write_access;                       // 1
+        const std::string channel_name;          // 1
+        Serial_ptr serial;
 
     public:
         /// @brief Write to mqtt controller
-        /// @tparam Iter_t 
-        /// @param begin 
-        /// @param end 
+        /// @tparam Iter_t
+        /// @param begin
+        /// @param end
         template <typename Iter_t>
         void write(const Iter_t begin, const Iter_t end);
 
         /// @brief Connect to virtual port
-        /// @return 
+        /// @return
         Serial_ptr connect();
 
         /// @brief Get virtual COM ports
-        /// @return 
+        /// @return
         std::pair<const std::string &, const std::string &> get_coms() const;
 
         template <typename Str1, typename Str2>
@@ -69,7 +70,19 @@ namespace Phy_serial
     template <typename Iter_t>
     void Serial_ctrl::write(const Iter_t begin, const Iter_t end)
     {
-        controller.write(channel_name, qos, begin, end);
+        controller.write(
+            channel_name,
+            qos,
+            begin,
+            end,
+            [serial](size_t) {
+                // Unlock serial's buffer
+                serial->listen();
+            },
+            [](int)
+            {
+                // send error to monitor
+            });
         flow += end - begin;
         monitor.wake(device);
     }

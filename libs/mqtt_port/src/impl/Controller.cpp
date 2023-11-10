@@ -4,7 +4,7 @@
 #include <impl/Impl_server.hpp>
 #include <impl/Impl_user.hpp>
 #include "Controller.hpp"
-// #include <Controller.hpp>
+#include <Rec_helper.hpp>
 
 namespace Mqtt_port
 {
@@ -70,7 +70,11 @@ namespace Mqtt_port
         {
             /* Find topic's callback */
             if (rec_callb.find(msg->get_topic()) != rec_callb.end())
-                rec_callb[msg->get_topic()]->ok_callb(msg->get_payload().cbegin(), msg->get_payload().cend());
+            {
+                // Move entire message so data don't get deallocated
+                auto size = msg->get_payload.size();
+                rec_callb[msg->get_topic()]->ok_callb(std::move(msg), size);
+            }
         }
 
         void Controller::delivery_complete(mqtt::delivery_token_ptr token)

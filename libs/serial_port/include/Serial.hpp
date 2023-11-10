@@ -14,8 +14,7 @@ namespace Serial_port
         boost::asio::serial_port serial;
         std::string port;
 
-        template <typename Cont>
-        void write(const Cont &data, const size_t data_len);
+        
 
     protected:
         void open();
@@ -45,10 +44,8 @@ namespace Serial_port
         void set_stop_bits() override final;
 
         /* Communication */
-        void write(const std::vector<unsigned char> &data, const size_t data_len);
-        void write(const std::string &data, const size_t data_len);
-        template <typename Cont>
-        void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end); // override final;
+        template <typename Cont, typename Ok_callb>
+        void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb)
 
         /* Start */
         void run() override final;
@@ -60,33 +57,19 @@ namespace Serial_port
     {
     }
 
-    template <typename Cont>
-    void Serial::write(const Cont &data, const size_t data_len)
-    {
-        boost::asio::async_write(serial,
-                                 boost::asio::buffer(data, data_len),
-                                 [this](const boost::system::error_code &err, std::size_t write_len)
-                                 {
-                                     if (err)
-                                         error_callback(err.value(), err.what());
-                                     else
-                                         write_callback(write_len);
-                                 });
-    }
-
-    template <typename Cont>
-    void Serial::write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end)
+    template <typename Cont, typename Ok_callb>
+    void Serial::write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb)
     {
         static constexpr auto size_ = sizeof(typename std::iterator_traits<typename Cont::const_iterator>::value_type);
 
         boost::asio::async_write(serial,
                                  boost::asio::buffer(&(*begin), (end - begin) * size_),
-                                 [this](const boost::system::error_code &err, std::size_t write_len)
+                                 [this, ok_callb = std::forward<Ok_callb>(ok_callb)](const boost::system::error_code &err, std::size_t write_len)
                                  {
                                      if (err)
                                          error_callback(err.value(), err.what());
                                      else
-                                         write_callback(write_len);
+                                         ok_callb(write_len);
                                  });
     }
 }

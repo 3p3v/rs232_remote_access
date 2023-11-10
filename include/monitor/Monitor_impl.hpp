@@ -22,9 +22,11 @@ public:
 
     }
 
-    void error(int code) override {}
-    void error(int code, std::string&& what) override {}
-    void error(int code, const std::string& what) override {}
-    void error(std::string&& what) override {}
+    void error(Errors type) override {}
+    void error(Errors type, std::string&& what) override {}
+    void error(Errors type, const std::string& what) override {}
+    void error(Errors type, int code) override {}
+    void error(Errors type, int code, std::string&& what) override {}
+    void error(Errors type, int code, const std::string& what) override {}
 };
 

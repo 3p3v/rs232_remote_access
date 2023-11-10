@@ -62,7 +62,7 @@ namespace Serial_port
                                     else
                                     {
                                         read_callback(buffer, read_len);
-                                        listen();
+                                        // listen();
                                     }
                                 });
         
@@ -221,16 +221,6 @@ namespace Serial_port
     void Serial::set_stop_bits()
     {
         set_stop_bits(this->stop_bits);
-    }
-
-    void Serial::write(const std::vector<unsigned char> &data, const size_t data_len)
-    {
-        write<std::vector<unsigned char>>(data, data_len);
-    }
-
-    void Serial::write(const std::string &data, const size_t data_len)
-    {
-        write<std::string>(data, data_len);
     }
 
     void Serial::run()

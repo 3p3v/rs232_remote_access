@@ -1,6 +1,7 @@
 #include <Ip_serial_ctrl.hpp>
 #include <Serial_ctrl_helper.hpp>
 #include <impl/Controller.hpp>
+// #include <Rec_callb_intf.hpp>
 
 namespace Ip_serial
 {
@@ -29,8 +30,8 @@ namespace Ip_serial
   {
     try
     {
-      controller.unsubscribe(channel_name, 
-                             [&monitor]()
+      controller.unsubscribe(device->get_data_ch(), 
+                             [this]()
                              {
                               monitor.wake_delete(device);
                              },
@@ -41,7 +42,7 @@ namespace Ip_serial
     }
     catch(const std::exception& e)
     {
-      monitor.error(e.what());
+      monitor.error(Errors::mqtt, e.what());
     }
   };
 
@@ -52,18 +53,17 @@ namespace Ip_serial
         device->get_info_ch(),
         qos,
         /* Successful message receive */
-        [serial_ctrl = shared_from_this()](const std::string::const_iterator begin, const std::string::const_iterator end)
+        [serial_ctrl = shared_from_this()](auto &&data, size_t size)
         {
           /* Interpret received data, catch exception associated with receiving unknown/uncorrect cmds */
           try
           {
             /* Interpret received data */
-            serial_ctrl->exec(begin, end); 
+            serial_ctrl->exec(data->cbegin(), data->cend()); 
           }
           catch(const std::exception& e)
           {
-            // monitor.error(e.what());
-            throw e;
+            serial_ctrl->monitor.error(Errors::cmds, e.what());
           }
         },
         /* Unsuccessful message receive */
@@ -79,10 +79,6 @@ namespace Ip_serial
                                   [](size_t)
                                   {
                                     /* Set "M_HI" timer */
-                                  }, 
-                                  [](int)
-                                  {
-                                    
                                   });
         },
         /* Subscribe failed */
@@ -95,11 +91,16 @@ namespace Ip_serial
     controller.subscribe(
         device->get_data_ch(),
         qos,
-        [serial_ctrl = shared_from_this()](const std::string::const_iterator begin, const std::string::const_iterator end)
+        [serial_ctrl = shared_from_this()](auto &&data, size_t size)
         {
+          auto beg = data->cbegin();
+          auto end = data->cend();
           /* Increment number of data that was received */
           /* Write data to phisical port */
-          serial_ctrl->write<std::string>(begin, end); },
+          serial_ctrl->write<std::string>(beg, end, [data](size_t)
+                                                      {
+                                                        // Copy shared_ptr of data so it's not deallocated
+                                                      }); },
         [](int) 
         {
 
