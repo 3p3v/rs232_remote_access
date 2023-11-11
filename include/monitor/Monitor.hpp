@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <Errors.hpp>
+#include <Exception.hpp>
 
 class Device;
 
@@ -29,12 +29,7 @@ protected:
     std::unordered_map<Device_ptr, Serial_pair> devices;
 
 public:
-    virtual void error(Errors type) = 0;
-    virtual void error(Errors type, std::string&& what) = 0;
-    virtual void error(Errors type, const std::string& what) = 0;
-    virtual void error(Errors type, int code) = 0;
-    virtual void error(Errors type, int code, std::string&& what) = 0;
-    virtual void error(Errors type, int code, const std::string& what) = 0;
+    virtual void error(const Exception::Exception &except) = 0;
     virtual void wake(const Device_ptr &device) = 0;
     virtual void wake_delete(const Device_ptr &device) = 0;
     virtual void validate(const std::string &name) = 0;

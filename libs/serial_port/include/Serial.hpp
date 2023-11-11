@@ -14,12 +14,9 @@ namespace Serial_port
         boost::asio::serial_port serial;
         std::string port;
 
-        
-
     protected:
         void open();
         void close();
-        void listen();
 
     public:
         template <typename Str>
@@ -45,10 +42,12 @@ namespace Serial_port
 
         /* Communication */
         template <typename Cont, typename Ok_callb>
-        void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb)
+        void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb);
 
         /* Start */
         void run() override final;
+
+        void listen();
     };
 
     template <typename Str>

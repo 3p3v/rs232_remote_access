@@ -3,63 +3,35 @@
 #include <boost/asio.hpp>
 #include <Basic_timer.hpp>
 #include <serial/Serial_context.hpp>
+#include <Cmds_except.hpp>
+#include <Monitor.hpp>
 
 /// @brief Timer fireing callback after given time
-/// @tparam Callb Functor with no parameters
-/// @tparam Ec_callb 
-template <typename Callb>
-class Timer : public Basic_timer, public Serial_context
+class Timer : public Basic_timer, public Phy_serial::Serial_context
 {
-    /* Callback */
-    Callb callb;
+    /* Command name */
+    std::string cmd_name;
 
     /* Timer */
-    boost::asio::basic_waitable_timer timer{*shared_io_context_};
+    boost::asio::steady_timer timer{*shared_io_context_};
 
-    void callb_wrap(const boost::system::error_code& ec);
+    Monitor &monitor;
 
 public:
     void start() override;
     void stop() override;
 
-    template <typename Time>
-    Timer(Time &&interval, Callb &&callb);
+    template <typename Str>
+    Timer(Str &&cmd_name, Monitor &monitor);
+    Timer(Timer&&) = default;
+    Timer& operator=(Timer&&) = default;
+    Timer(const Timer&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    ~Timer();
 };
 
-template <typename Callb>
-template <typename Time>
-Timer<Callb>::Timer(Time &&interval, Callb &&callb)
-    : Basic_timer{std::forward<Time>(interval)}, callb{std::move(callb)}
+template <typename Str>
+Timer::Timer(Str &&cmd_name, Monitor &monitor)
+    : Basic_timer{std::chrono::seconds{10}}, cmd_name{std::forward<Str>(cmd_name)}, monitor{monitor}
 {
 }
-
-template <typename Callb>
-void Timer<Callb>::callb_wrap(const boost::system::error_code& ec)
-{
-    if (ec == boost::asio::error::operation_aborted)
-        return;
-    else if (!ec)
-        callb();
-    else
-        throw std::runtime_error{ec.what()};
-}
-
-template <typename Callb>
-void Timer<Callb>::start() 
-{
-    timer.cancel();
-    timer.expires_after(interval);
-    timer.async_wait([](const boost::system::error_code& ec)
-                     {
-                        callb_wrap(ec);
-                     });
-}
-
-template <typename Callb>
-void Timer<Callb>::stop() 
-{
-    timer.close();
-}
-
-template <typename Callb, typename Time>
-Timer(Time &&, Callb &&) -> Timer<Callb>;

@@ -14,7 +14,7 @@ namespace Phy_serial
 
   Serial_ctrl::Serial_ptr Serial_ctrl::connect()
   {
-    auto serial = std::unique_ptr<Serial_port::Serial>(new Dyn_serial{com1,
+    auto serial = std::shared_ptr<Serial_port::Serial>(new Dyn_serial{com1,
                                                                    [serial_ctrl = shared_from_this()](const Serial_port::Data_interface::Data &data, std::size_t read_len)
                                                                    {
                                                                      /* Increment number of data that has to be sent */
@@ -28,7 +28,8 @@ namespace Phy_serial
 
     serial->run();
 
-    this->serial.reset(serial);
+    // this->serial.reset(serial);
+    this->serial = serial;
 
     return std::move(serial);
   }

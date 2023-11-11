@@ -25,9 +25,19 @@ namespace Ip_serial
         return std::string{opt_name} + std::string{ok_str};
     }
 
+    std::string Ip_defs::baud_rate_trans(unsigned int baud_rate)
+    {
+        return std::to_string(baud_rate);
+    }
+
     std::string Ip_defs::parity_trans(Serial_port::Ctrl_defs::Parity parity)
     {
         return parity_bi.left.find(parity)->get_right();
+    }
+
+    std::string Ip_defs::char_size_trans(unsigned int char_size)
+    {
+        return std::to_string(char_size);
     }
 
     std::string Ip_defs::flow_ctrl_trans(Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl)
@@ -40,9 +50,19 @@ namespace Ip_serial
         return stop_bits_bi.left.find(stop_bits)->get_right();
     }
 
+    unsigned int Ip_defs::baud_rate_trans(const std::string &baud_rate)
+    {
+        return std::strtoul(baud_rate.data(), nullptr, 0);
+    }
+
     Serial_port::Ctrl_defs::Parity Ip_defs::parity_trans(const std::string &parity)
     {
         return parity_bi.right.find(parity)->get_left();
+    }
+
+    unsigned int Ip_defs::char_size_trans(const std::string &char_size)
+    {
+        return std::strtoul(char_size.data(), nullptr, 0);
     }
 
     Serial_port::Ctrl_defs::Flow_ctrl Ip_defs::flow_ctrl_trans(const std::string &flow_ctrl)
@@ -54,4 +74,7 @@ namespace Ip_serial
     {
         return stop_bits_bi.right.find(stop_bits)->get_left();
     }
+
+    Ip_defs::~Ip_defs() = default;
+    Ip_hi::~Ip_hi() = default;
 }

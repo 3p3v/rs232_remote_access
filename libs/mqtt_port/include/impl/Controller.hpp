@@ -198,7 +198,7 @@ namespace Mqtt_port
         void Controller::unsubscribe(const std::string &channel_name, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
             /* Unsubscribe topic */
-            client->unsubscribe(channel_name, nullptr, make_unsub_callb(std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+            client->unsubscribe(channel_name, nullptr, make_unsub_callb(rec_callb, channel_name, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
         }
 
         template <typename Iter>

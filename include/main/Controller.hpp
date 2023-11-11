@@ -55,5 +55,6 @@ namespace Main_serial
         void set_stop_bits(const std::string &dev_name, const Stop_bits stop_bits) override;
         void disconnect_device(const std::string &dev_name);
         void close();
+        
     };
 }

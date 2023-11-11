@@ -4,7 +4,7 @@
 #include <impl/Impl_server.hpp>
 #include <impl/Impl_user.hpp>
 #include "Controller.hpp"
-#include <Rec_helper.hpp>
+// #include <Rec_helper.hpp>
 
 namespace Mqtt_port
 {
@@ -72,8 +72,7 @@ namespace Mqtt_port
             if (rec_callb.find(msg->get_topic()) != rec_callb.end())
             {
                 // Move entire message so data don't get deallocated
-                auto size = msg->get_payload.size();
-                rec_callb[msg->get_topic()]->ok_callb(std::move(msg), size);
+                rec_callb[msg->get_topic()]->ok_callb(std::move(msg));
             }
         }
 

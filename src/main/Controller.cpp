@@ -100,10 +100,15 @@ namespace Main_serial
       // console.local_exec(dev_name, std::string{set_baud_rate_s}, stop_bits_trans(stop_bits));
    }
 
-   void Controller::close(const std::string &dev_name)
+   void Controller::disconnect_device(const std::string &dev_name)
    {
       // serials[dev_name]->close();
       // serials.erase(dev_name);
       // TODO delete channels
+   }
+
+   void Controller::close()
+   {
+
    }
 }

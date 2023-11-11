@@ -12,13 +12,11 @@ namespace Phy_serial
     class Dyn_serial final : public Serial_port::Serial, public Serial_context
     {
         /* Callback's definitions */
-        Wc wc;
         Rc rc;
         Ec ec;
 
     protected:
         /* Callbacks */
-        void write_callback(std::size_t write_len) override;
         void read_callback(const Data &data, std::size_t read_len) override;
         void error_callback(const unsigned int code, const std::string &err) override;
 

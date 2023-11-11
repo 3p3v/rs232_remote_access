@@ -39,9 +39,14 @@ add_executable(${PROJECT_NAME}   #WIN32
                                # monitor
                                src/monitor/Monitor.cpp
                                # timer
+                               src/timer/Basic_timer.cpp
                                src/timer/Timer.cpp
+                               src/timer/Timer_cont.cpp
                                # exception
                                src/exception/Exception.cpp
+                               src/exception/mqtt/Mqtt_except.cpp
+                               src/exception/cmds/Cmds_except.cpp
+                               src/exception/serial/Serial_except.cpp
                                # main
                                main.cpp)
 
@@ -51,6 +56,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
                                                   "include/serial"
                                                   "include/ip_serial"
                                                   "include/exception"
+                                                  "include/exception/mqtt"
+                                                  "include/exception/serial"
+                                                  "include/exception/cmds"
                                                 #   "include" 
                                                   "include/main"
                                                   "include/setup_loader"

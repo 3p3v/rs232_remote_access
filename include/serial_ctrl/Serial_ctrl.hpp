@@ -75,7 +75,7 @@ namespace Phy_serial
             qos,
             begin,
             end,
-            [serial](size_t) {
+            [serial = this->serial](size_t) {
                 // Unlock serial's buffer
                 serial->listen();
             },

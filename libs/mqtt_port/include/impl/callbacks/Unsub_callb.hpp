@@ -30,7 +30,7 @@ namespace Mqtt_port
         template <typename Ok_callb, typename Ec_callb>
         template <typename Str>
         Unsub_callb<Ok_callb, Ec_callb>::Unsub_callb(Rec_callb_cont &rec_callb, Str &&channel_name, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-            : Callb{std::move(ok_callb), std::move(ec_callb)}, controller{controller}, channel_name{std::forward<Str>(channel_name)}
+            : Callb{std::move(ok_callb), std::move(ec_callb)}, rec_callb{rec_callb}, channel_name{std::forward<Str>(channel_name)}
         {
         }
 
@@ -50,14 +50,13 @@ namespace Mqtt_port
         template <typename Ok_callb, typename Ec_callb>
         void Unsub_callb<Ok_callb, Ec_callb>::on_failure(const mqtt::token &asyncActionToken)
         {
-            erase_callb();
-            ok_callb();
+            ec_callb(asyncActionToken.get_reason_code());
         }
 
         template <typename Str, typename Ok_callb, typename Ec_callb>
         decltype(auto) make_unsub_callb(std::unordered_map<std::string, std::unique_ptr<Rec_callb_intf>> &rec_callb, Str &&channel_name, Ok_callb &&ok_callb, Ec_callb&& ec_callb)
         {
-            return std::make_unique<Vanilla_callb<Ok_callb, Ec_callb>>(rec_callb, std::forward<Str>(channel_name), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
+            return std::make_unique<Unsub_callb<Ok_callb, Ec_callb>>(rec_callb, std::forward<Str>(channel_name), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
         }
     }
 }
