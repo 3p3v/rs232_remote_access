@@ -13,8 +13,10 @@ class Periodic_timer : public Basic_timer_impl
 public:
     template <typename Timer_t>
     Periodic_timer(Callb &&callb, Timer_t &&cmd_timer, std::chrono::milliseconds interval = std::chrono::seconds{60});
+    ~Periodic_timer();
 
     void start() override;
+    void stop() override;
 };
 
 template <typename Callb>
@@ -24,6 +26,12 @@ Periodic_timer<Callb>::Periodic_timer(Callb &&callb, Timer_t &&cmd_timer, std::c
       callb{std::move(callb)},
       cmd_timer{std::make_unique<Timer_t>(std::forward<Timer_t>(cmd_timer))}
 {
+}
+
+template <typename Callb>
+Periodic_timer<Callb>::~Periodic_timer()
+{
+    stop();
 }
 
 template <typename Callb>
@@ -47,6 +55,13 @@ void Periodic_timer<Callb>::start()
                         {
                             Monitor::get().error(Exception::Serial_except{ec.what()});
                         } });
+}
+
+template <typename Callb>
+void Periodic_timer<Callb>::stop()
+{
+    cmd_timer->stop();
+    timer.cancel();
 }
 
 template <typename Callb, typename Timer_t>

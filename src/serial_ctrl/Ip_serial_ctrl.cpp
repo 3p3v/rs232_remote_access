@@ -51,42 +51,44 @@ namespace Ip_serial
   {
     /* Keep alive timer */
     keep_alive_timer.reset(new Periodic_timer([this]()
-                                               { write_info_no_timer(master_keep_alive_s); },
-                                               Custom_timer{[serial_ctrl = weak_from_this(), this]()
-                                                            {
-                                                              if (auto serial = serial_ctrl.lock())
-                                                              {
-                                                                Monitor::get().error(Exception::Cmds_except{"Keep alive timed out, retrying if enabled..."});
-                                                                /* Try to say hi to device again */
-                                                                say_hi_();
-                                                              }
-                                                            }}));
+                                              { write_info_no_timer(master_keep_alive_s); },
+                                              Custom_timer{[serial_ctrl = weak_from_this(), this]()
+                                                           {
+                                                             if (auto serial = serial_ctrl.lock())
+                                                             {
+                                                               Monitor::get().error(Exception::Cmds_except{"Keep alive timed out, retrying if enabled..."});
+                                                               /* Try to say hi to device again */
+                                                               say_hi_();
+                                                             }
+                                                           }}));
 
-        /* Subscribe to info channel */
-        controller.subscribe(
-            device->get_info_ch(),
-            qos,
-            /* Successful message receive */
-            [serial_ctrl = shared_from_this()](mqtt::const_message_ptr &&data)
-            {
-              /* Interpret received data, catch exception associated with receiving unknown/uncorrect cmds */
-              serial_ctrl->exec(data->cbegin(), data->cend());
-            },
-            /* Unsuccessful message receive */
-            [](int) {
+    /* Subscribe to info channel */
+    controller.subscribe(
+        device->get_info_ch(),
+        qos,
+        /* Successful message receive */
+        [serial_ctrl = shared_from_this()](mqtt::const_message_ptr &&data)
+        {
+          /* Reset keep alive timer if started */
+          serial_ctrl->keep_alive();
+          /* Interpret received data, catch exception associated with receiving unknown/uncorrect cmds */
+          serial_ctrl->exec(data->cbegin(), data->cend());
+        },
+        /* Unsuccessful message receive */
+        [](int) {
 
-            },
-            /* Suback */
-            [serial_ctrl = shared_from_this()]()
-            {
-              /* Check if device is connected */
-              serial_ctrl->say_hi_();
-            },
-            /* Subscribe failed */
-            [](int)
-            {
-              Monitor::get().error(Exception::Mqtt_read_except{});
-            });
+        },
+        /* Suback */
+        [serial_ctrl = shared_from_this()]()
+        {
+          /* Check if device is connected */
+          serial_ctrl->say_hi_();
+        },
+        /* Subscribe failed */
+        [](int)
+        {
+          Monitor::get().error(Exception::Mqtt_read_except{});
+        });
 
     /* Subscribe to data channel */
     controller.subscribe(
@@ -96,6 +98,9 @@ namespace Ip_serial
         {
           auto beg = data->cbegin();
           auto end = data->cend();
+
+          /* Reset keep alive timer if started */
+          serial_ctrl->keep_alive();
           /* Increment number of data that was received */
           /* Write data to phisical port */
           // typename std::remove_reference_t<decltype(data->get_payload())>
@@ -127,6 +132,7 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::say_hi_()
   {
+    Monitor::get().debug(device, "Saying hi...");
     write_info_custom(std::string{master_hi_s},
                       [serial_ctrl = weak_from_this()]()
                       {
@@ -141,22 +147,49 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::say_hi()
   {
+    Monitor::get().debug(device, "Received hi request...");
     info.timers.start_timer(std::string{master_hi_s});
   }
 
   void Ip_serial_ctrl::say_hi_compl()
   {
+    Monitor::get().debug(device, "Received hi confirmation...");
     info.timers.stop_timer(std::string{master_hi_s});
+  }
+
+  void Ip_serial_ctrl::keep_alive_start()
+  {
+    keep_alive_started = true;
+    keep_alive();
   }
 
   void Ip_serial_ctrl::keep_alive()
   {
-    keep_alive_timer->start();
+    if (keep_alive_started)
+      keep_alive_timer->start();
+  }
+
+  void Ip_serial_ctrl::keep_alive_stop()
+  {
+    keep_alive_started = false;
+    keep_alive_timer->stop();
+  }
+
+  void Ip_serial_ctrl::clear_timers()
+  {
+    info.timers.clear();
+  }
+
+  void Ip_serial_ctrl::reboot()
+  {
+    keep_alive_stop();
+    clear_timers();
+    say_hi_();
   }
 
   void Ip_serial_ctrl::get_settings()
   {
-
+    Monitor::get().debug(device, "Sending get settings request...");
     auto msg_ptr = std::make_unique<std::string>(std::string{get_info_s} + "\n");
 
     auto beg = msg_ptr->cbegin();
@@ -193,56 +226,67 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::set_baud_rate(const unsigned int baud_rate)
   {
+    Monitor::get().debug(device, "Sending set baud rate request...");
     write_info(set_baud_rate_s.data(), baud_rate_trans(baud_rate));
   }
 
   void Ip_serial_ctrl::set_parity(const Serial_port::Ctrl_defs::Parity parity)
   {
+    Monitor::get().debug(device, "Sending set parity request...");
     write_info(set_baud_rate_s.data(), parity_trans(parity));
   }
 
   void Ip_serial_ctrl::set_char_size(const unsigned int char_size)
   {
+    Monitor::get().debug(device, "Sending set char size request...");
     write_info(set_baud_rate_s.data(), char_size_trans(char_size));
   }
 
   void Ip_serial_ctrl::set_flow_ctrl(const Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl)
   {
+    Monitor::get().debug(device, "Sending set flow ctrl request...");
     write_info(set_baud_rate_s.data(), flow_ctrl_trans(flow_ctrl));
   }
 
   void Ip_serial_ctrl::set_stop_bits(const Serial_port::Ctrl_defs::Stop_bits stop_bits)
   {
+    Monitor::get().debug(device, "Sending set stop bits request...");
     write_info(set_baud_rate_s.data(), stop_bits_trans(stop_bits));
   }
 
   void Ip_serial_ctrl::set_baud_rate()
   {
-    info.timers.stop_timer(std::string{set_baud_rate_s});
+    Monitor::get().debug(device, "Received set baud rate request...");
+    info.timers.start_timer(std::string{set_baud_rate_s});
   }
 
   void Ip_serial_ctrl::set_parity()
   {
-    info.timers.stop_timer(std::string{set_parity_s});
+    Monitor::get().debug(device, "Received set parity request...");
+    info.timers.start_timer(std::string{set_parity_s});
   }
 
   void Ip_serial_ctrl::set_char_size()
   {
-    info.timers.stop_timer(std::string{set_char_size_s});
+    Monitor::get().debug(device, "Received set char size request...");
+    info.timers.start_timer(std::string{set_char_size_s});
   }
 
   void Ip_serial_ctrl::set_flow_ctrl()
   {
-    info.timers.stop_timer(std::string{set_flow_ctrl_s});
+    Monitor::get().debug(device, "Received set flow ctrl request...");
+    info.timers.start_timer(std::string{set_flow_ctrl_s});
   }
 
   void Ip_serial_ctrl::set_stop_bits()
   {
-    info.timers.stop_timer(std::string{set_stop_bits_s});
+    Monitor::get().debug(device, "Received set stop bits request...");
+    info.timers.start_timer(std::string{set_stop_bits_s});
   }
 
   void Ip_serial_ctrl::set_baud_rate_compl(const std::string &arg)
   {
+    Monitor::get().debug(device, "Received set baud rate confirmation, value: " + arg + ".");
     info.timers.stop_timer(std::string{set_baud_rate_s});
     auto arg_ = baud_rate_trans(arg);
     info.info.baud_rate = arg_;
@@ -251,6 +295,7 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::set_parity_compl(const std::string &arg)
   {
+    Monitor::get().debug(device, "Received set parity confirmation, value: " + arg + ".");
     info.timers.stop_timer(std::string{set_parity_s});
     auto arg_ = parity_trans(arg);
     info.info.parity = arg_;
@@ -259,6 +304,7 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::set_char_size_compl(const std::string &arg)
   {
+    Monitor::get().debug(device, "Received set char size confirmation, value: " + arg + ".");
     info.timers.stop_timer(std::string{set_char_size_s});
     auto arg_ = char_size_trans(arg);
     info.info.char_size = arg_;
@@ -267,6 +313,7 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::set_flow_ctrl_compl(const std::string &arg)
   {
+    Monitor::get().debug(device, "Received set flow ctrl confirmation, value: " + arg + ".");
     info.timers.stop_timer(std::string{set_flow_ctrl_s});
     auto arg_ = flow_ctrl_trans(arg);
     info.info.flow_ctrl = arg_;
@@ -275,6 +322,7 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::set_stop_bits_compl(const std::string &arg)
   {
+    Monitor::get().debug(device, "Received set stop bits confirmation, value: " + arg + ".");
     info.timers.stop_timer(std::string{set_stop_bits_s});
     auto arg_ = stop_bits_trans(arg);
     info.info.stop_bits = arg_;

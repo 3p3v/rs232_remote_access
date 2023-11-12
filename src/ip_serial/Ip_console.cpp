@@ -20,7 +20,9 @@ namespace Ip_serial
                                                              { 
                                                                 /* Delete timer */
                                                                 helper.say_hi_compl();
-                                                                helper.keep_alive();
+
+                                                                /* Start keep alive timer */
+                                                                helper.keep_alive_start();
 
                                                                 /* Get settings if unknown */
                                                                 if (!helper.get_helper().settings_known)

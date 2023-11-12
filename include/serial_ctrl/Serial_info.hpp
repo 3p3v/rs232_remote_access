@@ -6,9 +6,9 @@
 class Serial_info
 {
 public:
-    unsigned int baud_rate;
-    Serial_port::Ctrl_defs::Parity parity;
-    unsigned int char_size;
-    Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl;
-    Serial_port::Ctrl_defs::Stop_bits stop_bits;
+    unsigned int baud_rate{9600};
+    Serial_port::Ctrl_defs::Parity parity{Serial_port::Ctrl_defs::Parity::none};
+    unsigned int char_size{8};
+    Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl{Serial_port::Ctrl_defs::Flow_ctrl::none};
+    Serial_port::Ctrl_defs::Stop_bits stop_bits{Serial_port::Ctrl_defs::Stop_bits::one};
 };

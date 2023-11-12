@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <atomic>
 #include <Base_serial_ctrl.hpp>
 #include <Serial_ctrl_helper.hpp>
 #include <Mqtt_defs.hpp>
@@ -28,6 +29,7 @@ namespace Ip_serial
         Mqtt_port::Impl::Controller &controller;
         Serial_ctrl_helper info;
         std::unique_ptr<Basic_timer> keep_alive_timer{nullptr};
+        std::atomic_bool keep_alive_started{false};
 
     public:
         /// @brief Process received command
@@ -66,7 +68,11 @@ namespace Ip_serial
         void say_hi_();
         void say_hi();
         void say_hi_compl();
+        void keep_alive_start();
         void keep_alive();
+        void keep_alive_stop();
+        void clear_timers();
+        void reboot();
 
         /* Get current settings */
         void get_settings();
@@ -120,7 +126,10 @@ namespace Ip_serial
         }
         catch (const Exception::Exception &e)
         {
+            /* Send error to monitor */
             Monitor::get().error(e);
+            /* Start tarnsmission from scratch */
+            reboot();
         }
     }
 

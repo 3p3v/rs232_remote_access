@@ -21,6 +21,8 @@ public:
     void start_timer(Str &&cmd_name, Callb &&callb);
 
     void stop_timer(const std::string &cmd_name);
+
+    void clear();
 };
 
 template <typename Str>

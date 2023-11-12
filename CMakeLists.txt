@@ -37,6 +37,7 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/main/Dispacher_impl.cpp
                                src/main/Dispacher.cpp
                                # setup loader
+                               src/setup_loader/Serial_defs.cpp
                                src/setup_loader/Setup_loader.cpp
                                # monitor
                                src/monitor/Monitor.cpp
@@ -47,6 +48,7 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/timer/Timer_cont.cpp
                                # exception
                                src/exception/Exception.cpp
+                               src/exception/setup/Setup_except.cpp
                                src/exception/mqtt/Mqtt_except.cpp
                                src/exception/cmds/Cmds_except.cpp
                                src/exception/serial/Serial_except.cpp
@@ -59,6 +61,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
                                                   "include/serial"
                                                   "include/ip_serial"
                                                   "include/exception"
+                                                  "include/exception/setup"
                                                   "include/exception/mqtt"
                                                   "include/exception/serial"
                                                   "include/exception/cmds"

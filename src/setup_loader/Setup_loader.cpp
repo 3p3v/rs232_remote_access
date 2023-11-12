@@ -2,6 +2,14 @@
 #include <iostream>
 #include <fstream>
 
+Setup_loader::Device_iter &Setup_loader::get_current()
+{
+    if (current_ == data_pack.devices.end())
+        throw Exception::Setup_except{"No device supplied! Can not continue operation!"};
+
+    return current_;
+}
+
 void Setup_loader::load_data_handler()
 {
     std::ifstream s_file;

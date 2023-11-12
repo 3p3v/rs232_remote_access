@@ -33,6 +33,8 @@ namespace Main_serial
 
     public:
         void error(const Exception::Exception &except);
+        template <typename Str>
+        void debug(const Device_ptr &device, Str &&info);
         void wake(const Device_ptr &device);
         void wake_delete(const Device_ptr &device);
         void run();
@@ -44,4 +46,10 @@ namespace Main_serial
         Monitor &operator=(const Monitor &) = delete;
         ~Monitor() = default;
     };
+
+    template <typename Str>
+    void Monitor::debug(const Device_ptr &device, Str &&info)
+    {
+
+    }
 }
