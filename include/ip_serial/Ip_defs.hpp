@@ -52,6 +52,8 @@ namespace Ip_serial
     public:
         static constexpr std::string_view master_hi_s{"M_HI"};
         static constexpr std::string_view slave_hi_s{"S_HI"};
+        static constexpr std::string_view master_keep_alive_s{"MK_A"};
+        static constexpr std::string_view slave_keep_alive_s{"SK_A"};
         
         static constexpr std::string_view get_info_s{"G_I"};
 

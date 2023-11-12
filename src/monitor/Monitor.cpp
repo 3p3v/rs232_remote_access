@@ -1,8 +1,33 @@
 #include <Monitor.hpp>
+#include <Dispacher.hpp>
 
-void Monitor::add_device(Device_ptr device,
-                    Ip_serial_ctrl_ptr ip_serial,
-                    Serial_ctrl_ptr serial)
+Monitor::Monitor(Controller &controller, const std::unordered_map<Device_ptr, Serial_pair> &devices)
+    : controller{controller}, devices{devices}
 {
-    devices.emplace(std::move(device), std::make_pair(std::move(ip_serial), std::move(serial)));
+}
+
+static Monitor &Monitor::get()
+{
+    static Monitor monitor{Controller::get(), Dispacher::get_devices()};
+    return monitor;
+}
+
+void Monitor::error(const Exception::Exception &except)
+{
+
+}
+
+void Monitor::wake(const Device_ptr &device)
+{
+
+}
+
+void Monitor::wake_delete(const Device_ptr &device)
+{
+
+}
+
+void Monitor::run()
+{
+
 }

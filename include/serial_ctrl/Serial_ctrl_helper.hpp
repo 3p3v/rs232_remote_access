@@ -5,7 +5,6 @@
 #include <Serial_info.hpp>
 #include <Serial.hpp>
 #include <Timer_cont.hpp>
-#include <Monitor.hpp>
 
 namespace Ip_serial
 {
@@ -19,7 +18,6 @@ namespace Ip_serial
 
         Serial_ctrl_helper(std::shared_ptr<Serial_port::Serial> &&serial,
                            Serial_info &&info,
-                           Monitor &monitor,
                            bool settings_known);
         Serial_ctrl_helper(Serial_ctrl_helper&&) = default;
         Serial_ctrl_helper& operator=(Serial_ctrl_helper&&) = default;

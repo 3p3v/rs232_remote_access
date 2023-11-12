@@ -3,6 +3,7 @@
 #include <Base_serial_ctrl.hpp>
 #include <impl/Controller.hpp>
 #include <Mqtt_defs.hpp>
+#include <Monitor.hpp>
 
 namespace Serial_port
 {
@@ -84,6 +85,6 @@ namespace Phy_serial
                 // send error to monitor
             });
         flow += end - begin;
-        monitor.wake(device);
+        Monitor::get().wake(device);
     }
 }

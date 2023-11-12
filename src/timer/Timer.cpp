@@ -1,4 +1,7 @@
 #include <Timer.hpp>
+#include <Cmds_except.hpp>
+#include <Monitor.hpp>
+#include <Serial_except.hpp>
 
 void Timer::start() 
 {
@@ -6,17 +9,9 @@ void Timer::start()
     timer.expires_after(interval);
     timer.async_wait([this](const boost::system::error_code& ec)
                      {
-                        monitor.error(Exception::Cmds_except{"Command: " + cmd_name + " timed out!"});
+                        if (!ec)
+                            Monitor::get().error(Exception::Cmds_except{"Command: " + cmd_name + " timed out!"});
+                        else
+                            Monitor::get().error(Exception::Serial_except{ec});
                      });
-}
-
-
-void Timer::stop() 
-{
-    timer.cancel();
-}
-
-Timer::~Timer()
-{
-    stop();
 }

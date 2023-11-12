@@ -88,8 +88,17 @@ namespace Cmd_ctrl
             {
                 lines.emplace_back(s_begin, s_end);
             }
-            /* Proceed to find next line */
-            find_lines(lines, s_end + 1, end);
+
+            if (++s_end == end)
+            {
+                /* All commands read */
+                return;
+            }
+            else
+            {
+                /* Proceed to find next line */
+                find_lines(lines, s_end, end);
+            }
         }
     }
 

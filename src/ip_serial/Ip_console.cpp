@@ -20,6 +20,8 @@ namespace Ip_serial
                                                              { 
                                                                 /* Delete timer */
                                                                 helper.say_hi_compl();
+                                                                helper.keep_alive();
+
                                                                 /* Get settings if unknown */
                                                                 if (!helper.get_helper().settings_known)
                                                                 {
@@ -34,6 +36,13 @@ namespace Ip_serial
                                                                         helper.set_flow_ctrl(helper.get_info().flow_ctrl);
                                                                         helper.set_stop_bits(helper.get_info().stop_bits);
                                                                 }
+                                                             }));
+
+        add_cmd(std::string{slave_keep_alive_s},
+                Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+                                                                const std::string &arg)
+                                                             { 
+                                                                helper.keep_alive();
                                                              }));
         
         /* Add commands used to control UART settings */

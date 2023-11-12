@@ -172,7 +172,11 @@ namespace Mqtt_port
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, qos, nullptr, make_vanilla_callb(std::forward<Sub_ok_callb>(sub_ok_callb), std::forward<Sub_ec_callb>(sub_ec_callb)));
+                client->subscribe(channel_name, 
+                                  qos, 
+                                  nullptr, 
+                                  make_vanilla_callb(std::forward<Sub_ok_callb>(sub_ok_callb), std::forward<Sub_ec_callb>(sub_ec_callb)),
+                                  mqtt::subscribe_options{true});
             }
         }
 
@@ -190,7 +194,7 @@ namespace Mqtt_port
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, qos);
+                client->subscribe(channel_name, qos, mqtt::subscribe_options{true});
             }
         }
 

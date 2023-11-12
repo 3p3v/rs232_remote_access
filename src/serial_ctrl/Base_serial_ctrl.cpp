@@ -8,8 +8,7 @@ const Flow Base_serial_ctrl::get_flow() const
     return flow;
 }
 
-Base_serial_ctrl::Base_serial_ctrl(std::shared_ptr<const Device> device,
-                                   Monitor &monitor)
-    : device{std::move(device)}, monitor{monitor}
+Base_serial_ctrl::Base_serial_ctrl(std::shared_ptr<const Device> device)
+    : device{std::move(device)}
 {
 }

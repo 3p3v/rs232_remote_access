@@ -40,6 +40,7 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/monitor/Monitor.cpp
                                # timer
                                src/timer/Basic_timer.cpp
+                               src/timer/Basic_timer_impl.cpp
                                src/timer/Timer.cpp
                                src/timer/Timer_cont.cpp
                                # exception
@@ -65,6 +66,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
                                                   "include/monitor"
                                                   "include")
 
+                                                  
+target_include_directories(${PROJECT_NAME} PUBLIC $${PAHO_MQTT_C_INCLUDE_DIRS})
 #find GUI library
 # cmake_policy(SET CMP0054 NEW)
 # find_package(wxWidgets REQUIRED)

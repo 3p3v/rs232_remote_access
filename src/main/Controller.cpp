@@ -2,16 +2,19 @@
 #include <Serial_ctrl.hpp>
 #include <Ip_serial_ctrl.hpp>
 #include <Serial_context.hpp>
+#include <Dispacher.hpp>
 
 namespace Main_serial
 {
-   Controller::Controller(Mqtt_port::Server::Get_cont &&server,
-                          Mqtt_port::User::Get_cont &&user,
-                          Monitor &monitor)
-       : ip_controller{std::move(server),
-                       std::move(user)},
-         monitor{monitor}
+   Controller::Controller(std::unordered_map<Device_ptr, Serial_pair> &devices)
+      : devices{devices}
    {
+   }
+
+   static Controller &Controller::get()
+   {
+      static Controller controller{Dispacher::get_devices()};
+      return controller;
    }
 
    void Controller::add_device(Device &&device, bool write_access)
@@ -30,7 +33,7 @@ namespace Main_serial
       auto device_ptr = std::make_shared<Device>(std::forward<Device>(device));
 
       // Base objects containing information shared resources
-      Base_serial_ctrl serial_base{device_ptr, monitor};
+      Base_serial_ctrl serial_base{device_ptr};
 
       // Create virtual com ports (com0com)
       auto coms = com_controller.create_virtual_coms();
@@ -53,12 +56,17 @@ namespace Main_serial
       ip_serial->connect();
 
       // Add serial to monitor
-      monitor.add_device(std::move(device_ptr), std::move(ip_serial), std::move(serial_ctrl_pair));
+      devices.emplace(std::move(device_ptr), std::make_pair(std::move(ip_serial), std::move(serial_ctrl_pair)));
    }
 
-   void Controller::run()
+   void Controller::run(Mqtt_port::Server::Get_cont &&server,
+                        Mqtt_port::User::Get_cont &&user)
    {
-      ip_controller.connect([]()
+      ip_controller.reset(new Mqtt_port::Impl::Controller{std::move(server), std::move(user)});
+      
+      try
+      {
+         ip_controller->connect([]()
                             {
 
                             },
@@ -70,14 +78,28 @@ namespace Main_serial
                             {
 
                             });
-
-      Phy_serial::Serial_context::run();
+      }
+      catch(const mqtt::exception& e)
+      {
+         Monitor::get().error(Exception::Mqtt_except{e});
+      }
+      
+      
+      try
+      {
+         Phy_serial::Serial_context::run();
+      }
+      catch(const boost::exception& e)
+      {
+        Monitor::get().error(Exception::Serial_except{e});
+      }
+      
+      
    }
 
    void Controller::set_baud_rate(const std::string &dev_name, const unsigned int baud_rate)
    {
-      /*Set timer*/ // TODO set callback
-      // console.local_exec(dev_name, std::string{set_baud_rate_s}, std::to_string(baud_rate));
+      // devices[dev_name]->
    }
 
    void Controller::set_parity(const std::string &dev_name, const Parity parity)

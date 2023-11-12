@@ -3,7 +3,7 @@
 #include <impl/Controller.hpp>
 #include <impl/Impl_server.hpp>
 #include <impl/Impl_user.hpp>
-#include "Controller.hpp"
+#include <Controller.hpp>
 // #include <Rec_helper.hpp>
 
 namespace Mqtt_port
@@ -49,12 +49,14 @@ namespace Mqtt_port
                                             client->subscribe(sub.channel_name, 
                                                               sub.qos, 
                                                               nullptr, 
-                                                              std::move(sub.callb));
+                                                              std::move(sub.callb),
+                                                              mqtt::subscribe_options{true});
                                         }
                                         else
                                         {
                                             client->subscribe(sub.channel_name, 
-                                                            sub.qos);
+                                                            sub.qos,
+                                                            mqtt::subscribe_options{true});
                                         } });
             }
         }
@@ -82,11 +84,16 @@ namespace Mqtt_port
 
         Controller::Controller(Server::Get_cont &&server,
                                User::Get_cont &&user)
-            : client{new mqtt::async_client{"tcp://" + server.get(Server::Option::ip) + ":" + server.get(Server::Option::port),
-                                            user.get(User::Option::id)}}
         {
+            client = std::make_shared<mqtt::async_client>("tcp://" + server.get(Server::Option::ip) + ":" + server.get(Server::Option::port),
+                                                          user.get(User::Option::id),
+                                                          mqtt::create_options(MQTTVERSION_5));
+            
             client->set_callback(*this);
+
+
             /* Set options */
+            options.set_mqtt_version(MQTTVERSION_5);
             Impl_user::set_options(std::move(user), options);
             Impl_server::set_options(std::move(server), options);
         }

@@ -9,19 +9,13 @@
 #include <Serial_except.hpp>
 #include <Mqtt_except.hpp>
 #include <Ip_defs.hpp>
-// #include <Rec_callb_intf.hpp>
+#include <Periodic_timer.hpp>
+#include <Custom_timer.hpp>
+#include <Monitor.hpp>
 
 namespace Ip_serial
 {
     class Console;
-
-    // namespace Mqtt_port
-    // {
-    //     namespace Impl
-    //     {
-    //         class Controller;
-    //     }
-    // }
 
     /// @brief Object used for mqtt-side communication
     class Ip_serial_ctrl final : public Base_serial_ctrl, protected Mqtt_defs, protected Ip_defs, protected Ip_hi, public std::enable_shared_from_this<Ip_serial_ctrl>
@@ -30,9 +24,22 @@ namespace Ip_serial
         using Ip_serial_ctrl_ptr = std::shared_ptr<Ip_serial_ctrl>;
 
     private:
-        const Ip_serial::Console &console; // 2
+        const Ip_serial::Console &console;
         Mqtt_port::Impl::Controller &controller;
         Serial_ctrl_helper info;
+        std::unique_ptr<Basic_timer> keep_alive_timer{make_periodic_timer([this]()
+                                                                          {
+                                                                              write_info_no_timer(master_keep_alive_s);
+                                                                          },
+                                                                          Custom_timer{[serial_ctrl = weak_from_this(), this]()
+                                                                          {
+                                                                            if (auto serial = serial_ctrl.lock())
+                                                                            {
+                                                                                Monitor::get().error(Exception::Cmds_except{"Keep alive timed out, retrying if enabled..."});
+                                                                                /* Try to say hi to device again */
+                                                                                say_hi_();
+                                                                            }
+                                                                          }})};
 
         void say_hi_();
 
@@ -51,6 +58,12 @@ namespace Ip_serial
         template <typename Cont_t>
         void write_info(Cont_t &&msg);
 
+        template <typename Cont_t>
+        void write_info_no_timer(Cont_t &&msg);
+
+        template <typename Cont_t, typename Callb>
+        void write_info_custom(Cont_t &&msg, Callb &&callb);
+
         template <typename Cont_t, typename Arg_cont_t>
         void write_info(Cont_t &&msg, Arg_cont_t &&arg);
 
@@ -66,6 +79,7 @@ namespace Ip_serial
         /* Init */
         void say_hi();
         void say_hi_compl();
+        void keep_alive();
 
         /* Get current settings */
         void get_settings();
@@ -141,7 +155,7 @@ namespace Ip_serial
     template <typename Cont_t>
     void Ip_serial_ctrl::write_info(Cont_t &&msg)
     {
-        auto msg_ptr = std::make_unique<std::string>(std::forward<Cont_t>(msg));
+        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + "\n");
 
         auto beg = msg_ptr->cbegin();
         auto end = msg_ptr->cend();
@@ -162,7 +176,71 @@ namespace Ip_serial
                              std::forward<decltype(callb)>(callb),
                              [&monitor = this->monitor](int)
                              {
-                                monitor.error(Exception::Mqtt_write_except{});
+                                 monitor.error(Exception::Mqtt_write_except{});
+                             });
+        }
+        catch (const mqtt::exception &e)
+        {
+            monitor.error(Exception::Mqtt_except{e});
+        }
+    }
+
+    template <typename Cont_t>
+    void Ip_serial_ctrl::write_info_no_timer(Cont_t &&msg)
+    {
+        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + "\n");
+
+        auto beg = msg_ptr->cbegin();
+        auto end = msg_ptr->cend();
+
+        auto callb = [msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr)](size_t size) {
+        };
+
+        try
+        {
+            controller.write(device->get_info_ch(),
+                             qos,
+                             beg,
+                             end,
+                             std::forward<decltype(callb)>(callb),
+                             [](int)
+                             {
+                                 Monitor::get().error(Exception::Mqtt_write_except{});
+                             });
+        }
+        catch (const mqtt::exception &e)
+        {
+            Monitor::get().error(Exception::Mqtt_except{e});
+        }
+    }
+
+    template <typename Cont_t, typename Callb>
+    void Ip_serial_ctrl::write_info_custom(Cont_t &&msg, Callb &&callb)
+    {
+        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + "\n");
+
+        auto beg = msg_ptr->cbegin();
+        auto end = msg_ptr->cend();
+
+        auto callb = [msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr),
+                      msg = std::string{msg},
+                      callb = std::forward<Callb>(callb),
+                      serial_ctrl = shared_from_this(),
+                      this](size_t size)
+        {
+            info.timers.start_timer(msg, callb);
+        };
+
+        try
+        {
+            controller.write(device->get_info_ch(),
+                             qos,
+                             beg,
+                             end,
+                             std::forward<decltype(callb)>(callb),
+                             [&monitor = this->monitor](int)
+                             {
+                                 monitor.error(Exception::Mqtt_write_except{});
                              });
         }
         catch (const mqtt::exception &e)
@@ -174,7 +252,7 @@ namespace Ip_serial
     template <typename Cont_t, typename Arg_cont_t>
     void Ip_serial_ctrl::write_info(Cont_t &&msg, Arg_cont_t &&arg)
     {
-        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + " " + std::string{arg});
+        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + " " + std::string{arg} + "\n");
 
         auto beg = msg_ptr->cbegin();
         auto end = msg_ptr->cend();
@@ -196,7 +274,7 @@ namespace Ip_serial
                              std::forward<decltype(callb)>(callb),
                              [&monitor = this->monitor](int)
                              {
-                                monitor.error(Exception::Mqtt_write_except{});
+                                 monitor.error(Exception::Mqtt_write_except{});
                              });
         }
         catch (const mqtt::exception &e)
