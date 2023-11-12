@@ -34,6 +34,8 @@ add_executable(${PROJECT_NAME}   #WIN32
                             #    src/ip_serial/Controller.cpp
                                # main serial
                                src/main/Controller.cpp
+                               src/main/Dispacher_impl.cpp
+                               src/main/Dispacher.cpp
                                # setup loader
                                src/setup_loader/Setup_loader.cpp
                                # monitor

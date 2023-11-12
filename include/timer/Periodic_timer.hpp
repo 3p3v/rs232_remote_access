@@ -21,7 +21,6 @@ template <typename Callb>
 template <typename Timer_t>
 Periodic_timer<Callb>::Periodic_timer(Callb &&callb, Timer_t &&cmd_timer, std::chrono::milliseconds interval)
     : Basic_timer_impl{interval},
-      cmd_timer{std::forward<Str>(cmd_name)},
       callb{std::move(callb)},
       cmd_timer{std::make_unique<Timer_t>(std::forward<Timer_t>(cmd_timer))}
 {
@@ -30,7 +29,7 @@ Periodic_timer<Callb>::Periodic_timer(Callb &&callb, Timer_t &&cmd_timer, std::c
 template <typename Callb>
 void Periodic_timer<Callb>::start()
 {
-    cmd_timer.cancel();
+    cmd_timer->stop();
     timer.cancel();
     timer.expires_after(interval);
     timer.async_wait([this](const boost::system::error_code &ec)
@@ -40,13 +39,13 @@ void Periodic_timer<Callb>::start()
                             /* Run callback */
                             callb();
                             /* Restart timer */
-                            timer.start();
+                            start();
                             /* Run command timer */
-                            cmd_timer.start(); 
+                            cmd_timer->start(); 
                         }
-                        else
+                        else if (ec != boost::asio::error::operation_aborted)
                         {
-                            Monitor::get().error(Exception::Serial_except{ec});
+                            Monitor::get().error(Exception::Serial_except{ec.what()});
                         } });
 }
 

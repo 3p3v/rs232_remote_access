@@ -30,8 +30,8 @@ void Custom_timer<Callb>::start()
     {
         if (!ec)
             callb();
-        else
-            Monitor::get().error(Exception::Serial_except{ec});
+        else if (ec != boost::asio::error::operation_aborted)
+            Monitor::get().error(Exception::Serial_except{ec.what()});
     });        
 }
 

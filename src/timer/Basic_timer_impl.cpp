@@ -6,7 +6,7 @@ void Basic_timer_impl::stop()
 }
 
 Basic_timer_impl::Basic_timer_impl(std::chrono::milliseconds interval)
-    : Basic_timer{std::chrono::seconds{interval}}
+    : Basic_timer{interval}
 {
 }
 

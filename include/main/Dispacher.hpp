@@ -1,19 +1,39 @@
 #pragma once
 
 #include <memory>
-#include <Main_defs.hpp>
-#include <Monitor.hpp>
+#include <atomic>
+#include <Server.hpp>
+#include <User.hpp>
 
-using namespace Main_serial;
+class Dispacher_impl;
+
+namespace Main_serial
+{
+    class Controller;
+    class Monitor;
+}
 
 class Dispacher
 {
-    static std::unordered_map<Device_ptr, Serial_pair> devices;
-    Dispacher() = default;
+    Dispacher();
+    
+    static Dispacher dispacher_s;
+
+    std::atomic_bool credential_supplied{false};
+    Mqtt_port::Server::Get_cont server;
+    Mqtt_port::User::Get_cont user;
+    
+    std::atomic_bool reboot_lock{false};
+    std::unique_ptr<Dispacher_impl> dispacher{nullptr};
 
 public:
-    static std::unordered_map<Device_ptr, Serial_pair> &get_devices()
-    {
-        return devices;
-    }
+    static Main_serial::Controller &get_controller();
+
+    static Main_serial::Controller &get_controller(Mqtt_port::Server::Get_cont &&server,
+                                                   Mqtt_port::User::Get_cont &&user);
+    static Main_serial::Monitor &get();
+
+    static void reboot();
 };
+
+using Monitor = Dispacher;

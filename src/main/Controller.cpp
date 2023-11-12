@@ -6,15 +6,11 @@
 
 namespace Main_serial
 {
-   Controller::Controller(std::unordered_map<Device_ptr, Serial_pair> &devices)
-      : devices{devices}
+   Controller::Controller(Mqtt_port::Server::Get_cont &&server,
+                          Mqtt_port::User::Get_cont &&user,
+                          std::unordered_map<Device_ptr, Serial_pair> &devices)
+      : devices{devices}, ip_controller{std::move(server), std::move(user)}
    {
-   }
-
-   static Controller &Controller::get()
-   {
-      static Controller controller{Dispacher::get_devices()};
-      return controller;
    }
 
    void Controller::add_device(Device &&device, bool write_access)
@@ -59,14 +55,11 @@ namespace Main_serial
       devices.emplace(std::move(device_ptr), std::make_pair(std::move(ip_serial), std::move(serial_ctrl_pair)));
    }
 
-   void Controller::run(Mqtt_port::Server::Get_cont &&server,
-                        Mqtt_port::User::Get_cont &&user)
-   {
-      ip_controller.reset(new Mqtt_port::Impl::Controller{std::move(server), std::move(user)});
-      
+   void Controller::run()
+   {      
       try
       {
-         ip_controller->connect([]()
+         ip_controller.connect([]()
                             {
 
                             },
@@ -81,7 +74,7 @@ namespace Main_serial
       }
       catch(const mqtt::exception& e)
       {
-         Monitor::get().error(Exception::Mqtt_except{e});
+         Dispacher::get().error(Exception::Mqtt_except{e});
       }
       
       
@@ -91,7 +84,7 @@ namespace Main_serial
       }
       catch(const boost::exception& e)
       {
-        Monitor::get().error(Exception::Serial_except{e});
+        Dispacher::get().error(Exception::Serial_except{e});
       }
       
       

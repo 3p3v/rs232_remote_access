@@ -3,15 +3,16 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
-#include <Basic_timer.hpp>
+#include <Timer.hpp>
 #include <Monitor.hpp>
+#include <Custom_timer.hpp>
 
 class Timer_cont
 {
     std::unordered_map<std::string, std::unique_ptr<Basic_timer>> timers;
 
 public:
-    Timer_cont();
+    Timer_cont() = default;
     
     template <typename Str>
     void start_timer(Str &&cmd_name);
@@ -25,12 +26,12 @@ public:
 template <typename Str>
 void Timer_cont::start_timer(Str &&cmd_name)
 {
-    timers.emplace(cmd_name, std::make_unique<Timer>(cmd_name, monitor)).first->second->start();
+    timers.emplace(cmd_name, std::make_unique<Timer>(cmd_name)).first->second->start();
 }
 
 template <typename Str, typename Callb>
 void Timer_cont::start_timer(Str &&cmd_name, Callb &&callb)
 {
     timers.emplace(std::forward<Str>(cmd_name), 
-                   make_custom_timer(std::forward<Callb>(callb)));
+                   make_custom_timer(std::forward<Callb>(callb))).first->second->start();
 }

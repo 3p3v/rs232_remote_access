@@ -5,13 +5,13 @@
 #include <Serial_ctrl_helper.hpp>
 #include <Mqtt_defs.hpp>
 #include <ip_serial/Console.hpp>
-#include <impl/Controller.hpp>
 #include <Serial_except.hpp>
 #include <Mqtt_except.hpp>
 #include <Ip_defs.hpp>
 #include <Periodic_timer.hpp>
 #include <Custom_timer.hpp>
-#include <Monitor.hpp>
+#include <Dispacher.hpp>
+#include <impl/Controller.hpp>
 
 namespace Ip_serial
 {
@@ -27,21 +27,7 @@ namespace Ip_serial
         const Ip_serial::Console &console;
         Mqtt_port::Impl::Controller &controller;
         Serial_ctrl_helper info;
-        std::unique_ptr<Basic_timer> keep_alive_timer{make_periodic_timer([this]()
-                                                                          {
-                                                                              write_info_no_timer(master_keep_alive_s);
-                                                                          },
-                                                                          Custom_timer{[serial_ctrl = weak_from_this(), this]()
-                                                                          {
-                                                                            if (auto serial = serial_ctrl.lock())
-                                                                            {
-                                                                                Monitor::get().error(Exception::Cmds_except{"Keep alive timed out, retrying if enabled..."});
-                                                                                /* Try to say hi to device again */
-                                                                                say_hi_();
-                                                                            }
-                                                                          }})};
-
-        void say_hi_();
+        std::unique_ptr<Basic_timer> keep_alive_timer{nullptr};
 
     public:
         /// @brief Process received command
@@ -77,6 +63,7 @@ namespace Ip_serial
         Serial_ctrl_helper &get_helper();
 
         /* Init */
+        void say_hi_();
         void say_hi();
         void say_hi_compl();
         void keep_alive();
@@ -129,11 +116,11 @@ namespace Ip_serial
         {
             /* Interpret received data */
             console.exec(*this, begin, end);
-            monitor.wake(device);
+            Monitor::get().wake(device);
         }
         catch (const Exception::Exception &e)
         {
-            monitor.error(e);
+            Monitor::get().error(e);
         }
     }
 
@@ -144,11 +131,11 @@ namespace Ip_serial
         {
             flow += end - begin;
             info.serial->write<Cont_t>(begin, end, std::forward<Ok_callb>(ok_callb));
-            monitor.wake(device);
+            Monitor::get().wake(device);
         }
         catch (const boost::exception &e)
         {
-            monitor.error(Exception::Serial_except{e});
+            Monitor::get().error(Exception::Serial_except{e});
         }
     }
 
@@ -174,14 +161,14 @@ namespace Ip_serial
                              beg,
                              end,
                              std::forward<decltype(callb)>(callb),
-                             [&monitor = this->monitor](int)
+                             [](int)
                              {
-                                 monitor.error(Exception::Mqtt_write_except{});
+                                 Monitor::get().error(Exception::Mqtt_write_except{});
                              });
         }
         catch (const mqtt::exception &e)
         {
-            monitor.error(Exception::Mqtt_except{e});
+            Monitor::get().error(Exception::Mqtt_except{e});
         }
     }
 
@@ -222,13 +209,13 @@ namespace Ip_serial
         auto beg = msg_ptr->cbegin();
         auto end = msg_ptr->cend();
 
-        auto callb = [msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr),
-                      msg = std::string{msg},
-                      callb = std::forward<Callb>(callb),
-                      serial_ctrl = shared_from_this(),
-                      this](size_t size)
+        auto callb_ = [msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr),
+                       msg = std::string{msg},
+                       callb = std::forward<Callb>(callb),
+                       serial_ctrl = shared_from_this(),
+                       this](size_t size)
         {
-            info.timers.start_timer(msg, callb);
+            info.timers.start_timer(msg, std::move(callb));
         };
 
         try
@@ -237,15 +224,15 @@ namespace Ip_serial
                              qos,
                              beg,
                              end,
-                             std::forward<decltype(callb)>(callb),
-                             [&monitor = this->monitor](int)
+                             std::forward<decltype(callb_)>(callb_),
+                             [](int)
                              {
-                                 monitor.error(Exception::Mqtt_write_except{});
+                                 Monitor::get().error(Exception::Mqtt_write_except{});
                              });
         }
         catch (const mqtt::exception &e)
         {
-            monitor.error(Exception::Mqtt_except{e});
+            Monitor::get().error(Exception::Mqtt_except{e});
         }
     }
 
@@ -272,14 +259,14 @@ namespace Ip_serial
                              beg,
                              end,
                              std::forward<decltype(callb)>(callb),
-                             [&monitor = this->monitor](int)
+                             [](int)
                              {
-                                 monitor.error(Exception::Mqtt_write_except{});
+                                 Monitor::get().error(Exception::Mqtt_write_except{});
                              });
         }
         catch (const mqtt::exception &e)
         {
-            monitor.error(Exception::Mqtt_except{e});
+            Monitor::get().error(Exception::Mqtt_except{e});
         }
     }
 }

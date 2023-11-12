@@ -23,8 +23,3 @@ public:
     Basic_timer_impl &operator=(const Basic_timer_impl &) = delete;
     ~Basic_timer_impl();
 };
-
-Basic_timer_impl::Basic_timer_impl(std::chrono::milliseconds interval)
-    : Basic_timer{interval}
-{
-}
