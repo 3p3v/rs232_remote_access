@@ -23,6 +23,7 @@ int sim_deamon_start(sim_deamon_handler *handler)
     /* Initialize the SIM card module */
     SIM_error err = SIM_ok;
     SIM_cmd cmd;
+    SIM_cmd_init(&cmd);
     // sim = malloc(sizeof(SIM_intf));
     LL_SIM_def(&handler->sim);
     sim->buf = malloc(sizeof(unsigned char) * 12000);
@@ -61,6 +62,8 @@ int sim_deamon_start(sim_deamon_handler *handler)
     ESP_LOGI("DEAMON", "5");
     err = SIM_ok;
 
+    SIM_cmd_free(&cmd);
+
     return (int)err;
 }
 
@@ -72,6 +75,7 @@ int sim_deamon_stop(sim_deamon_handler *handler)
     if (!(handler))
     {
         /* Deamon stopped, clean up */
+        LL_SIM_deinit(&handler->sim);
         free(handler->sim.buf);
         return SIM_ok;
     }
@@ -88,11 +92,47 @@ int sim_deamon_stop(sim_deamon_handler *handler)
 //     return &handle;
 // }
 
+void sim_deamon(void *v_handler)
+{
+    int err;
+    sim_deamon_handler *handler = (sim_deamon_handler *)v_handler;
+    SIM_intf *sim = &handler->sim;
+
+    for (;;)
+    {
+        /* Receive data */
+        err = LL_SIM_receiveRaw(sim);
+        if (err < 0)
+        {
+            switch (err)
+            {
+            case LL_SIM_HARDWARE_ERR:
+            {
+                handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
+                goto exit;
+            }
+            default:
+            {
+                handler->error_handler(&handler->handler, "SIM", ext_type_non_fatal, err);
+                break;
+            }
+            }
+        }
+
+        /* Run execution of a command */
+        SIM_exec(sim);
+    }
+
+    exit:
+    for (;;)
+        ;
+}
+
 TaskHandle_t sim_deamon_create_task(sim_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(SIM_receiveHandler, "SIM_listener", 4000, (void *)(&handler->sim), 4, &handler->handler);
+        xTaskCreate(sim_deamon, "SIM_listener", 4000, (void *)(handler), 2, &handler->handler);
     }
     return handler->handler;
 }
@@ -102,6 +142,7 @@ TaskHandle_t sim_deamon_delete_task(sim_deamon_handler *handler)
     if (handler->handler)
     {
         vTaskDelete(handler->handler);
+        handler->handler = NULL;
     }
     return handler->handler;
 }

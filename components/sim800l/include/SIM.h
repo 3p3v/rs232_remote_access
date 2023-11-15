@@ -6,7 +6,7 @@
 // #define LL_SIM_DEF_BUF_SIZE SIM_DEF_BUF_SIZE
 // #define LL_SIM_DEF_TX_BUF_SIZE SIM_DEF_TX_BUF_SIZE
 
-typedef LL_SIM_error SIM_error;
+// typedef LL_SIM_error SIM_error;
 typedef LL_SIM_pin SIM_pin;
 
 // typedef LL_SIM_receiveRaw SIM_receiveRaw;

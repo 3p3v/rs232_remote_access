@@ -18,7 +18,7 @@
 /* Definitions */
 #define MAIN_SECS_TILL_REBOOT 10
 
-void echo_error(const char *deamon_name, ext_error *err)
+void echo_error(ext_error *err)
 {
     
     /* Short info */
@@ -77,7 +77,7 @@ void ext_error_send(void *handler, const char *module, int type, int err)
 //     xQueueSend(*queue, handler, sizeof(TaskHandle_t *));
 // }
 
-void ext_mqtt_send_error(const char *deamon_name, ext_error *err)
+void ext_mqtt_send_error(ext_error *err)
 {
 
 }

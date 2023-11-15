@@ -97,6 +97,16 @@ ssize_t mqtt_pal_recvall(mqtt_pal_socket_handle fd, void* buf, size_t bufsz, int
     int rv;
     do {
         rv = mbedtls_ssl_read(fd, (unsigned char*)buf, bufsz);
+        if (rv > 0)
+        {
+            static int break_p = 0;
+            for (int i = 0; i < rv; i++)
+            {
+                printf("0x%X ", ((char *)buf)[i]);
+                if (i == rv - 1)
+                    printf ("\r\n");
+            }
+        }
         if (rv == 0) {
             /*
              * Note: mbedtls_ssl_read returns 0 when the underlying
@@ -111,6 +121,7 @@ ssize_t mqtt_pal_recvall(mqtt_pal_socket_handle fd, void* buf, size_t bufsz, int
         if (rv < 0) {
             if (rv == -1)
             {
+                printf("NO DATA");
                 rv = 0;
                 break;
             }

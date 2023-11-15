@@ -21,7 +21,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->unread_num = 0;
     sim->tx = LL_SIM_DEF_UART_TX;
     sim->rx = LL_SIM_DEF_UART_RX;
-    sim->baudRate = 19200;
+    sim->baudRate = 115200; // 19200;
     sim->drt = LL_SIM_DEF_DRT_PIN;
     sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
@@ -93,11 +93,18 @@ LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
 
 LL_SIM_error LL_SIM_deinit(const LL_SIM_intf *sim)
 {
-    // resetStatus(LL_SIMUARTInitialised);
+    vSemaphoreDelete(sim->cmds.queue);
+    for (int i = 0; i < LL_SIM_DEF_TCP_CMDS_NUM; i++)
+        vSemaphoreDelete(sim->tcp_cmds[i].queue);
+
+    vSemaphoreDelete(sim->add_cmd_mutex);
+    vSemaphoreDelete(sim->write_mutex);
+    vSemaphoreDelete(sim->exec_mutex);
+
     if (uart_driver_delete(sim->uart) == ESP_OK)
         return SIM_ok;
     else
-        return SIM_hardwareErr;
+        return LL_SIM_HARDWARE_ERR;
 }
 
 static void SIM_setMsg(char *buf, unsigned int *rec_len, char *msg_end)
@@ -113,18 +120,43 @@ SIM_error SIM_exec(SIM_intf *sim)
     xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
 
 START:
-    // Find all lines in data
+    /* Find all lines in data */
     sim->lines_num = SIM_findAllLines(sim->buf, sim->rec_len, sim->lines, SIM_MAX_LINES_ARR_LEN);
+    /* Check if any of known responses can be found */
     SIM_errMsgEnd_pair err_pair = SIM_retrieveCustomErr(sim->lines, SIM_reservedResps);
-    SIM_errMsgEnd_pair err_pair2;
 
+    /* Check for current codes if known */
     if (sim->cmds.cmd && sim->cmds.cmd->resp.pos_resps)
     {
+        /* Check for current codes */
+        SIM_errMsgEnd_pair err_pair2;
         err_pair2 = SIM_retrieveCustomErr(sim->lines, sim->cmds.cmd->resp.pos_resps);
         if (err_pair2.err != SIM_noErrCode)
         {
-            if (err_pair2.ptr_beg < err_pair.ptr_beg)
+            if (err_pair.err == SIM_noErrCode || err_pair2.ptr_beg < err_pair.ptr_beg)
+            {
+                err_pair = err_pair2;
                 err_pair.err = SIM_noErrCode;
+            }
+        }
+    }
+    else if (sim->cmds.cmd)
+    {
+        /* Error codes were not specyfied during cmd definition.
+         * Set buffer to beginning
+         * TODO delete, enabled for compatybility reasons only */
+        err_pair.ptr_beg = sim->lines->ptr;
+        err_pair.ptr = sim->lines->ptr + sim->lines->len;
+        err_pair.line_num = 0;
+        err_pair.err = SIM_noErrCode;
+    }
+    else
+    {
+        if (err_pair.err == SIM_noErrCode)
+        {
+            /* Not found any matching response, discard */
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->buf + sim->rec_len);
+            goto REGION_END;
         }
     }
 
@@ -132,15 +164,13 @@ START:
     {
     case SIM_noErrCode:
     {
-        // for (;;)
-        // {
         if (sim->cmds.cmd == NULL)
         {
             err = SIM_noErrCode;
             goto REGION_END;
         }
 
-        err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1](sim->buf, sim->rec_len, &sim->cmds.cmd->resp, (void *)sim);
+        err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1]((sim->lines + err_pair.line_num), (sim->lines + 0), &sim->cmds.cmd->resp, (void *)sim);
 
         // Check execution code
         if (err == SIM_ok)
@@ -228,8 +258,11 @@ START:
             sim->tcp_ret = &sim->tcp_cmds[num];
         }
 
+        if (strstr(sim->buf, "26"))
+            printf("GOT IT 2/r/n");
+
         /* Excute handler */
-        err = sim->tcp_ret->cmd->handler(sim->buf, sim->rec_len, &sim->tcp_ret->cmd->resp, (void *)sim);
+        err = sim->tcp_ret->cmd->handler((sim->lines + err_pair.line_num), (sim->lines + 0), &sim->tcp_ret->cmd->resp, (void *)sim);
 
         if (err == SIM_ok)
         {
@@ -244,11 +277,11 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
-                if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
-                {
-                    sim->add_cmd_mutex_taken = false;
-                    xSemaphoreGive(sim->add_cmd_mutex);
-                }
+                // if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
+                // {
+                //     sim->add_cmd_mutex_taken = false;
+                //     xSemaphoreGive(sim->add_cmd_mutex);
+                // }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -278,11 +311,11 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
-                if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
-                {
-                    sim->add_cmd_mutex_taken = false;
-                    xSemaphoreGive(sim->add_cmd_mutex);
-                }
+                // if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
+                // {
+                //     sim->add_cmd_mutex_taken = false;
+                //     xSemaphoreGive(sim->add_cmd_mutex);
+                // }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -300,7 +333,18 @@ START:
     default:
     {
         // Discard maching line
-        // TODO
+        SIM_setMsg(sim->buf, &sim->rec_len, (sim->lines + err_pair.line_num)->ptr + (sim->lines + err_pair.line_num)->len);
+        if (sim->rec_len == 0)
+        {
+            // no message left
+            sim->unread_num = 0;
+            goto REGION_END;
+        }
+        else
+        {
+            // another message, or part of it left in buffer, let it be processed by another cmd
+            goto START;
+        }
     }
     }
 
@@ -324,16 +368,16 @@ void LL_SIM_listen(LL_SIM_intf *sim)
     xTaskCreate(SIM_receiveHandler, "SIM_listener", 5000, (void *)sim, 4, NULL);
 }
 
-void SIM_receiveHandler(void *sim_void)
-{
-    LL_SIM_intf *sim = sim_void;
+// void SIM_receiveHandler(void *sim_void)
+// {
+//     LL_SIM_intf *sim = sim_void;
 
-    for (;;)
-    {
-        LL_SIM_receiveRaw(sim);
-        SIM_exec(sim);
-    }
-}
+//     for (;;)
+//     {
+//         LL_SIM_receiveRaw(sim);
+//         SIM_exec(sim);
+//     }
+// }
 
 // LL_SIM_error reinit()
 // {
@@ -348,11 +392,11 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
 {
     LL_SIM_error err = SIM_ok;
     xSemaphoreTake(sim->write_mutex, portMAX_DELAY);
-    /* Get rid of any data left */
-    uart_flush_input(sim->uart);
-    xQueueReset(sim->uartQueue);
+    // /* Get rid of any data left */
+    // uart_flush_input(sim->uart);
+    // xQueueReset(sim->uartQueue);
 
-    /* Send data */
+    /* Send data */ // TODO check if semaphore while writing/reading is needed
     int len = uart_write_bytes(sim->uart, data, data_len);
 
     if (len > 0)
@@ -360,7 +404,7 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
     else if (len == 0)
         err = SIM_err;
     else
-        err = SIM_hardwareErr;
+        err = LL_SIM_HARDWARE_ERR;
 
     xSemaphoreGive(sim->write_mutex);
     return err;
@@ -385,18 +429,19 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
 
     while (xQueueReceive(sim->uartQueue, (void *)&event, portMAX_DELAY))
     {
-        if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == false)
-        {
-            sim->add_cmd_mutex_taken = true;
-            xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
-        }
+        // if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == false)
+        // {
+        //     sim->add_cmd_mutex_taken = true;
+        //     xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
+        // }
         // bzero(sim->buf, sim->buf_len);
-        ESP_LOGI(TAG, "uart[%d] event:", sim->uart);
+
         switch (event.type)
         {
         // Event of UART receving data
         case UART_DATA:
         {
+            ESP_LOGI(TAG, "uart event: receive, bytes %u", event.size);
             // ESP_LOGI(TAG, "[UART DATA]: %d", event.size); // TODO delete??
             if (sim->unread_num == 0)
                 sim->rec_len = 0;
@@ -404,14 +449,23 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
             sim->rec_len += uart_read_bytes(sim->uart, sim->buf + sim->rec_len, event.size, portMAX_DELAY);
             (*((char *)(sim->buf) + sim->rec_len)) = '\0';
             sim->unread_num++;
+
+            // static int break_p = 0;
+            // for (int i = 0; i < sim->rec_len; i++)
+            // {
+            //     printf("%c", ((char *)sim->buf)[i]);
+            // }
             // ESP_LOGI(TAG, "[UART DATA]: %d", sim->rec_len);
             // printf("%s", sim->buf); // TODO delete
             if (sim->rec_len > 0)
                 return sim->rec_len;
-            else if (sim->rec_len == 0)
-                return SIM_recErr;
+            // else if (sim->rec_len == 0)
+            //     return SIM_recErr;
             else
-                return SIM_hardwareErr;
+            {
+                ESP_LOGI(TAG, "UART received 0 bytes");
+                return LL_SIM_REC_ERR;
+            }
             break;
         }
         // Event of HW FIFO overflow detected
@@ -419,6 +473,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
             ESP_LOGI(TAG, "hw fifo overflow");
             uart_flush_input(sim->uart);
             xQueueReset(sim->uartQueue);
+            return LL_SIM_UART_FIFO_OVF;
             break;
         // Event of UART ring buffer full
         case UART_BUFFER_FULL:
@@ -426,25 +481,30 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
             uart_flush_input(sim->uart);
             xQueueReset(sim->uartQueue);
             // TODO resize buffer
-            return SIM_bufferFullErr;
+            return LL_SIM_UART_BUFFER_FULL;
             break;
         // Event of UART RX break detected
         case UART_BREAK:
             ESP_LOGI(TAG, "uart rx break");
+            return LL_SIM_UART_BREAK;
             break;
         // Event of UART parity check error
         case UART_PARITY_ERR:
             ESP_LOGI(TAG, "uart parity error");
+            return LL_SIM_UART_PARITY_ERR;
             break;
         // Event of UART frame error
         case UART_FRAME_ERR:
             ESP_LOGI(TAG, "uart frame error");
+            return LL_SIM_UART_FRAME_ERR;
             break;
         case UART_DATA_BREAK:
             ESP_LOGI(TAG, "uart data break");
+            return LL_SIM_UART_DATA_BREAK;
             break;
         case UART_EVENT_MAX:
             ESP_LOGI(TAG, "uart event max");
+            return LL_SIM_UART_EVENT_MAX;
             break;
         // UART_PATTERN_DET
         case UART_PATTERN_DET:
@@ -465,16 +525,18 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
             //     ESP_LOGI(TAG, "read data: %s", receivedData);
             //     ESP_LOGI(TAG, "read pat : %s", pat);
             // }
+            ESP_LOGI(TAG, "uart event type: pattern");
             break;
         }
         // Others
         default:
-            ESP_LOGI(TAG, "uart event type: %d", event.type);
+            ESP_LOGI(TAG, "uart event type: %i", event.type);
+            return LL_SIM_UNKNOWN_ERR;
             // break;
         }
     }
 
-    return (int)SIM_recErr;
+    return LL_SIM_UNKNOWN_ERR;
 }
 
 void LL_SIM_delay(int ms)
@@ -487,7 +549,7 @@ LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set)
     if (gpio_set_level(sim->drt, set) == ESP_OK)
         return SIM_ok;
     else
-        return SIM_hardwareErr;
+        return LL_SIM_HARDWARE_ERR;
 }
 
 LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
@@ -495,5 +557,5 @@ LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
     if (gpio_set_level(sim->rst, set) == ESP_OK)
         return SIM_ok;
     else
-        return SIM_hardwareErr;
+        return LL_SIM_HARDWARE_ERR;
 }

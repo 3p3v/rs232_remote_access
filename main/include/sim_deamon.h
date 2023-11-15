@@ -15,6 +15,8 @@ typedef struct sim_deamon_handler
     // void (*hard_error_handler)(TaskHandle_t *);;
 } sim_deamon_handler;
 
+void sim_deamon(void *v_handler);
+
 int sim_deamon_start(sim_deamon_handler *handler);
 
 int sim_deamon_stop(sim_deamon_handler *handler);

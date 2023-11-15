@@ -58,4 +58,6 @@ int open_nb_socket(mbedtls_context *ctx,
                     const char *port,
                     const unsigned char **ca_chain);
 
+void close_nb_socket(mbedtls_context *ctx);
+
 // #endif

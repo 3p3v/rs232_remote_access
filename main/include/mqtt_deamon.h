@@ -14,10 +14,10 @@ typedef struct mqtt_deamon_handler
 {
     TaskHandle_t handler;
     QueueHandle_t queue;
+    char socket_num;
     struct mqtt_client client;
-    // QueueHandle_t *error_queue;
     void (*publish_callback)(void **, struct mqtt_response_publish *);
-    void (*error_handler)(void *handler, const char *module, int type, int err);
+    void (*error_handler)(void *, const char *, int , int );
     // void (*hard_error_handler)(TaskHandle_t *);
 } mqtt_deamon_handler;
 

@@ -98,29 +98,39 @@ void mqtt_deamon(void *v_mqtt_deamon_handler)
 
     while (1)
     {
+        /* Wait untill socket informs you that you got a new packet */
         xQueueReceive(handler->queue, &err, 100000U / portTICK_PERIOD_MS);
-        // xQueueReceive((mqtt_task_grip *)grip->queue, &err, 100000U / portTICK_PERIOD_MS);
-        // printf("sd");
+
+        /* Check if sockt didn't get any error */
         if (err == SIM_closed || err == SIM_closedOk)
         {
             handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
             break;
         }
+        
+        /* Flush queue if everything was already processed */
+        if (sim->tcp_cmds[(SIM_con_num)handler->socket_num].cmd->resp.data_len == 0)
+        {
+            xQueueReset(handler->queue);
+            continue;
+        }
 
+        // TODO exec only if there is any data, if there is not, then reset queue
         err = mqtt_sync(&handler->client);
         if ((err) < 0)
         {
-            printf("MQTT error: %i", err);
+            printf("MQTT error: %i\r\n", err);
             
             switch (err)
             {
             default:
             {
                 handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, err);
+                goto exit;
             }
             }
         }
-        printf("MQTT error: %i", err);
+        // printf("MQTT error: %i", err);
         err = SIM_noErrCode;
     }
 
@@ -130,6 +140,7 @@ void mqtt_deamon(void *v_mqtt_deamon_handler)
     // handler->hard_error_handler(&handler->handler);
 
     /* wait for the task to be deleted */
+    exit:
     for (;;)
         ;
 }
@@ -159,6 +170,7 @@ TaskHandle_t mqtt_deamon_delete_task(mqtt_deamon_handler *handler)
     if (handler->handler)
     {
         vTaskDelete(handler->handler);
+        handler->handler = NULL;
     }
     return handler->handler;
 }
@@ -172,6 +184,7 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
                       const unsigned char **chain,
                       void (*socket_resp_handler)(int *err))
 {
+    static bool reconnect = false; 
     int err;
     /* TLS and MQTT specyfic structures */
     // mqtt_deamon_set_handle(error_handler, hard_error_handler);
@@ -186,6 +199,7 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
 
     /* Open encrypted socket */
     err = open_nb_socket(&ctx, server, port, chain);
+    handler->socket_num = ctx.net_ctx.fd;
     err = socket_set_handler(&ctx, socket_resp_handler); // set handler that awakes deamon when new message comes
     mqtt_pal_socket_handle sockfd = &ctx.ssl_ctx;
     if (sockfd == NULL) // TODO change
@@ -208,9 +222,11 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
         // handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, err);
         return handler->client.error;
     }
+    // mqtt_sync(&handler->client);
 
-    mqtt_publish(&handler->client, "console_device1", "t", 1, 0);
+    // mqtt_publish(&handler->client, "console_device1", "t", 1, 0);
     mqtt_subscribe(&handler->client, "console_device1", 0);
+    // mqtt_sync(&handler->client);
     mqtt_deamon_awake(handler, &handler->client.error);
 
     /* Finally run the deamon */
@@ -229,11 +245,16 @@ int mqtt_deamon_stop(mqtt_deamon_handler *handler)
 {
     mqtt_deamon_delete_task(handler);
     vQueueDelete(handler->queue);
+    mbedtls_net_context ctx = {.fd = handler->socket_num};
 
     if (!(handler->handler))
     {
         // TODO close socket, clean up
-        return 0;
+        close_nb_socket(&ctx);      
+        if (ctx.fd == -1)
+            return 0;
+        else
+            return -2;
     }
     else
     {

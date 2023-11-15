@@ -55,13 +55,17 @@
 /* Global variables */
 SIM_intf *sim;
 struct mqtt_client *client;
-static mqtt_deamon_handler *mqtt_d_handler;
+
+static mqtt_deamon_handler mqtt_handler;
+static sim_deamon_handler sim_handler;
+static uart_deamon_handler uart_handler;
 
 /* Function decalrations */
 void *client_refresher(void *client);
 void publish_callback(void **unused, struct mqtt_response_publish *published);
 void rec_callback(const unsigned char *, unsigned int);
 void main_task(void);
+void err_handling_task(void);
 void return_error(const char *tag, int err);
 void mqtt_deamon(void *);
 void socket_resp_handler(int *err);
@@ -86,38 +90,46 @@ void app_main(void)
 
 void main_task(void)
 {
-    ext_error ext_err;
     int err;
 
-    mqtt_deamon_handler mqtt_handler = {.handler = NULL,
+    mqtt_deamon_handler mqtt_handler_ = {.handler = NULL,
                                         .queue = NULL,
                                         .publish_callback = publish_callback,
                                         .error_handler = ext_error_send};
-    mqtt_d_handler = &mqtt_handler;
+    mqtt_handler = mqtt_handler_;
     client = &mqtt_handler.client;
 
-    sim_deamon_handler sim_handler = {.handler = NULL,
+    sim_deamon_handler sim_handler_ = {.handler = NULL,
                                       .error_handler = ext_error_send};
+    sim_handler = sim_handler_;
     sim = &sim_handler.sim;
 
-    uart_deamon_handler uart_handler = {.handler = NULL,
+    uart_deamon_handler uart_handler_ = {.handler = NULL,
                                         .queue = NULL,
                                         .uart_conf = uart_deamon_load_config(),
                                         .resp_handler = rec_callback,
                                         .error_handler = ext_error_send};
+    uart_handler = uart_handler_;
 
     /* Init needed structures */
-    QueueHandle_t *main_queue = error_create_queue();
+    error_create_queue();
     cert_load_chain();
     auth_load();
 
+    /* Start error handing task */
+    if (xTaskCreate(err_handling_task, "err_handling_task", 2048, NULL, 3, NULL) != pdPASS)
+    {
+        // reboot();
+    }
+    
     /* Enable the persistant ESP32 memory */
     if ((err = nvs_flash_init()))
     {
         // mqtt_deamon_delete_queue();
         // error_delete_queue();
-        return_error("nvs_flash init", err);
-        goto exit;
+        // return_error("nvs_flash init", err);
+        ext_error_send(NULL, "nvs_flash init", ext_type_fatal, -1);
+        vTaskDelete(NULL);
     }
 
     /* Start SIM deamon */
@@ -125,8 +137,9 @@ void main_task(void)
     {
         // mqtt_deamon_delete_queue();
         // error_delete_queue();
-        return_error("sim_deamon startup", err);
-        goto exit;
+        // return_error("sim_deamon startup", err);
+        ext_error_send(NULL, "sim_deamon startup", ext_type_fatal, -1);
+        vTaskDelete(NULL);
     }
     ESP_LOGI("DEAMON", "6");
     /* Start UART deamon */
@@ -134,8 +147,9 @@ void main_task(void)
     {
         // mqtt_deamon_delete_queue();
         // error_delete_queue();
-        return_error("mqtt_deamon startup", err);
-        goto exit;
+        // return_error("mqtt_deamon startup", err);
+        ext_error_send(NULL, "uart_deamon startup", ext_type_fatal, -1);
+        vTaskDelete(NULL);
     }
 
     /* Start mqtt deamon */
@@ -149,18 +163,30 @@ void main_task(void)
     {
         // mqtt_deamon_delete_queue();
         // error_delete_queue();
-        return_error("mqtt_deamon startup", err);
-        goto exit;
+        // return_error("mqtt_deamon startup", err);
+        ext_error_send(NULL, "mqtt_deamon startup", ext_type_fatal, -1);
+        vTaskDelete(NULL);
     }
+
+    /* OK */
+    vTaskDelete(NULL);
+}
+
+void err_handling_task(void)
+{
+    ext_error ext_err;
+    int err;
+    QueueHandle_t *main_queue = error_get_queue();
 
     while (1)
     {
+        printf("START READING ERRORS\r\n");
         xQueueReceive(*main_queue, &ext_err, portMAX_DELAY);
+        printf("GOT ERROR\r\n");
 
         if (sim_handler.handler == ext_err.handler)
         {
-            const char *deamon_name = "SIM deamon";
-            echo_error(deamon_name, &ext_err);
+            echo_error(&ext_err);
             /* Unhandlable exception occured in SIM task */
             if (ext_err.type == ext_type_fatal)
             {
@@ -168,62 +194,66 @@ void main_task(void)
             }
             else
             {
-                ext_mqtt_send_error(deamon_name, &ext_err);
+                ext_mqtt_send_error(&ext_err);
             }
-            // break;
         }
         else if (mqtt_handler.handler == ext_err.handler)
         {
-            const char *deamon_name = "MQTT deamon";
-            echo_error(deamon_name, &ext_err);
+            echo_error(&ext_err);
             /* Unhandlable exception occured in MQTT task, reset this task */
             if (ext_err.type == ext_type_fatal)
             {
-                mqtt_deamon_delete_task(&mqtt_handler);
+                mqtt_deamon_stop(&mqtt_handler);
                 if ((err = mqtt_deamon_start(&mqtt_handler,
-                                            *auth_get_server(),
-                                            *auth_get_port(),
-                                            *auth_get_username(),
-                                            *auth_get_password(),
-                                            *cert_get_chain(),
-                                            socket_resp_handler)))
+                                             *auth_get_server(),
+                                             *auth_get_port(),
+                                             *auth_get_username(),
+                                             *auth_get_password(),
+                                             *cert_get_chain(),
+                                             socket_resp_handler)))
                 {
-                    return_error("mqtt_deamon startup", err);
+                    ext_error s_err = {.handler = NULL,
+                                       .module = "mqtt_deamon_start",
+                                       .type = ext_type_fatal,
+                                       .err = err};
+                    echo_error(&s_err);
                     goto exit;
                 }
                 else
                 {
-                   ext_mqtt_send_error(deamon_name, &ext_err);
+                    ext_mqtt_send_error(&ext_err);
                 }
             }
         }
         else if (uart_handler.handler == ext_err.handler)
         {
-            const char *deamon_name = "UART deamon";
-            echo_error(deamon_name, &ext_err);
+            echo_error(&ext_err);
             /* Unhandlable exception occured in MQTT task, reset this task */
             if (ext_err.type == ext_type_fatal)
             {
-                uart_deamon_delete_task(&uart_handler);
+                uart_deamon_stop(&uart_handler);
                 if ((err = uart_deamon_start(&uart_handler)))
                 {
-                    return_error("uart_deamon startup", err);
+                    ext_error s_err = {.handler = NULL,
+                                       .module = "uart_deamon_start",
+                                       .type = ext_type_fatal,
+                                       .err = err};
+                    echo_error(&s_err);
                     goto exit;
                 }
             }
             else
             {
-                ext_mqtt_send_error(deamon_name, &ext_err);
+                ext_mqtt_send_error(&ext_err);
             }
         }
+        else if (ext_err.handler)
 
         free(ext_err.module);
     }
 
-    
-
 exit:
-    free(ext_err.module);
+    free(ext_err.module); // TODO
     sim_deamon_delete_task(&sim_handler);
     mqtt_deamon_delete_task(&mqtt_handler);
     uart_deamon_delete_task(&uart_handler);
@@ -254,15 +284,17 @@ void publish_callback(void **unused, struct mqtt_response_publish *published)
     memcpy(topic_name, published->topic_name, published->topic_name_size);
     topic_name[published->topic_name_size] = '\0';
 
-    printf("GOT MSG IN TOPIC: %s.", topic_name);
+    printf("GOT MSG IN TOPIC: %s\r\n", topic_name);
     /* Control channel handling */
     if (strstr(topic_name, "control"))
     {
+        printf("%s\r\n", (const char *)published->application_message);
         ctrl_ch_handler((const char *)published->application_message);
     }
     /* Information channel handling */
     else
     {
+        printf("%s\r\n", (const char *)published->application_message);
         info_ch_handler((const char *)published->application_message);
     }
 }
@@ -273,5 +305,5 @@ void rec_callback(const unsigned char *, unsigned int)
 
 void socket_resp_handler(int *err)
 {
-    mqtt_deamon_awake(mqtt_d_handler, err);
+    mqtt_deamon_awake(&mqtt_handler, err);
 }

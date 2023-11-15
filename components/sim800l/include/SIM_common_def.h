@@ -43,7 +43,20 @@ typedef enum SIM_error
     // SIM_roamingRegistered = -8,
     // SIM_serverErr = -9
 } SIM_error;
-typedef SIM_error LL_SIM_error;
+
+typedef enum LL_SIM_error
+{
+    LL_SIM_HARDWARE_ERR = -1,
+    LL_SIM_REC_ERR = -2,
+    LL_SIM_UART_FIFO_OVF = -3,
+    LL_SIM_UART_BUFFER_FULL = -4,
+    LL_SIM_UART_BREAK = -5,
+    LL_SIM_UART_PARITY_ERR = -6,
+    LL_SIM_UART_FRAME_ERR = -7,
+    LL_SIM_UART_DATA_BREAK = -8,
+    LL_SIM_UART_EVENT_MAX = -9,
+    LL_SIM_UNKNOWN_ERR = -10
+} LL_SIM_error;
 
 
 
@@ -155,7 +168,7 @@ typedef struct SIM_cmd
     char at[SIM_MAX_AT_STR_LEN];
     // char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
     // unsigned char params_num;
-    SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(char *, unsigned int, SIM_resp *, void *);
+    SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(SIM_line_pair *, SIM_line_pair *, SIM_resp *, void *);
     unsigned char handlers_num;
     SIM_resp resp;
     SIM_cmd_type type; // TODO delete
@@ -163,15 +176,16 @@ typedef struct SIM_cmd
     // SIM_error err;
 } SIM_cmd;
 
+void SIM_cmd_init(SIM_cmd *cmd);
+void SIM_cmd_free(SIM_cmd *cmd);
+
 typedef struct SIM_TCP_cmd
 {
     SIM_con_num con;
-    SIM_error (*handler)(char *, unsigned int, SIM_resp *, void *);
+    SIM_error (*handler)(SIM_line_pair *, SIM_line_pair *, SIM_resp *, void *);
     SIM_resp resp;
     void (*resp_handler)(SIM_error *err);
 } SIM_TCP_cmd;
-
-
 
 /* Reset response to NULL */
 void SIM_respNULL(SIM_resp* resp, const char *at_resp_name);
@@ -181,6 +195,7 @@ void SIM_paramsNULL(char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN]);
 unsigned char SIM_atoi_uint8_t(const char *param, unsigned char param_len);
 unsigned int SIM_atoi_uint32_t(const char *param, unsigned char param_len);
 int SIM_atoi_int32_t(const char *param, unsigned char param_len);
+void *SIM_util_strstr(const void *buf, unsigned int rec_len, const char *find);
 
 typedef int SIM_data_len;
 

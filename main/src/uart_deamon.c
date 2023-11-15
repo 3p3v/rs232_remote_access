@@ -130,6 +130,7 @@ TaskHandle_t uart_deamon_delete_task(uart_deamon_handler *handler)
     if (handler->handler)
     {
         vTaskDelete(handler->handler);
+        handler->handler = NULL;
     }
     return handler->handler;
 }

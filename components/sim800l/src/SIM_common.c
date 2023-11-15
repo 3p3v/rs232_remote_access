@@ -56,13 +56,13 @@ SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd)
    return err;
 }
 
-SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
-{
-   SIM_error err = SIM_ok;
+// SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
+// {
+//    // SIM_error err = SIM_ok;
 
-   // Give handlers to the listener and wait for the end of en execution
-   return SIM_sub_multiple_launch(sim, cmd);
-}
+//    // Give handlers to the listener and wait for the end of en execution
+//    return SIM_sub_multiple_launch(sim, cmd);
+// }
 
 SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
 {
@@ -82,15 +82,24 @@ SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
    return err;
 }
 
-SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
-{
-   xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
-   sim->tcp_cmds[cmd->con].cmd = malloc(sizeof(SIM_TCP_cmd));
-   memcpy(sim->tcp_cmds[cmd->con].cmd, cmd, sizeof(SIM_TCP_cmd));
-   xSemaphoreGive(sim->exec_mutex);
+// SIM_error SIM_sub_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
+// {
+//    SIM_error err;
+//    xSemaphoreTake(sim->exec_mutex, portMAX_DELAY);
+//    if (sim->tcp_cmds[cmd->con].cmd == NULL)
+//    {
+//       sim->tcp_cmds[cmd->con].cmd = malloc(sizeof(SIM_TCP_cmd));
+//       memcpy(sim->tcp_cmds[cmd->con].cmd, cmd, sizeof(SIM_TCP_cmd));
+//       err = SIM_ok;
+//    }
+//    else
+//    {
+//       err = SIM_err;
+//    } 
+//    xSemaphoreGive(sim->exec_mutex);
 
-   return SIM_ok;
-}
+//    return err;
+// }
 
 // SIM_error SIM_check()
 

@@ -10,6 +10,15 @@ const SIM_err_pair SIM_reservedResps[] = {{.name = "+RECEIVE", .err = SIM_receiv
 
 void SIM_respNULL(SIM_resp *resp, const char *at_resp_name)
 {
+    if (resp->data_len == 0 && resp->data != NULL)
+        free(resp->data);
+
+    if (resp->resp_len == 0 && resp->resp != NULL)
+        free(resp->resp);
+
+    if (resp->data_mutex != NULL)
+        vSemaphoreDelete(resp->data_mutex);
+    
     memset(resp, 0, sizeof(*resp));
     if (at_resp_name != NULL)
         strcpy(resp->at, at_resp_name);
@@ -33,6 +42,23 @@ void SIM_paramsNULL(char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN])
     }
 }
 
+void SIM_cmd_init(SIM_cmd *cmd)
+{
+    memset(&cmd->resp, 0, sizeof(cmd->resp));
+}
+
+void SIM_cmd_free(SIM_cmd *cmd)
+{
+    if (cmd->resp.data_len == 0 && cmd->resp.data != NULL)
+        free(cmd->resp.data);
+
+    if (cmd->resp.resp_len == 0 && cmd->resp.resp != NULL)
+        free(cmd->resp.resp);
+
+    if (cmd->resp.data_mutex != NULL)
+        vSemaphoreDelete(cmd->resp.data_mutex);
+}
+
 unsigned char SIM_atoi_uint8_t(const char *param, unsigned char param_len)
 {
     char param_str[6] = {};
@@ -54,7 +80,7 @@ int SIM_atoi_int32_t(const char *param, unsigned char param_len)
     return atoi(param_str);
 }
 
-static void *SIM_util_strstr(const void *buf, unsigned int rec_len, const char *find)
+void *SIM_util_strstr(const void *buf, unsigned int rec_len, const char *find)
 {
     // unsigned int find_len = strlen(find);
     void *ptr = NULL;

@@ -22,8 +22,8 @@ typedef struct ext_error
     int err;
 } ext_error;
 
-void echo_error(const char *deamon_name, ext_error *err);
-void ext_mqtt_send_error(const char *deamon_name, ext_error *err);
+void echo_error(ext_error *err);
+void ext_mqtt_send_error(ext_error *err);
 void return_error(const char *tag, int err);
 void reboot();
 void send_error(TaskHandle_t *handler);

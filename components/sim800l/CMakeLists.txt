@@ -7,8 +7,8 @@ set(COMPONENT_REQUIRES driver freertos esp_hw_support heap log soc hal esp_rom e
 set(COMPONENT_PRIV_REQUIRES )
 
 set(COMPONENT_SRCS "src/LL_SIM.c" "src/SIM_common.c" "src/SIM.c" "src/SIM_common_def.c" 
-                   "SIM/TCPIP/SIM_TCPIP.c" "SIM/TCPIP/SIM_TCPIP_listenTCP.c" "SIM/common/SIM_common_cmds.c" "lwip_sim800/src/inet_sim800.c" )
-set(COMPONENT_ADD_INCLUDEDIRS "include/" "SIM/TCPIP/include" "lwip_sim800/include" "SIM/common/include")
+                   "modules/TCPIP/SIM_TCPIP.c" "modules/TCPIP/SIM_TCPIP_listenTCP.c" "modules/common/SIM_common_cmds.c" "lwip_sim800/src/inet_sim800.c" )
+set(COMPONENT_ADD_INCLUDEDIRS "include/" "modules/TCPIP/include" "lwip_sim800/include" "modules/common/include")
 
 register_component()
 

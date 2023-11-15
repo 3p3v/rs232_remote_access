@@ -1,11 +1,8 @@
 #include <SIM_common_cmds.h>
 #include <string.h>
 
-static SIM_error SIM_execCIICR_handler(char *buf, unsigned int rec_len, SIM_resp *resp, void *sim)
+static SIM_error SIM_execCIICR_handler(SIM_line_pair *lines, SIM_line_pair *lines_beg, SIM_resp *resp, void *sim)
 {
-    SIM_line_pair lines[SIM_MAX_LINES_ARR_LEN];
-    SIM_findAllLines(buf, rec_len, lines, SIM_MAX_LINES_ARR_LEN);
-
     SIM_errMsgEnd_pair err = SIM_retrieveErr(lines);
     resp->err = err.err;
     resp->msg_end = err.ptr;
