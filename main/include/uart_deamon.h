@@ -40,6 +40,7 @@ typedef struct uart_deamon_handler
 // uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int));
 
 // static uart_deamon_handler *uart_deamon_get_handle();
+int uart_write(unsigned char* buf, size_t len);
 
 void uart_deamon(void *v_handler);
 
