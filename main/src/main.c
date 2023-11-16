@@ -35,7 +35,7 @@
 #endif
 #include <esp_crt_bundle.h>
 /* MQTT-C lib */
-#include <mqtt.h>
+// #include <mqtt.h>
 /* Main deamon */
 #include <error_handler.h>
 #include <mqtt_deamon.h>
@@ -62,8 +62,7 @@ static uart_deamon_handler uart_handler;
 
 /* Function decalrations */
 void *client_refresher(void *client);
-void publish_callback(void **unused, struct mqtt_response_publish *published);
-void rec_callback(const unsigned char *, unsigned int);
+void rec_callback(unsigned char * buf, unsigned int);
 void main_task(void);
 void err_handling_task(void);
 void return_error(const char *tag, int err);
@@ -94,10 +93,9 @@ void main_task(void)
 
     mqtt_deamon_handler mqtt_handler_ = {.handler = NULL,
                                         .queue = NULL,
-                                        .publish_callback = publish_callback,
+                                        .publish_callback = uart_write,
                                         .error_handler = ext_error_send};
     mqtt_handler = mqtt_handler_;
-    client = &mqtt_handler.client;
 
     sim_deamon_handler sim_handler_ = {.handler = NULL,
                                       .error_handler = ext_error_send};
@@ -278,29 +276,9 @@ exit:
     // vTaskDelete(NULL);
 }
 
-void publish_callback(void **unused, struct mqtt_response_publish *published)
+void rec_callback(unsigned char * buf, unsigned int)
 {
-    char *topic_name = (char *)malloc(published->topic_name_size + 1);
-    memcpy(topic_name, published->topic_name, published->topic_name_size);
-    topic_name[published->topic_name_size] = '\0';
-
-    printf("GOT MSG IN TOPIC: %s\r\n", topic_name);
-    /* Control channel handling */
-    if (strstr(topic_name, "control"))
-    {
-        printf("%s\r\n", (const char *)published->application_message);
-        ctrl_ch_handler((const char *)published->application_message);
-    }
-    /* Information channel handling */
-    else
-    {
-        printf("%s\r\n", (const char *)published->application_message);
-        info_ch_handler((const char *)published->application_message);
-    }
-}
-
-void rec_callback(const unsigned char *, unsigned int)
-{
+    
 }
 
 void socket_resp_handler(int *err)

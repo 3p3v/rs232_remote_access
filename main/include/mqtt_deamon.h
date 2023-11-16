@@ -5,19 +5,28 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 /* MQTT-C lib */
-#include <mqtt.h>
+#include <MQTTClient.h>
+/**/
+#include <mbedtls_sockets.h>
 
 #define MAIN_MQTT_REC_BUF_SIZE 1024
 #define MAIN_MQTT_SEND_BUF_SIZE 1024
 
+#define QOS 0
+#define PROPERTIES_SIZE 5
+#define USERNAME_LEN strlen("XX:XX:XX:XX:XX:XX")
+
 typedef struct mqtt_deamon_handler
 {
     TaskHandle_t handler;
+    // TaskHandle_t ping_handle;
+    MQTTV5Transport trp;
     QueueHandle_t queue;
-    char socket_num;
-    struct mqtt_client client;
-    void (*publish_callback)(void **, struct mqtt_response_publish *);
+    mbedtls_context ctx;
+    char *username;
+    // void (*publish_callback)(void **, struct mqtt_response_publish *);
     void (*error_handler)(void *, const char *, int , int );
+    void (*publish_callb)(unsigned char *, size_t);
     // void (*hard_error_handler)(TaskHandle_t *);
 } mqtt_deamon_handler;
 

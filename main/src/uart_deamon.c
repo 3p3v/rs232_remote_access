@@ -7,13 +7,18 @@
 #include <driver/uart.h>
 #include <esp_log.h>
 /* MQTT-C lib */
-#include <mqtt.h>
+#include <MQTTClient.h>
 /* Main deamon */
 #include <error_handler.h>
 #include <mqtt_deamon.h>
 
 static const char *TAG = "UART_DEAMON";
-extern struct mqtt_client client;
+// extern struct mqtt_client client;
+
+int uart_write(unsigned char* buf, size_t len)
+{
+    uart_write_bytes(UART_DEAMON_DEF_UART_NUM, buf, len);
+}
 
 // uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int))
 // {
@@ -208,7 +213,7 @@ int uart_deamon_start(uart_deamon_handler *handler)
                                    0)) != ESP_OK)
     {
         /* Driver installation failed */
-        return ESP_OK; //(int)err;
+        return (int)err; //(int)err;
     }
 
     if ((err = uart_param_config(UART_DEAMON_DEF_UART_NUM,
