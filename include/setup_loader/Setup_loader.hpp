@@ -175,7 +175,7 @@ Setup_loader::Setup_loader(Str &&file_name)
                                        current_device->second.settings_known = settings_known_trans(str);
                                    }));
 
-    console.add_cmd("settings_known", Handle::Policies<>::Dyn_handle(
+    console.add_cmd("write_access", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
                                    {
                                        auto current_device = get_current();

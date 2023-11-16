@@ -1,6 +1,8 @@
 user_id 1
+username admin
+password admin
 ip localhost
 port 1883
 pem asdda
 crt asdasd
-device console_device1
+device XX:XX:XX:XX:XX:XX

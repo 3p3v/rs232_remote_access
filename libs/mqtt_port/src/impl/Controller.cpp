@@ -49,7 +49,7 @@ namespace Mqtt_port
                                             client->subscribe(sub.channel_name, 
                                                               sub.qos, 
                                                               nullptr, 
-                                                              std::move(sub.callb),
+                                                              std::move(sub.callb)
                                                               mqtt::subscribe_options{true});
                                         }
                                         else
@@ -94,6 +94,9 @@ namespace Mqtt_port
 
             /* Set options */
             options.set_mqtt_version(MQTTVERSION_5);
+            // mqtt::properties properties{mqtt::property{mqtt::property::MAXIMUM_PACKET_SIZE, 65536},
+            //                             mqtt::property{mqtt::property::TOPIC_ALIAS_MAXIMUM, 30}};
+            // options.set_properties(properties);
             Impl_user::set_options(std::move(user), options);
             Impl_server::set_options(std::move(server), options);
         }

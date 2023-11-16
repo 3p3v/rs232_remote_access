@@ -8,7 +8,7 @@ namespace Ip_serial
     {
     public:
         static constexpr unsigned int time_to_disconnect = 200;
-        static constexpr unsigned char qos = 1;
+        static constexpr unsigned char qos = 2;
 
     public:
         Mqtt_defs() = default;

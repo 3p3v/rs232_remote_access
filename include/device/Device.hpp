@@ -5,8 +5,8 @@
 
 class Device final
 {
-    static constexpr std::string_view info_ch{"_i_ch"};
-    static constexpr std::string_view data_ch{"_d_ch"};
+    static constexpr std::string_view info_ch{"i"};
+    static constexpr std::string_view data_ch{"d"};
     
     std::string name;
     bool name_set{false};

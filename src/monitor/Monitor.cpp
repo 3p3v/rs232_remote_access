@@ -10,7 +10,7 @@ namespace Main_serial
 
     void Monitor::error(const Exception::Exception &except)
     {
-        throw except;
+        // throw except;
     }
 
     void Monitor::wake(const Device_ptr &device)
