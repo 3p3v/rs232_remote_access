@@ -1,5 +1,10 @@
 #pragma once
 
+/* Channels */
+#define INFO_CH_C 'i'
+#define SET_CH_C 's'
+#define DATA_CH_C 'd'
+
 /* Set commands */
 #define SET_BAUD_RATE "S_B"
 #define SET_PARITY "S_P"
@@ -29,7 +34,43 @@
 #define RTS_SET "E_S"
 #define RTS_RESET "E_R"
 
-/* Min/Max */
+/* Baud rate */
 #define BAUD_RATE_MIN 9600
 #define BAUD_RATE_MAX 115200
 
+/* Parity */
+#define PARITY_EVEN "E"
+#define PARITY_NONE "N"
+#define PARITY_ODD "O"
+
+/* Char size */
+#define CHAR_SIZE_MIN 5
+#define CHAR_SIZE_MAX 8
+
+/* STOP_BITS */
+#define STOP_BITS_ONE "O"
+#define STOP_BITS_ONEPOINTFIVE "OPF"
+#define STOP_BITS_TWO "T"
+
+/* New session */
+#define NEW_SESSION "N_S"
+
+/* UNKNOWN CMD */
+#define UNKNOWN_CMD "U_C"
+/* ILL-FORMED */
+#define ILL_FORMED_CMD "IF_C"
+/* INVALID ARGUMENT */
+#define INVALID_ARGUMENT "I_A"
+
+#define SPACE " "
+#define ENDL "\n"
+#define SPACE_C ' '
+#define ENDL_C '\n'
+
+char *get_channel_name(char *dev_name, char channel_end);
+/*  */
+char *cmdcmp(char *cmd, char *data, size_t len);
+char *cmdchr(char *data, size_t len, char c);
+size_t add_cmd(char **data, size_t current_len, char *new_cmd, char *new_arg);
+size_t add_cmd_none(char **data, size_t current_len, char *new_cmd);
+size_t add_cmd_uint(char **data, size_t current_len, char *new_cmd, int new_arg_);

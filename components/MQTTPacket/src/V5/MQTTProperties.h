@@ -69,6 +69,7 @@ typedef struct
     char byte;
     short integer2;
     int integer4;
+    unsigned int uinteger4;
     MQTTLenString data;
     MQTTStringPair string_pair; /* for user properties */
   } value;

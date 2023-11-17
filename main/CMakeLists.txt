@@ -7,4 +7,5 @@ idf_component_register(#SRCS "main.c"
                                 MQTTClient-C
                                 # mqtt
                                 nvs_flash
-                                esp_event)
+                                esp_event
+                                driver)

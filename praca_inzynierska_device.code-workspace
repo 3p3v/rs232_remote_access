@@ -95,7 +95,10 @@
 			"sim_tcpip.h": "c",
 			"sim_common_cmds.h": "c",
 			"sim.h": "c",
-			"freertos.h": "c"
+			"freertos.h": "c",
+			"uart_deamon.h": "c",
+			"cmd_defs.h": "c",
+			"mqttclient.h": "c"
 		},
 		"idf.gitPathWin": "C:\\Users\\ADAM\\esp\\esp-idf\\tools\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
 	},
