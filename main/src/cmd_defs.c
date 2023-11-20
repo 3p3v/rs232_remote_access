@@ -1,5 +1,6 @@
 #include <cmd_defs.h>
 #include <string.h>
+#include <stdio.h>
 
 char *get_channel_name(char *dev_name, char channel_end)
 {
@@ -7,6 +8,7 @@ char *get_channel_name(char *dev_name, char channel_end)
     memcpy(channel_name, dev_name, strlen(dev_name) + 1);
     channel_name[strlen(channel_name) + 1] = '\0';
     channel_name[strlen(channel_name)] = channel_end;
+    return channel_name;
 }
 
 char *cmdchr(char *data, size_t len, char c)
@@ -23,12 +25,12 @@ char *cmdchr(char *data, size_t len, char c)
 char *cmdcmp(char *cmd, char *data, size_t len)
 {
     if (strlen(cmd) < len)
-        return -1;
+        return NULL;
 
     for (unsigned int i = 0; i < strlen(cmd); i++)
     {
         if (cmd[i] != data[i])
-            return -1;
+            return NULL;
     }
 
     return data + strlen(cmd);

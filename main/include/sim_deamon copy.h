@@ -37,15 +37,15 @@ int sim_deamon_start(TaskHandle_t *hander)
     }
 
     /* Enable network connection and multiple TCP streams */
-    if ((err = SIM_run(sim, SIM_execATE0(&cmd))) ||
-        (err = SIM_run(sim, SIM_readCGATT(&cmd))) ||
-        (err = SIM_run(sim, SIM_writeCIPMUX(&cmd, 1))) ||
-        (err = SIM_run(sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL))) ||
-        (err = SIM_run(sim, SIM_execCIICR(&cmd))) ||
-        (err = SIM_run(sim, SIM_execCIFSR(&cmd))))
-    {
-        echo_error("SIM", err);
-    }
+    // if ((err = SIM_run(sim, SIM_execATE0(&cmd))) ||
+    //     (err = SIM_run(sim, SIM_readCGATT(&cmd))) ||
+    //     (err = SIM_run(sim, SIM_writeCIPMUX(&cmd, 1))) ||
+    //     (err = SIM_run(sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL))) ||
+    //     (err = SIM_run(sim, SIM_execCIICR(&cmd))) ||
+    //     (err = SIM_run(sim, SIM_execCIFSR(&cmd))))
+    // {
+    //     echo_error("SIM", err);
+    // }
 
     return (int)err;
 }

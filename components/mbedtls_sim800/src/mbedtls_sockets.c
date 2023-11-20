@@ -14,9 +14,9 @@ void close_nb_socket(mbedtls_context *ctx)
 }
 
 int open_nb_socket(mbedtls_context *ctx,
-                    const char *hostname,
-                    const char *port,
-                    const unsigned char **ca_chain)
+                    char *hostname,
+                    char *port,
+                    unsigned char **ca_chain)
 {
     // int take_break = 1;
     // while(take_break);

@@ -70,8 +70,8 @@ typedef struct LL_SIM_intf
     gpio_num_t tx;
     gpio_num_t rx;
     int baudRate;
-    gpio_num_t drt;
-    gpio_num_t rst;
+    // gpio_num_t drt;
+    // gpio_num_t rst;
     uart_port_t uart;
     // uart_config_t uartConf;
     QueueHandle_t uartQueue;
@@ -108,7 +108,7 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
 // SIM_data_len LL_SIM_receiveRaw_checkErr(const LL_SIM_intf *sim, SIM_time time, SIM_error (*check)(const LL_SIM_intf *));
 void LL_SIM_delay(int ms);
 
-/* Set DRT pin high/low */
-LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set);
-/* Set RST pin high/low */
-LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set);
+// /* Set DRT pin high/low */
+// LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set);
+// /* Set RST pin high/low */
+// LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set);

@@ -29,10 +29,8 @@ typedef struct mqtt_deamon_handler
     TaskHandle_t handler;
     gptimer_handle_t ping_timer;
     SemaphoreHandle_t send_buf_mutex_handle;
-    StaticSemaphore_t send_buf_mutex;
     unsigned char sendbuf[MAIN_MQTT_SEND_BUF_SIZE];
     SemaphoreHandle_t mbed_mutex_handle;
-    StaticSemaphore_t mbed_mutex;
     MQTTV5Transport trp;
     uart_config_t *uart_conf;
     bool initialized;
@@ -50,7 +48,7 @@ typedef struct mqtt_deamon_handler
     char *username;
     // void (*publish_callback)(void **, struct mqtt_response_publish *);
     void (*error_handler)(void *, const char *, int , int );
-    void (*publish_callb)(unsigned char *, size_t);
+    int (*publish_callb)(unsigned char *, size_t);
     // void (*hard_error_handler)(TaskHandle_t *);
 } mqtt_deamon_handler;
 
@@ -66,12 +64,12 @@ void mqtt_deamon_awake(mqtt_deamon_handler *handler, int *err);
 /* Start deamon */
 int mqtt_deamon_start(mqtt_deamon_handler *handler,
                       uart_config_t *uart_conf,
-                      const char *server,
-                      const char *port,
+                      char *server,
+                      char *port,
                       // const char *client_id,
-                      const char *username,
-                      const char *password,
-                      const unsigned char **chain,
+                      char *username,
+                      char *password,
+                      char **chain,
                       void (*socket_resp_handler)(int *err));
 
 /* Kill deamon */

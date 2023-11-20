@@ -17,8 +17,6 @@
 
 #include "StackTrace.h"
 
-#define MQTTV5
-
 #if defined(MQTTV5)
 #include "MQTTV5Packet.h"
 #else

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 /* Channels */
 #define INFO_CH_C 'i'
 #define SET_CH_C 's'
@@ -42,6 +44,9 @@
 #define PARITY_EVEN "E"
 #define PARITY_NONE "N"
 #define PARITY_ODD "O"
+#define PARITY_EVEN_C 'E'
+#define PARITY_NONE_C 'N'
+#define PARITY_ODD_C 'O'
 
 /* Char size */
 #define CHAR_SIZE_MIN 5
@@ -51,6 +56,11 @@
 #define STOP_BITS_ONE "O"
 #define STOP_BITS_ONEPOINTFIVE "OPF"
 #define STOP_BITS_TWO "T"
+#define STOP_BITS_ONE_C 'O'
+#define STOP_BITS_ONEPOINTFIVE_C0 'O'
+#define STOP_BITS_ONEPOINTFIVE_C1 'P'
+#define STOP_BITS_ONEPOINTFIVE_C2 'F'
+#define STOP_BITS_TWO_C 'T'
 
 /* New session */
 #define NEW_SESSION "N_S"
@@ -61,6 +71,7 @@
 #define ILL_FORMED_CMD "IF_C"
 /* INVALID ARGUMENT */
 #define INVALID_ARGUMENT "I_A"
+#define INVALID_OPTION "I_O"
 
 #define SPACE " "
 #define ENDL "\n"

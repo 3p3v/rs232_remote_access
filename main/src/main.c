@@ -22,7 +22,7 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/debug.h>
-#include <mbedtls_sockets.h>
+// #include <mbedtls_sockets.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/esp_debug.h>
@@ -63,8 +63,8 @@ static uart_deamon_handler uart_handler;
 /* Function decalrations */
 void *client_refresher(void *client);
 void rec_callback(unsigned char * buf, unsigned int);
-void main_task(void);
-void err_handling_task(void);
+void main_task(void*);
+void err_handling_task(void*);
 void return_error(const char *tag, int err);
 void mqtt_deamon(void *);
 void socket_resp_handler(int *err);
@@ -72,28 +72,21 @@ void socket_resp_handler(int *err);
 /* Main */
 void app_main(void)
 {
-    int err = ESP_OK;
-
-    /* Set time in case it's needed to check a validity of certyficates */
-    struct timeval tv_now;
-    struct timezone t_z = {.tz_dsttime = 2, .tz_minuteswest = -39};
-    gettimeofday(&tv_now, NULL);
-    tv_now.tv_sec = 1694784830;
-    settimeofday(&tv_now, NULL);
+    // int err = ESP_OK;
 
     /* Run main */
-    xTaskCreate(&main_task, "mqtt_main_task", 35000, NULL, 3, NULL);
+    xTaskCreate(main_task, "mqtt_main_task", 35000, NULL, 3, NULL);
 
-    // while(1);
+    // vTaskDelete(NULL);
 }
 
-void main_task(void)
+void main_task(void*)
 {
     int err;
 
     mqtt_deamon_handler mqtt_handler_ = {.handler = NULL,
                                         .queue = NULL,
-                                        .publish_callback = uart_write,
+                                        .publish_callb = uart_write,
                                         .error_handler = ext_error_send};
     mqtt_handler = mqtt_handler_;
 
@@ -110,48 +103,23 @@ void main_task(void)
     uart_handler = uart_handler_;
 
     /* Init needed structures */
-    error_create_queue();
     cert_load_chain();
     auth_load();
-
-    /* Start error handing task */
-    if (xTaskCreate(err_handling_task, "err_handling_task", 2048, NULL, 3, NULL) != pdPASS)
-    {
-        // reboot();
-    }
-    
-    /* Enable the persistant ESP32 memory */
-    if ((err = nvs_flash_init()))
-    {
-        // mqtt_deamon_delete_queue();
-        // error_delete_queue();
-        // return_error("nvs_flash init", err);
-        ext_error_send(NULL, "nvs_flash init", ext_type_fatal, -1);
-        vTaskDelete(NULL);
-    }
 
     /* Start SIM deamon */
     if ((err = sim_deamon_start(&sim_handler)))
     {
-        // mqtt_deamon_delete_queue();
-        // error_delete_queue();
-        // return_error("sim_deamon startup", err);
-        ext_error_send(NULL, "sim_deamon startup", ext_type_fatal, -1);
         vTaskDelete(NULL);
     }
-    ESP_LOGI("DEAMON", "6");
     /* Start UART deamon */
     if ((err = uart_deamon_start(&uart_handler)))
     {
-        // mqtt_deamon_delete_queue();
-        // error_delete_queue();
-        // return_error("mqtt_deamon startup", err);
-        ext_error_send(NULL, "uart_deamon startup", ext_type_fatal, -1);
         vTaskDelete(NULL);
     }
 
     /* Start mqtt deamon */
     if ((err = mqtt_deamon_start(&mqtt_handler,
+                                 &uart_handler.uart_conf,
                                  *auth_get_server(),
                                  *auth_get_port(),
                                  *auth_get_username(),
@@ -159,10 +127,6 @@ void main_task(void)
                                  *cert_get_chain(),
                                  socket_resp_handler)))
     {
-        // mqtt_deamon_delete_queue();
-        // error_delete_queue();
-        // return_error("mqtt_deamon startup", err);
-        ext_error_send(NULL, "mqtt_deamon startup", ext_type_fatal, -1);
         vTaskDelete(NULL);
     }
 
@@ -170,7 +134,7 @@ void main_task(void)
     vTaskDelete(NULL);
 }
 
-void err_handling_task(void)
+void err_handling_task(void*)
 {
     ext_error ext_err;
     int err;
@@ -203,6 +167,7 @@ void err_handling_task(void)
             {
                 mqtt_deamon_stop(&mqtt_handler);
                 if ((err = mqtt_deamon_start(&mqtt_handler,
+                                             &uart_handler.uart_conf,
                                              *auth_get_server(),
                                              *auth_get_port(),
                                              *auth_get_username(),
@@ -252,8 +217,8 @@ void err_handling_task(void)
 
 exit:
     free(ext_err.module); // TODO
-    sim_deamon_delete_task(&sim_handler);
-    mqtt_deamon_delete_task(&mqtt_handler);
+    sim_deamon_stop(&sim_handler);
+    mqtt_deamon_stop(&mqtt_handler);
     uart_deamon_delete_task(&uart_handler);
     error_delete_queue();
     cert_free_chain();

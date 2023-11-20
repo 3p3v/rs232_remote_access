@@ -70,25 +70,25 @@ typedef struct
 #define MQTTV5Packet_connectData_initializer { {'M', 'Q', 'T', 'C'}, 5, {NULL, {0, NULL}}, 60, 1, 0, \
 		MQTTV5Packet_willOptions_initializer, {NULL, {0, NULL}}, {NULL, {0, NULL}} }
 
-DLLExport int32_t MQTTV5Serialize_connect(unsigned char* buf, int32_t buflen, MQTTV5Packet_connectData* options,
+DLLExport int MQTTV5Serialize_connect(unsigned char* buf, int32_t buflen, MQTTV5Packet_connectData* options,
   MQTTProperties* connectProperties);
 
 DLLExport int32_t MQTTV5Deserialize_connect(MQTTProperties* connectProperties, MQTTV5Packet_connectData* data, 
-  unsigned char* buf, int32_t len);
+	unsigned char* buf, int32_t len);
 
-DLLExport int32_t MQTTV5Serialize_connack(unsigned char* buf, int32_t buflen, unsigned char connack_rc,
-  unsigned char sessionPresent, MQTTProperties* connackProperties);
+DLLExport int32_t MQTTV5Serialize_connack(unsigned char* buf, int32_t buflen, unsigned char connack_rc, 
+	unsigned char sessionPresent, MQTTProperties* connackProperties);
 
-DLLExport int32_t MQTTV5Deserialize_connack(MQTTProperties* connackProperties,
+DLLExport int MQTTV5Deserialize_connack(MQTTProperties* connackProperties,
   unsigned char* sessionPresent, unsigned char* connack_rc, unsigned char* buf, int32_t buflen);
 
-DLLExport int32_t MQTTV5Serialize_disconnect(unsigned char* buf, int32_t buflen, unsigned char reasonCode,
+DLLExport int MQTTV5Serialize_disconnect(unsigned char* buf, int32_t buflen, unsigned char reasonCode,
   MQTTProperties* properties);
 
 DLLExport int32_t MQTTV5Deserialize_disconnect(MQTTProperties* properties, unsigned char* reasonCode,
   unsigned char* buf, int32_t buflen);
 
-DLLExport int32_t MQTTV5Serialize_auth(unsigned char* buf, int32_t buflen, unsigned char reasonCode,
+DLLExport int MQTTV5Serialize_auth(unsigned char* buf, int32_t buflen, unsigned char reasonCode,
   MQTTProperties* properties);
 
 DLLExport int32_t MQTTV5Deserialize_auth(MQTTProperties* properties, unsigned char* reasonCode,

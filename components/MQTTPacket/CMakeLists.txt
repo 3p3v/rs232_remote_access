@@ -27,3 +27,5 @@ set(COMPONENT_SRCDIRS "src/" "src/V5/")
 set(COMPONENT_ADD_INCLUDEDIRS "src/" "src/V5/")
 
 register_component()
+
+target_compile_options(${COMPONENT_TARGET} PUBLIC -DMQTTV5)

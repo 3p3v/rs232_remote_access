@@ -21,9 +21,9 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->unread_num = 0;
     sim->tx = LL_SIM_DEF_UART_TX;
     sim->rx = LL_SIM_DEF_UART_RX;
-    sim->baudRate = 115200; // 19200;
-    sim->drt = LL_SIM_DEF_DRT_PIN;
-    sim->rst = LL_SIM_DEF_RST_PIN;
+    sim->baudRate = 9600; // 19200;
+    // sim->drt = LL_SIM_DEF_DRT_PIN;
+    // sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
     sim->uartQueue = NULL; // xQueueCreate(LL_SIM_DEF_QUEUE_SIZE, sizeof(int));
     sim->cmds.cmd = NULL;
@@ -74,15 +74,15 @@ LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
     // uart_pattern_queue_reset(uart, LL_SIM_DEF_PATTERN_QUEUE_SIZE);
 
     /* GPIO */
-    gpio_config_t gpioConf = {
-        .pin_bit_mask = (uint64_t)((1 << sim->drt) | (1 << sim->rst)),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE};
+    // gpio_config_t gpioConf = {
+    //     .pin_bit_mask = (uint64_t)((1 << sim->drt) | (1 << sim->rst)),
+    //     .mode = GPIO_MODE_OUTPUT,
+    //     .pull_up_en = GPIO_PULLUP_DISABLE,
+    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    //     .intr_type = GPIO_INTR_DISABLE};
 
-    /* Set DRT and RST pin */
-    ESP_ERROR_CHECK(gpio_config(&gpioConf));
+    // /* Set DRT and RST pin */
+    // ESP_ERROR_CHECK(gpio_config(&gpioConf));
 
     // resetForce();
 
@@ -441,7 +441,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
         // Event of UART receving data
         case UART_DATA:
         {
-            ESP_LOGI(TAG, "uart event: receive, bytes %u", event.size);
+            // ESP_LOGI(TAG, "uart event: receive, bytes %u", event.size);
             // ESP_LOGI(TAG, "[UART DATA]: %d", event.size); // TODO delete??
             if (sim->unread_num == 0)
                 sim->rec_len = 0;
@@ -463,7 +463,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
             //     return SIM_recErr;
             else
             {
-                ESP_LOGI(TAG, "UART received 0 bytes");
+                // ESP_LOGI(TAG, "UART received 0 bytes");
                 return LL_SIM_REC_ERR;
             }
             break;
@@ -544,18 +544,18 @@ void LL_SIM_delay(int ms)
     vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
-LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set)
-{
-    if (gpio_set_level(sim->drt, set) == ESP_OK)
-        return SIM_ok;
-    else
-        return LL_SIM_HARDWARE_ERR;
-}
+// LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set)
+// {
+//     if (gpio_set_level(sim->drt, set) == ESP_OK)
+//         return SIM_ok;
+//     else
+//         return LL_SIM_HARDWARE_ERR;
+// }
 
-LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
-{
-    if (gpio_set_level(sim->rst, set) == ESP_OK)
-        return SIM_ok;
-    else
-        return LL_SIM_HARDWARE_ERR;
-}
+// LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
+// {
+//     if (gpio_set_level(sim->rst, set) == ESP_OK)
+//         return SIM_ok;
+//     else
+//         return LL_SIM_HARDWARE_ERR;
+// }

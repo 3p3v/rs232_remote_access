@@ -20,7 +20,7 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/debug.h>
-#include <mbedtls_sockets.h>
+// #include <mbedtls_sockets.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/esp_debug.h>
@@ -38,13 +38,69 @@
 /* UART deamon */
 #include <uart_deamon.h>
 #include <cmd_defs.h>
+/**/
+#include <info_ch.h>
+#include <set_ch.h>
 
 extern SIM_intf *sim;
 extern struct mqtt_client client;
 static mqtt_deamon_handler *mdh = NULL;
 
-static SemaphoreHandle_t mutex;
-static StaticSemaphore_t xMutexBuffer;
+// static SemaphoreHandle_t mutex;
+// static StaticSemaphore_t xMutexBuffer;
+
+/* Ping callback */
+static bool ping_handle(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+
+    QueueHandle_t queue = (QueueHandle_t)user_ctx;
+    int val = PING_REQUEST;
+    xQueueSendFromISR(queue, &val, &xHigherPriorityTaskWoken);
+
+    if (xHigherPriorityTaskWoken)
+    {
+        portYIELD_FROM_ISR(NULL);
+    }
+
+    return xHigherPriorityTaskWoken;
+}
+
+static void start_ping_timer(mqtt_deamon_handler *handler)
+{
+    gptimer_config_t t_conf = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = PING_TIMER_RES, // 1MHz, 1 tick = 1us
+    };
+    ESP_ERROR_CHECK(gptimer_new_timer(&t_conf, &handler->ping_timer));
+    /* Configure alarm time */
+    gptimer_alarm_config_t t_alarm_conf = {
+        .alarm_count = (handler->keep_alive_int / SEC_IN_MIN) * PING_TIMER_RES,
+        .reload_count = 0,
+        .flags.auto_reload_on_alarm = true};
+    ESP_ERROR_CHECK(gptimer_set_alarm_action(handler->ping_timer, &t_alarm_conf));
+    /* Mount callback */
+    gptimer_event_callbacks_t t_callb_conf = {
+        .on_alarm = ping_handle};
+    ESP_ERROR_CHECK(gptimer_register_event_callbacks(handler->ping_timer, &t_callb_conf, handler->queue));
+    ESP_ERROR_CHECK(gptimer_enable(handler->ping_timer));
+    /* Start timer */
+    ESP_ERROR_CHECK(gptimer_start(handler->ping_timer));
+}
+
+static void reload_ping_timer(mqtt_deamon_handler *handler)
+{
+    gptimer_set_raw_count(handler->ping_timer, 0);
+}
+
+static void stop_ping_timer(mqtt_deamon_handler *handler)
+{
+    /* Stop */
+    gptimer_stop(handler->ping_timer);
+    /* Disable callbacks */
+    gptimer_disable(handler->ping_timer);
+}
 
 int mqtt_write_d(unsigned char *buf, size_t len)
 {
@@ -73,18 +129,22 @@ int mqtt_write_d(unsigned char *buf, size_t len)
         ack_properties_array[0].identifier = MQTTPROPERTY_CODE_USER_PROPERTY;
         char slave_num_str[12];
         sprintf(slave_num_str, "%u", mdh->slave_num++);
-        char key[] = "N:";
+        char key[] = "N";
         ack_properties_array[0].value.string_pair.key.data = key;
         ack_properties_array[0].value.string_pair.key.len = strlen(key);
         ack_properties_array[0].value.string_pair.val.data = slave_num_str;
         ack_properties_array[0].value.string_pair.val.len = strlen(slave_num_str);
 
         /* Send ACK */
-        int len = MQTTV5Serialize_publish(mdh->sendbuf, MAIN_MQTT_SEND_BUF_SIZE, 0, QOS, 0, 0, topicString, &ack_properties, buf, len);
-        mqtt_tls_write(mdh->sendbuf, len);
+        len = MQTTV5Serialize_publish(mdh->sendbuf, MAIN_MQTT_SEND_BUF_SIZE, 0, QOS, 0, 0, topicString, &ack_properties, buf, len);
+        len = mqtt_tls_write(mdh->sendbuf, len);
 
         xSemaphoreGive(mdh->send_buf_mutex_handle);
+
+        return len;
     }
+
+    return -1;
 }
 
 int mqtt_tls_write(unsigned char *buf, size_t len)
@@ -93,7 +153,7 @@ int mqtt_tls_write(unsigned char *buf, size_t len)
     {
         /* Write to broker */
         xSemaphoreTake(mdh->mbed_mutex_handle, portMAX_DELAY);
-        int len = mbedtls_ssl_write(&mdh->ctx.ssl_ctx, buf, len);
+        len = mbedtls_ssl_write(&mdh->ctx.ssl_ctx, buf, len);
         xSemaphoreGive(mdh->mbed_mutex_handle);
         /* Reset timer */
         reload_ping_timer(mdh);
@@ -191,63 +251,14 @@ static int mqtt_tls_read(mbedtls_ssl_context *ctx, unsigned char *buf, int len)
             break;
         }
     } while (1);
+
+    return rv;
 }
 
 static void clean_properties(MQTTProperties *properties)
 {
     properties->count = 0;
     properties->length = 0;
-}
-
-static bool ping_handle(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-
-    QueueHandle_t queue = (QueueHandle_t)user_ctx;
-    xQueueSendFromISR(queue, PING_REQUEST, xHigherPriorityTaskWoken);
-
-    if (xHigherPriorityTaskWoken)
-    {
-        taskYIELD_FROM_ISR();
-    }
-
-    return xHigherPriorityTaskWoken;
-}
-
-static void start_ping_timer(mqtt_deamon_handler *handler)
-{
-    gptimer_config_t t_conf = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-        .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = PING_TIMER_RES, // 1MHz, 1 tick = 1us
-    };
-    ESP_ERROR_CHECK(gptimer_new_timer(&t_conf, &handler->ping_timer));
-    /* Configure alarm time */
-    gptimer_alarm_config_t t_alarm_conf = {
-        .alarm_count = (handler->keep_alive_int / SEC_IN_MIN) * PING_TIMER_RES,
-        .reload_count = 0,
-        .flags.auto_reload_on_alarm = true};
-    ESP_ERROR_CHECK(gptimer_set_alarm_action(handler->ping_timer, &t_alarm_conf));
-    /* Mount callback */
-    gptimer_event_callbacks_t t_callb_conf = {
-        .on_alarm = ping_handle};
-    ESP_ERROR_CHECK(gptimer_register_event_callbacks(handler->ping_timer, &t_callb_conf, handler->queue));
-    ESP_ERROR_CHECK(gptimer_enable(&handler->ping_timer));
-    /* Start timer */
-    ESP_ERROR_CHECK(gptimer_start(&handler->ping_timer));
-}
-
-static void reload_ping_timer(mqtt_deamon_handler *handler)
-{
-    gptimer_set_raw_count(handler->ping_timer, 0);
-}
-
-static void stop_ping_timer(mqtt_deamon_handler *handler)
-{
-    /* Stop */
-    gptimer_stop(handler->ping_timer);
-    /* Disable callbacks */
-    gptimer_disable(handler->ping_timer);
 }
 
 static void mqtt_deamon(void *v_mqtt_deamon_handler)
@@ -257,7 +268,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
     uint8_t recvbuf[MAIN_MQTT_REC_BUF_SIZE];
 
     /* Id of message to send */
-    unsigned int msg_id = 1;
+    unsigned short msg_id = 200;
     /* Used for choosing channel to connect */
     unsigned char ch_num = 0;
     // if ever received publish from master
@@ -302,7 +313,9 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             switch (err)
             {
             case 0: /* timed out reading packet */
+            {
                 break;
+            }
             case CONNACK:
             {
                 /* Check if connected */
@@ -347,11 +360,13 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 free(channel_name);
 
                 reload_ping_timer(handler);
+
+                break;
             }
             case SUBACK:
             {
                 /* Check if last subscribe ok */
-                unsigned short submsg_id;
+                // unsigned short submsg_id;
                 int subcount;
                 unsigned char reason_code;
 
@@ -387,6 +402,8 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 free(channel_name);
 
                 reload_ping_timer(handler);
+
+                break;
             }
             case PUBLISH:
             {
@@ -396,9 +413,9 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 unsigned short packet_id;
                 MQTTString topic_name;
                 char *payload;
-                char payload_len;
+                int32_t payload_len;
 
-                if (MQTTV5Deserialize_publish(&dup, &qos_, &retained, &packet_id, &topic_name, &properties, &payload, &payload_len, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1)
+                if (MQTTV5Deserialize_publish(&dup, &qos_, &retained, &packet_id, &topic_name, &properties, (unsigned char **)&payload, &payload_len, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1)
                 {
                     handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, -1);
                     goto exit;
@@ -408,13 +425,13 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 {
                 case 'i':
                 {
-                    handle_info_channel(handler, payload, payload_len);
+                    handle_info_channel(handler, (unsigned char *)payload, payload_len);
 
                     break;
                 }
                 case 's':
                 {
-                    handle_set_channel(handler, payload, payload_len);
+                    handle_set_channel(handler, (unsigned char *)payload, payload_len);
 
                     break;
                 }
@@ -447,7 +464,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                     }
 
                     /* Send data to UART */
-                    handler->publish_callb(payload, payload_len);
+                    handler->publish_callb((unsigned char *)payload, payload_len);
 
                     break;
                 }
@@ -518,18 +535,19 @@ static TaskHandle_t mqtt_deamon_delete_task(mqtt_deamon_handler *handler)
 
 int mqtt_deamon_start(mqtt_deamon_handler *handler,
                       uart_config_t *uart_conf,
-                      const char *server,
-                      const char *port,
-                      // const char *client_id,
-                      const char *username,
-                      const char *password,
-                      const unsigned char **chain,
+                      char *server,
+                      char *port,
+                      char *username,
+                      char *password,
+                      char **chain,
                       void (*socket_resp_handler)(int *err))
 {
     int err;
     /* Prepare mutexes */
-    handler->mbed_mutex_handle = xSemaphoreCreateMutexStatic(&handler->mbed_mutex);
-    handler->send_buf_mutex_handle = xSemaphoreCreateMutexStatic(&handler->send_buf_mutex);
+    handler->mbed_mutex_handle = xSemaphoreCreateBinary();
+    xSemaphoreGive(handler->mbed_mutex_handle);
+    handler->send_buf_mutex_handle = xSemaphoreCreateBinary();
+    xSemaphoreGive(handler->send_buf_mutex_handle);
     /* Assign handler data to ptr */
     mdh = handler;
     /* Set username */
@@ -546,7 +564,7 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     handler->queue = xQueueCreate(10, sizeof(int));
 
     /* Open encrypted socket */
-    if ((err = open_nb_socket(&handler->ctx, server, port, chain)) != 0)
+    if ((err = open_nb_socket(&handler->ctx, server, port, (unsigned char **)chain)) != 0)
     {
         return err;
     }
@@ -591,6 +609,8 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
 
 int mqtt_deamon_stop(mqtt_deamon_handler *handler)
 {
+    vSemaphoreDelete(handler->mbed_mutex_handle);
+    vSemaphoreDelete(handler->send_buf_mutex_handle);
     mqtt_deamon_delete_task(handler);
     vQueueDelete(handler->queue);
 

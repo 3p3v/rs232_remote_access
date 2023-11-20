@@ -126,7 +126,7 @@ static SIM_errMsgEnd_pair SIM_execCIFSR_retrieveIP(SIM_line_pair *lines, SIM_res
                 else
                 {
                     err.err = SIM_ok;
-                    err.ptr = c_line;
+                    err.ptr = c_line->ptr + c_line->len;
                     return err;
                 }
             }

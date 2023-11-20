@@ -3,7 +3,7 @@
 int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t len_)
 {
     char *arg_ptr = NULL;
-    char *next_cmd_ptr = data;
+    char *next_cmd_ptr = (char *)data;
     size_t rem_len = len_;
     char *endl = NULL;
 
@@ -24,7 +24,7 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
         if ((endl = cmdchr(next_cmd_ptr, rem_len, ENDL_C)) == NULL)
         {
             /* Ill-formed command */
-            next_cmd_ptr = data + len_;
+            next_cmd_ptr = (char *)data + len_;
             len = add_cmd_none(&channel_data, len, ILL_FORMED_CMD);
         }
         else if ((arg_ptr = cmdcmp(GET_INFO, next_cmd_ptr, rem_len)) != NULL)
@@ -78,6 +78,11 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
                 stop_bits_arg = STOP_BITS_TWO;
                 break;
             }
+            case UART_STOP_BITS_MAX:
+            {
+                len = add_cmd(&channel_data, len, GET_STOP_BITS, INVALID_OPTION);
+                break;
+            }
             }
             len = add_cmd(&channel_data, len, GET_STOP_BITS, stop_bits_arg);
 
@@ -100,13 +105,13 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
         }
 
         next_cmd_ptr = endl + 1;
-        rem_len = len_ - (next_cmd_ptr - data);
+        rem_len = len_ - (next_cmd_ptr - (char *)data);
 
         if (rem_len == 0)
         {
             /* Send */
             unsigned char *buf = (unsigned char *) malloc(sizeof(unsigned char) * (len + 100));
-            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, channel_data, len);
+            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, (unsigned char *)channel_data, len);
             mqtt_tls_write(buf, write_len);
 
             free(channel_name);

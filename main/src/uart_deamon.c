@@ -13,31 +13,20 @@
 #include <mqtt_deamon.h>
 
 static const char *TAG = "UART_DEAMON";
-// extern struct mqtt_client client;
 
-int uart_write(unsigned char* buf, size_t len)
+/* GPIO interrupt handler */
+static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
-    uart_write_bytes(UART_DEAMON_DEF_UART_NUM, buf, len);
 }
 
-// uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int))
-// {
-//     uart_deamon_handler *handler = uart_deamon_get_handle();
-//     handler->error_handler = error_handler;
-//     handler->resp_handler = resp_handler;
-//     handler->hard_error_handler = hard_error_handler;
-//     return handler;
-// }
-
-// static uart_deamon_handler *uart_deamon_get_handle()
-// {
-//     static uart_deamon_handler handle;
-//     return &handle;
-// }
+int uart_write(unsigned char *buf, size_t len)
+{
+    return uart_write_bytes(UART_DEAMON_DEF_UART_NUM, buf, len);
+}
 
 void uart_deamon(void *v_handler)
 {
-    esp_err_t err = ESP_OK;
+    // esp_err_t err = ESP_OK;
     uart_deamon_handler *handler = (uart_deamon_handler *)v_handler;
     QueueHandle_t *queue = &handler->queue;
     uart_event_t event;
@@ -62,6 +51,8 @@ void uart_deamon(void *v_handler)
             }
 
             len = 0;
+
+            break;
         }
         // Event of HW FIFO overflow detected
         case UART_FIFO_OVF:
@@ -107,7 +98,8 @@ void uart_deamon(void *v_handler)
         }
         default:
             ESP_LOGI(TAG, "uart event type: %d", event.type);
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, event.type);            break;
+            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, event.type);
+            break;
         }
     }
 
@@ -125,7 +117,7 @@ TaskHandle_t uart_deamon_create_task(uart_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(uart_deamon, "uart_deamon", 4096, (void *)handler, 3, &handler->handler);
+        xTaskCreate(uart_deamon, "uart_deamon", 12000, (void *)handler, 3, &handler->handler);
     }
     return handler->handler;
 }
@@ -197,12 +189,6 @@ uart_config_t *uart_deamon_save_config(uart_config_t *new_uart_conf)
 int uart_deamon_start(uart_deamon_handler *handler)
 {
     esp_err_t err;
-    // *handler = NULL;
-
-    /* UART-specyfic vars */
-    // uart_deamon_handler *uart_handler = uart_deamon_set_handle(resp_handler, error_handler, hard_error_handler);
-    // uart_config_t *uart_conf = uart_deamon_get_config();
-    // QueueHandle_t *uart_queue = &uart_handler->queue;
 
     /* Basic UART config */
     if ((err = uart_driver_install(UART_DEAMON_DEF_UART_NUM,

@@ -31,7 +31,7 @@ typedef struct uart_deamon_handler
     TaskHandle_t handler;
     QueueHandle_t queue;
     uart_config_t uart_conf;
-    void (*resp_handler)(const unsigned char *, unsigned int);
+    void (*resp_handler)(unsigned char *, unsigned int);
     void (*error_handler)(void *handler, const char *module, int type, int err);
     // void (*hard_error_handler)(TaskHandle_t *);
 } uart_deamon_handler;

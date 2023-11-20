@@ -3,7 +3,7 @@
 int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t len_)
 {
     char *arg_ptr = NULL;
-    char *next_cmd_ptr = data;
+    char *next_cmd_ptr = (char *)data;
     size_t rem_len = len_;
     char *endl = NULL;
 
@@ -24,7 +24,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
         if ((endl = cmdchr(next_cmd_ptr, rem_len, ENDL_C)) == NULL)
         {
             /* Ill-formed command */
-            next_cmd_ptr = data + len_;
+            next_cmd_ptr = (char *)data + len_;
             len = add_cmd_none(&channel_data, len, ILL_FORMED_CMD);
         }
         else if ((arg_ptr = cmdcmp(SET_BAUD_RATE, next_cmd_ptr, rem_len)) != NULL)
@@ -59,17 +59,17 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             
             switch (*arg_ptr)
             {
-            case PARITY_EVEN[0]:
+            case PARITY_EVEN_C:
             {
                 handler->uart_conf->parity = UART_PARITY_EVEN;
                 break;
             }
-            case PARITY_ODD[0]:
+            case PARITY_ODD_C:
             {
                 handler->uart_conf->parity = UART_PARITY_ODD;
                 break;
             }
-            case PARITY_NONE[0]:
+            case PARITY_NONE_C:
             {
                 handler->uart_conf->parity = UART_PARITY_DISABLE;
                 break;
@@ -123,9 +123,9 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             
             switch (*arg_ptr)
             {
-            case STOP_BITS_ONE[0]:
+            case STOP_BITS_ONE_C:
             {
-                if (*(arg_ptr + 1) == STOP_BITS_ONEPOINTFIVE[1])
+                if (*(arg_ptr + 1) == STOP_BITS_ONEPOINTFIVE_C1)
                 {
                     /* STOP_BITS_ONEPOINTFIVE */
                     handler->uart_conf->stop_bits = UART_STOP_BITS_1_5;
@@ -146,7 +146,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
                 }
                 break;
             }
-            case STOP_BITS_TWO[0]:
+            case STOP_BITS_TWO_C:
             {
                 handler->uart_conf->stop_bits = UART_STOP_BITS_2;
                 *arg_str = STOP_BITS_TWO[0];
@@ -177,13 +177,13 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
 
         end:
         next_cmd_ptr = endl + 1;
-        rem_len = len_ - (next_cmd_ptr - data);
+        rem_len = len_ - (next_cmd_ptr - (char *)data);
 
         if (rem_len == 0)
         {
             /* Send */
             unsigned char *buf = (unsigned char *) malloc(sizeof(unsigned char) * (len + 100));
-            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, channel_data, len);
+            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, (unsigned char *)channel_data, len);
             mqtt_tls_write(buf, write_len);
 
             free(channel_name);

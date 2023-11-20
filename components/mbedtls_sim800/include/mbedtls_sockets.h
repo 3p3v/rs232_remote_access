@@ -54,9 +54,9 @@ typedef struct mbedtls_context {
 int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) );
 
 int open_nb_socket(mbedtls_context *ctx,
-                    const char *hostname,
-                    const char *port,
-                    const unsigned char **ca_chain);
+                    char *hostname,
+                    char *port,
+                    unsigned char **ca_chain);
 
 void close_nb_socket(mbedtls_context *ctx);
 
