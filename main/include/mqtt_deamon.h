@@ -19,7 +19,7 @@
 #define PING_REQUEST 1000
 
 #define SEC_IN_MIN 60
-#define PING_TIMER_RES 1000
+#define PING_TIMER_RES 1000000
 #define QOS 0
 #define PROPERTIES_SIZE 5
 #define USERNAME_LEN strlen("XX:XX:XX:XX:XX:XX")

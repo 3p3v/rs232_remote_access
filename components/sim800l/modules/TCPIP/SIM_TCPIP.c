@@ -277,8 +277,8 @@ static SIM_error SIM_execCIPSEND_handler1(SIM_line_pair *lines, SIM_line_pair *l
     if (err.err == SIM_ok)
         err.err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data, resp->send_data_len);
 
-    if (err.err == SIM_ok)
-        err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
+    // if (err.err == SIM_ok)
+    //     err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
 
     return err.err;
 }
@@ -346,8 +346,8 @@ static SIM_error SIM_writeCIPSEND_handler1(SIM_line_pair *lines, SIM_line_pair *
     if (err.err == SIM_ok)
         err.err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data, resp->send_data_len);
 
-    if (err.err == SIM_ok)
-        err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
+    // if (err.err == SIM_ok)
+    //     err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
 
     return err.err;
 }
@@ -773,14 +773,7 @@ EXIT:
 
 SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
 {
-    // printf("\r\n");
-    // static unsigned char temp[1000] = {};
-    // memcpy(temp, buf, len);
-    // for(unsigned int i = 0; i < len; i++)
-    // {
-    //     printf("%u", (unsigned char)temp[i]);
-    // }
-    // printf("\r\n");
+    fwrite(buf, 1, len, stdout);
 
     SIM_error err;
     SIM_cmd cmd;

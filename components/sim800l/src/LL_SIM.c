@@ -392,9 +392,7 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
 {
     LL_SIM_error err = SIM_ok;
     xSemaphoreTake(sim->write_mutex, portMAX_DELAY);
-    // /* Get rid of any data left */
-    // uart_flush_input(sim->uart);
-    // xQueueReset(sim->uartQueue);
+    
 
     /* Send data */ // TODO check if semaphore while writing/reading is needed
     int len = uart_write_bytes(sim->uart, data, data_len);
@@ -486,7 +484,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
         // Event of UART RX break detected
         case UART_BREAK:
             ESP_LOGI(TAG, "uart rx break");
-            return LL_SIM_UART_BREAK;
+            // return LL_SIM_UART_BREAK;
             break;
         // Event of UART parity check error
         case UART_PARITY_ERR:

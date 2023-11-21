@@ -42,6 +42,8 @@
 #include <info_ch.h>
 #include <set_ch.h>
 
+#define TAG "MQTT_DEAMON"
+
 extern SIM_intf *sim;
 extern struct mqtt_client client;
 static mqtt_deamon_handler *mdh = NULL;
@@ -50,7 +52,7 @@ static mqtt_deamon_handler *mdh = NULL;
 // static StaticSemaphore_t xMutexBuffer;
 
 /* Ping callback */
-static bool ping_handle(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+IRAM_ATTR static bool ping_handle(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
 
@@ -71,12 +73,12 @@ static void start_ping_timer(mqtt_deamon_handler *handler)
     gptimer_config_t t_conf = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = PING_TIMER_RES, // 1MHz, 1 tick = 1us
+        .resolution_hz = PING_TIMER_RES // 1MHz, 1 tick = 1us
     };
     ESP_ERROR_CHECK(gptimer_new_timer(&t_conf, &handler->ping_timer));
     /* Configure alarm time */
     gptimer_alarm_config_t t_alarm_conf = {
-        .alarm_count = (handler->keep_alive_int / SEC_IN_MIN) * PING_TIMER_RES,
+        .alarm_count = ((float)handler->keep_alive_int / (float)SEC_IN_MIN) * (float)PING_TIMER_RES,
         .reload_count = 0,
         .flags.auto_reload_on_alarm = true};
     ESP_ERROR_CHECK(gptimer_set_alarm_action(handler->ping_timer, &t_alarm_conf));
@@ -153,12 +155,68 @@ int mqtt_tls_write(unsigned char *buf, size_t len)
     {
         /* Write to broker */
         xSemaphoreTake(mdh->mbed_mutex_handle, portMAX_DELAY);
+        ESP_LOGI(TAG, "TRYING SSL WRITE, socket: %i", mdh->ctx.net_ctx.fd);
         len = mbedtls_ssl_write(&mdh->ctx.ssl_ctx, buf, len);
+        ESP_LOGI(TAG, "SSL WRITE DONE, wrote: %i", len);
         xSemaphoreGive(mdh->mbed_mutex_handle);
         /* Reset timer */
         reload_ping_timer(mdh);
         /* Return */
         return len;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+static int mqtt_tls_write_no_ping(unsigned char *buf, size_t len)
+{
+    if (mdh != NULL && mdh->initialized == true)
+    {
+        xSemaphoreTake(mdh->mbed_mutex_handle, portMAX_DELAY);
+        ESP_LOGI(TAG, "TRYING SSL WRITE, socket: %i", mdh->ctx.net_ctx.fd);
+        
+        size_t sent = 0;
+        while (sent < len)
+        {
+            int rv = mbedtls_ssl_write(&mdh->ctx.ssl_ctx, buf, len);
+            if (rv < 0)
+            {
+                if (rv == MBEDTLS_ERR_SSL_WANT_READ ||
+                    rv == MBEDTLS_ERR_SSL_WANT_WRITE
+#if defined(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS)
+                    || rv == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS
+#endif
+#if defined(MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS)
+                    || rv == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS
+#endif
+                )
+                {
+                    /* should call mbedtls_ssl_write later again */
+                    continue;
+                }
+                break;
+            }
+            /*
+             * Note: rv can be 0 here eg. when mbedtls just flushed
+             * the previous incomplete record.
+             *
+             * Note: we never send an empty TLS record.
+             */
+            sent += (size_t)rv;
+        }
+        if (sent == 0)
+        {
+            return -1;
+        }
+        return (ssize_t)sent;
+        /* Write to broker */
+        
+        ESP_LOGI(TAG, "SSL WRITE DONE, wrote: %i", len);
+        xSemaphoreGive(mdh->mbed_mutex_handle);
+        /* Return */
+        return sent;
     }
     else
     {
@@ -285,6 +343,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
     {
         /* Wait untill socket informs you that you got a new packet */
         xQueueReceive(handler->queue, &err, portMAX_DELAY);
+        ESP_LOGI(TAG, "GOT MESSAGE");
 
         /* Check if sockt didn't get any error */
         if (err == SIM_closed || err == SIM_closedOk)
@@ -293,18 +352,12 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             break;
         }
 
+        ESP_LOGI(TAG, "CHECK PING");
         /* Check if ping needed */
         if (err == PING_REQUEST)
         {
             int len = MQTTV5Serialize_pingreq(recvbuf, MAIN_MQTT_REC_BUF_SIZE);
             mqtt_tls_write(recvbuf, len);
-            continue;
-        }
-
-        /* Flush queue if everything was already processed */
-        if (sim->tcp_cmds[(SIM_con_num)handler->ctx.net_ctx.fd].cmd->resp.data_len == 0)
-        {
-            xQueueReset(handler->queue);
             continue;
         }
 
@@ -318,6 +371,8 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             }
             case CONNACK:
             {
+                ESP_LOGI(TAG, "CONNACK RECEIVED");
+
                 /* Check if connected */
                 unsigned char sessionPresent, connack_rc;
 
@@ -328,11 +383,19 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 }
 
                 /* Find keep alive time */
+                ESP_LOGI(TAG, "PROPERTIES, size: %i", properties.count);
                 for (unsigned int i = 0; i < properties.count; i++)
                 {
+                    ESP_LOGI(TAG, "PROPERTY, type: %i", properties.array[i].identifier);
+                    
                     if (properties.array[i].identifier == MQTTPROPERTY_CODE_SERVER_KEEP_ALIVE)
                     {
                         handler->keep_alive_int = properties.array[i].value.integer2 - 30;
+                        ESP_LOGI(TAG, "KEEP ALIVE: %i", properties.array[i].value.integer2);
+                    }
+                    else
+                    {
+                        handler->keep_alive_int = 30;
                     }
                 }
 
@@ -516,7 +579,7 @@ static TaskHandle_t mqtt_deamon_create_task(mqtt_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(mqtt_deamon, "mqtt_deamon", 4096, handler, 3, &handler->handler);
+        xTaskCreate(mqtt_deamon, "mqtt_deamon", 20000, handler, 3, &handler->handler);
     }
     return handler->handler;
 }
@@ -524,7 +587,7 @@ static TaskHandle_t mqtt_deamon_create_task(mqtt_deamon_handler *handler)
 static TaskHandle_t mqtt_deamon_delete_task(mqtt_deamon_handler *handler)
 {
     stop_ping_timer(handler);
-    
+
     if (handler->handler)
     {
         vTaskDelete(handler->handler);
@@ -575,13 +638,8 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     }
     /* Save ctx */
 
-    /* Start deamon */
-    mqtt_deamon_create_task(handler);
-    if (!handler->handler)
-    {
-        /* Couldn't start deamon */
-        return -1;
-    }
+    /* SSL initialized */
+    mdh->initialized = true;
 
     /* Connection parameters */
     MQTTV5Packet_connectData connect_data = MQTTV5Packet_connectData_initializer;
@@ -593,9 +651,21 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     MQTTProperties conn_properties = MQTTProperties_initializer;
 
     xSemaphoreTake(handler->send_buf_mutex_handle, portMAX_DELAY);
+    ESP_LOGI(TAG, "CONNECT SERIALIZE");
     int len = MQTTV5Serialize_connect(handler->sendbuf, MAIN_MQTT_SEND_BUF_SIZE, &connect_data, &conn_properties);
-    int write_len = mqtt_tls_write(handler->sendbuf, len);
+    ESP_LOGI(TAG, "CONNECT SERIALIZED");
+    int write_len = mqtt_tls_write_no_ping(handler->sendbuf, len);
+    ESP_LOGI(TAG, "CONNECT SENT?");
     xSemaphoreGive(handler->send_buf_mutex_handle);
+
+    /* Start deamon */
+    mqtt_deamon_create_task(handler);
+    if (!handler->handler)
+    {
+        /* Couldn't start deamon */
+        return -1;
+    }
+
     /* Connect to broker */
     if (write_len == len)
     {

@@ -105,6 +105,7 @@ void main_task(void*)
     /* Init needed structures */
     cert_load_chain();
     auth_load();
+    error_create_queue();
 
     /* Start SIM deamon */
     if ((err = sim_deamon_start(&sim_handler)))
