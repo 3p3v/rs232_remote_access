@@ -19,6 +19,8 @@
 /**/
 #include <string.h>
 
+#define TAG "SIM"
+
 extern SIM_intf *sim;
 
 static struct timeval convert_time(char *t_str)
@@ -52,8 +54,16 @@ int sim_deamon_start(sim_deamon_handler *handler)
     }
 
     unsigned char cycles = 15;
+
+    start:
+    
+    /* Restart module */
+    ESP_LOGI(TAG, "RESETTING SIM");
+    if ((err = SIM_reset(&cmd)) != SIM_ok)
+        return SIM_err;
     
     /* Communicate with SIM module */
+    ESP_LOGI(TAG, "SENDING AT");
     do
     {
         err = SIM_run(&handler->sim, SIM_execAT(&cmd));
@@ -66,12 +76,13 @@ int sim_deamon_start(sim_deamon_handler *handler)
     /* Disable echo */
     err = SIM_run(&handler->sim, SIM_execATE0(&cmd));
     
-    cycles = 15;
+    cycles = 200;
 
-    /* Check if registered to network */
+    /* Check if registered to network, it can take some time... */
+    ESP_LOGI(TAG, "CHECKING NETWORK REGISTARTION");
     do
     {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         err = SIM_run(&handler->sim, SIM_readCREG(&cmd));
         if (cmd.resp.params_num > 1 && cmd.resp.params[1].len != 0)
         {
@@ -80,21 +91,61 @@ int sim_deamon_start(sim_deamon_handler *handler)
                 *net_reg == SIM_CREG_stat_regRoam)
                 break;
         }
-    } while (err != SIM_ok);
+    } while (err != SIM_ok && cycles-- > 0);
 
     /* Get time from network */
+    ESP_LOGI(TAG, "GETTING NETWORK TIME");
     if ((err = SIM_run(&handler->sim, SIM_readCCLK(&cmd))) != SIM_ok ||
         cmd.resp.params_num < 1)
         return SIM_err;
 
+    /* Convert time */
     char t_str[18] = {0};
     memcpy(t_str, cmd.resp.params[0].ptr, cmd.resp.params[0].len);
-    /* Set time in case it's needed to check a validity of certyficates */
     struct timeval tv_now = convert_time(t_str);
+    /* Check if time ok */
+    if (tv_now.tv_sec < LINUX_TS_2011)
+    {
+        /* Seems that SIM is not synced with network */
+        /* Enable time sync */
+        ESP_LOGI(TAG, "TIME NOT SYNCED, ENABLING SYNCED...");
+        if ((err = SIM_run(&handler->sim, SIM_writeCLTS(&cmd, 1))) != SIM_ok)
+            return SIM_err;
+
+        /* Save active configuration */
+        ESP_LOGI(TAG, "SAVING CONFIG");
+        if ((err = SIM_run(&handler->sim, SIM_execATandW(&cmd))) != SIM_ok)
+            return SIM_err;
+
+        /* Reboot SIM and retry */
+        goto start;
+    }
+
+    /* Set time in case it's needed to check a validity of certyficates */
     settimeofday(&tv_now, NULL);
 
-    err = SIM_run(&handler->sim, SIM_execATE0(&cmd));
-    err = SIM_run(&handler->sim, SIM_readCGATT(&cmd));
+    cycles = 200;
+    
+    /* Check if attached to GPRS */
+    do
+    {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        err = SIM_run(&handler->sim, SIM_readCGATT(&cmd));
+        if (cmd.resp.params_num > 0)
+        {
+            ESP_LOGI(TAG, "+CGATT: %s" ,cmd.resp.params[0].ptr);
+            if (cmd.resp.params[0].ptr[1] == '1')
+                break;
+        }
+        else
+        {
+            return SIM_err;
+        }
+    } while (err == SIM_ok && cycles-- > 0);
+
+    if (!(cmd.resp.params_num > 0 && cmd.resp.params[0].ptr[1] == '1'))
+        return SIM_err;
+    
     err = SIM_run(&handler->sim, SIM_writeCIPMUX(&cmd, 1));
     err = SIM_run(&handler->sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL));
     err = SIM_run(&handler->sim, SIM_execCIICR(&cmd));
@@ -154,7 +205,7 @@ void sim_deamon(void *v_handler)
             }
             default:
             {
-                handler->error_handler(&handler->handler, "SIM", ext_type_non_fatal, err);
+                handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
                 break;
             }
             }

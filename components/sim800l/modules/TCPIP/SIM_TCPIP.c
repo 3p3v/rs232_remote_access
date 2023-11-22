@@ -454,6 +454,8 @@ static SIM_error SIM_listenTCP_cipmux1_handler(SIM_line_pair *lines, SIM_line_pa
     // resp->params_num = 0;
     // resp->resp_name_len = 0;
 
+    printf("SIM: TCP GOT DATA");
+    
     SIM_err_pair c_st[] = {{.name = "+RECEIVE,", .err = SIM_receive},
                            {.name = "., CLOSED\r\n", .err = SIM_closed},
                            {.name = NULL, .err = SIM_noErrCode}};
@@ -646,6 +648,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
 
     // Read the data and delete it from the buffer
     xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+    printf("SIM: TAKING READ SEMAPHORE");
     unsigned int read_len;
     if (len < resp->data_len)
     {
@@ -666,6 +669,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     else
     {
         xSemaphoreGive(resp->data_mutex);
+        printf("SIM: GIVING READ SEMAPHORE");
         // wait for enough data while raw data is still being processed by main task
         while ((len > resp->data_len) && sim->rec_len)
         {
@@ -673,6 +677,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
         xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
+        printf("SIM: TAKING READ SEMAPHORE");
         if (!resp->data_len)
         {
             /* No data received */
@@ -720,7 +725,7 @@ EXIT:
     //         break_p = 0;
     //     }
     // }
-
+    printf("SIM: GIVING READ SEMAPHORE");
     xSemaphoreGive(resp->data_mutex);
     return read_len;
 }

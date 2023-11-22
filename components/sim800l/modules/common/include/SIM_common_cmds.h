@@ -26,3 +26,11 @@ SIM_cmd *SIM_readCREG(SIM_cmd *cmd);
 /* AT+CCLK Clock */
 #define SIM_READCCLK_TIMEOUT 1000
 SIM_cmd *SIM_readCCLK(SIM_cmd *cmd);
+
+/* AT+CLTS Get Local Timestamp */
+#define SIM_READCCLK_TIMEOUT 1000
+SIM_cmd *SIM_writeCLTS(SIM_cmd *cmd, unsigned char mode);
+
+/* Store active profile */
+#define SIM_READCCLK_TIMEOUT 1000
+SIM_cmd *SIM_execATandW(SIM_cmd *cmd);

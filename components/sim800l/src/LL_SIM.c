@@ -23,7 +23,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->rx = LL_SIM_DEF_UART_RX;
     sim->baudRate = 9600; // 19200;
     // sim->drt = LL_SIM_DEF_DRT_PIN;
-    // sim->rst = LL_SIM_DEF_RST_PIN;
+    sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
     sim->uartQueue = NULL; // xQueueCreate(LL_SIM_DEF_QUEUE_SIZE, sizeof(int));
     sim->cmds.cmd = NULL;
@@ -74,15 +74,17 @@ LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
     // uart_pattern_queue_reset(uart, LL_SIM_DEF_PATTERN_QUEUE_SIZE);
 
     /* GPIO */
-    // gpio_config_t gpioConf = {
-    //     .pin_bit_mask = (uint64_t)((1 << sim->drt) | (1 << sim->rst)),
-    //     .mode = GPIO_MODE_OUTPUT,
-    //     .pull_up_en = GPIO_PULLUP_DISABLE,
-    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    //     .intr_type = GPIO_INTR_DISABLE};
+    gpio_config_t gpioConf = {
+        .pin_bit_mask = (uint64_t)(1 << sim->rst),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_DISABLE};
 
-    // /* Set DRT and RST pin */
-    // ESP_ERROR_CHECK(gpio_config(&gpioConf));
+    /* Set DRT and RST pin */
+    ESP_ERROR_CHECK(gpio_config(&gpioConf));
+
+    LL_SIM_setRST(sim, true);
 
     // resetForce();
 
@@ -164,6 +166,8 @@ START:
     {
     case SIM_noErrCode:
     {
+        printf("GOT SOME CMD\n");
+        
         if (sim->cmds.cmd == NULL)
         {
             err = SIM_noErrCode;
@@ -183,7 +187,7 @@ START:
                 // If all handlers were executed then return with ok code and 'delete' cmd from listener
                 // sim->cmds.cmd->err = err;
                 /* EDIT */
-                xQueueSend(sim->cmds.queue, (void *)&err /*&sim->cmds.cmd->resp.err*/, portMAX_DELAY);
+                xQueueSend(sim->cmds.queue, (void *)&err /*&sim->cmds.cmd->resp.err*/, 5000 / portTICK_PERIOD_MS);
                 sim->cmds.cmd = NULL;
                 /********/
             }
@@ -191,12 +195,14 @@ START:
             if (sim->rec_len == 0)
             {
                 // no message left
+                printf("SIM: NO DATA LEFT\n");
                 sim->unread_num = 0;
                 goto REGION_END;
             }
             else
             {
                 // another message, or part of it left in buffer, let it be processed by another cmd
+                printf("SIM: READ DATA AGAIN\n");
                 goto START;
             }
         }
@@ -209,7 +215,7 @@ START:
         {
             // ecountered error
             SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
-            xQueueSend(sim->cmds.queue, (void *)&err, portMAX_DELAY);
+            xQueueSend(sim->cmds.queue, (void *)&err, 5000 / portTICK_PERIOD_MS);
             sim->cmds.cmd = NULL;
             /********/
 
@@ -232,6 +238,8 @@ START:
     case SIM_receive:
     case SIM_closed:
     {
+        printf("GOT TCP\n");
+        
         char num_str[2] = {};
         unsigned char num;
 
@@ -257,20 +265,20 @@ START:
 
             sim->tcp_ret = &sim->tcp_cmds[num];
         }
-
-        if (strstr(sim->buf, "26"))
-            printf("GOT IT 2/r/n");
+            
 
         /* Excute handler */
+        printf("SIM: START HANDLER EXEC\r\n");
         err = sim->tcp_ret->cmd->handler((sim->lines + err_pair.line_num), (sim->lines + 0), &sim->tcp_ret->cmd->resp, (void *)sim);
-
+        printf("SIM: END HANDLER EXEC\r\n");
         if (err == SIM_ok)
         {
+            printf("SIM: OK\r\n");
             // Handler was executed correctly
             SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
             /* EDIT */
             sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
-            xQueueSend(sim->tcp_ret->queue, (void *)&sim->tcp_ret->cmd->resp.err, portMAX_DELAY);
+            xQueueSend(sim->tcp_ret->queue, (void *)&sim->tcp_ret->cmd->resp.err, 0);
             sim->tcp_ret = NULL;
             /********/
 
@@ -294,15 +302,17 @@ START:
         else if (err == sim_msgDetect)
         {
             // Got some matching output, not enough data though, try again when data arrives
+            printf("SIM: MSGDETECT\r\n");
             goto REGION_END;
         }
         else
         {
             // encountered error
+            printf("SIM: ERROR\r\n");
             SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
             /* EDIT */
             sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
-            xQueueSend(sim->tcp_ret->queue, (void *)&err, portMAX_DELAY);
+            xQueueSend(sim->tcp_ret->queue, (void *)&err, 5000 / portTICK_PERIOD_MS);
             sim->tcp_ret = NULL;
             /********/
             // 'delete' cmd from listener
@@ -349,6 +359,7 @@ START:
     }
 
 REGION_END:
+    printf("SIM: EXITING\n");
     xSemaphoreGive(sim->exec_mutex);
     return err;
 }
@@ -484,7 +495,7 @@ SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
         // Event of UART RX break detected
         case UART_BREAK:
             ESP_LOGI(TAG, "uart rx break");
-            // return LL_SIM_UART_BREAK;
+            return LL_SIM_UART_BREAK;
             break;
         // Event of UART parity check error
         case UART_PARITY_ERR:
@@ -550,10 +561,10 @@ void LL_SIM_delay(int ms)
 //         return LL_SIM_HARDWARE_ERR;
 // }
 
-// LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
-// {
-//     if (gpio_set_level(sim->rst, set) == ESP_OK)
-//         return SIM_ok;
-//     else
-//         return LL_SIM_HARDWARE_ERR;
-// }
+LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set)
+{
+    if (gpio_set_level(sim->rst, set) == ESP_OK)
+        return SIM_ok;
+    else
+        return LL_SIM_HARDWARE_ERR;
+}

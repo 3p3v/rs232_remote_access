@@ -149,34 +149,13 @@ int mqtt_write_d(unsigned char *buf, size_t len)
     return -1;
 }
 
-int mqtt_tls_write(unsigned char *buf, size_t len)
-{
-    if (mdh != NULL && mdh->initialized == true)
-    {
-        /* Write to broker */
-        xSemaphoreTake(mdh->mbed_mutex_handle, portMAX_DELAY);
-        ESP_LOGI(TAG, "TRYING SSL WRITE, socket: %i", mdh->ctx.net_ctx.fd);
-        len = mbedtls_ssl_write(&mdh->ctx.ssl_ctx, buf, len);
-        ESP_LOGI(TAG, "SSL WRITE DONE, wrote: %i", len);
-        xSemaphoreGive(mdh->mbed_mutex_handle);
-        /* Reset timer */
-        reload_ping_timer(mdh);
-        /* Return */
-        return len;
-    }
-    else
-    {
-        return -1;
-    }
-}
-
 static int mqtt_tls_write_no_ping(unsigned char *buf, size_t len)
 {
     if (mdh != NULL && mdh->initialized == true)
     {
         xSemaphoreTake(mdh->mbed_mutex_handle, portMAX_DELAY);
         ESP_LOGI(TAG, "TRYING SSL WRITE, socket: %i", mdh->ctx.net_ctx.fd);
-        
+
         size_t sent = 0;
         while (sent < len)
         {
@@ -208,14 +187,37 @@ static int mqtt_tls_write_no_ping(unsigned char *buf, size_t len)
         }
         if (sent == 0)
         {
+            ESP_LOGI(TAG, "SSL WRITE, returned: 0");
+            xSemaphoreGive(mdh->mbed_mutex_handle);
             return -1;
         }
-        return (ssize_t)sent;
         /* Write to broker */
-        
+
         ESP_LOGI(TAG, "SSL WRITE DONE, wrote: %i", len);
         xSemaphoreGive(mdh->mbed_mutex_handle);
         /* Return */
+        return sent;
+    }
+    else
+    {
+        if (mdh == NULL)
+            ESP_LOGI(TAG, "MQTT STRUCTURE NULL");
+        else
+            ESP_LOGI(TAG, "MQTT STRUCTURE NOT INITIALIZED");
+        
+        return -1;
+    }
+}
+
+int mqtt_tls_write(unsigned char *buf, size_t len)
+{
+    int sent;
+
+    if ((sent = mqtt_tls_write_no_ping(buf, len)) > 0)
+    {
+        /* Reset timer */
+        reload_ping_timer(mdh);
+
         return sent;
     }
     else
@@ -342,7 +344,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
     while (1)
     {
         /* Wait untill socket informs you that you got a new packet */
-        xQueueReceive(handler->queue, &err, portMAX_DELAY);
+        xQueueReceive(handler->queue, &err, 1000 / portTICK_PERIOD_MS);
         ESP_LOGI(TAG, "GOT MESSAGE");
 
         /* Check if sockt didn't get any error */
@@ -356,8 +358,14 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
         /* Check if ping needed */
         if (err == PING_REQUEST)
         {
+            ESP_LOGI(TAG, "SENGING PING");
             int len = MQTTV5Serialize_pingreq(recvbuf, MAIN_MQTT_REC_BUF_SIZE);
-            mqtt_tls_write(recvbuf, len);
+            if (mqtt_tls_write(recvbuf, len) <= 0)
+            {
+                ESP_LOGI(TAG, "COULD NOT SEND DATA");
+                handler->error_handler(&handler->handler, "MQTT", ext_type_non_fatal, -1);
+                goto exit;
+            }
             continue;
         }
 
@@ -387,7 +395,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 for (unsigned int i = 0; i < properties.count; i++)
                 {
                     ESP_LOGI(TAG, "PROPERTY, type: %i", properties.array[i].identifier);
-                    
+
                     if (properties.array[i].identifier == MQTTPROPERTY_CODE_SERVER_KEEP_ALIVE)
                     {
                         handler->keep_alive_int = properties.array[i].value.integer2 - 30;
@@ -403,6 +411,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 start_ping_timer(handler);
 
                 /* Subscribe to channels */
+                ESP_LOGI(TAG, "SERIALIZING SUBSCRIBE");
                 MQTTString topicString = MQTTString_initializer;
                 MQTTProperties sub_properties = MQTTProperties_initializer;
                 MQTTSubscribe_options sub_options = {.noLocal = 1, .retainAsPublished = 0, .retainHandling = 0};
@@ -410,14 +419,26 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 /* Create name */
                 char *channel_name = (char *)malloc(sizeof(char) * (strlen(handler->username) + 2));
                 memcpy(channel_name, handler->username, strlen(handler->username));
-                channel_name[strlen(channel_name)] = 'i';
+                channel_name[strlen(handler->username)] = 'i';
+                channel_name[strlen(handler->username) + 1] = '\0';
 
                 /* Assign name */
                 topicString.cstring = channel_name;
 
                 /* Send subscribe */
+                ESP_LOGI(TAG, "SENDING SUBSCRIBE");
                 int len = MQTTV5Serialize_subscribe(recvbuf, MAIN_MQTT_REC_BUF_SIZE, 0, msg_id++, &sub_properties, 1, &topicString, &qos, &sub_options);
-                mqtt_tls_write(recvbuf, len);
+                for (int i = 0; i < len; i++)
+                {
+                    printf("%x ", recvbuf[i]);
+                }
+                if (mqtt_tls_write(recvbuf, len) <= 0)
+                {
+                    ESP_LOGI(TAG, "COULD NOT SEND DATA");
+                    handler->error_handler(&handler->handler, "MQTT", ext_type_non_fatal, -1);
+                    goto exit;
+                }
+                ESP_LOGI(TAG, "SUBSCRIBE SENT");
 
                 /* Deallocate name */
                 free(channel_name);
@@ -450,16 +471,24 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 if (ch_num == 0)
                 {
                     ch_num++;
-                    channel_name[strlen(channel_name)] = 's';
+                    channel_name[strlen(handler->username)] = 's';
                 }
                 else
                 {
-                    channel_name[strlen(channel_name)] = 'd';
+                    ch_num++;
+                    channel_name[strlen(handler->username)] = 'd';
                 }
+
+                channel_name[strlen(handler->username) + 1] = '\0';
 
                 /* Send subscribe */
                 int len = MQTTV5Serialize_subscribe(recvbuf, MAIN_MQTT_REC_BUF_SIZE, 0, msg_id++, &sub_properties, 1, &topicString, &qos, &sub_options);
-                mqtt_tls_write(recvbuf, len);
+                if (mqtt_tls_write(recvbuf, len) <= 0)
+                {
+                    ESP_LOGI(TAG, "COULD NOT SEND DATA");
+                    handler->error_handler(&handler->handler, "MQTT", ext_type_non_fatal, -1);
+                    goto exit;
+                }
 
                 /* Deallocate name */
                 free(channel_name);
@@ -532,6 +561,14 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                     break;
                 }
                 }
+            }
+            case DISCONNECT:
+            {
+                /* This should never happen */
+                ESP_LOGE(TAG, "GOT DISCONNECTED");
+                handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, -1);
+                goto exit;
+                break;
             }
             default:
                 break;

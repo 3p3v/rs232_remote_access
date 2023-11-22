@@ -15,8 +15,8 @@
 #define LL_SIM_DEF_UART_BAUD_RATE 115200
 
 /* Sleep and reset pins */
-#define LL_SIM_DEF_DRT_PIN GPIO_NUM_23
-#define LL_SIM_DEF_RST_PIN GPIO_NUM_18
+// #define LL_SIM_DEF_DRT_PIN GPIO_NUM_23
+#define LL_SIM_DEF_RST_PIN GPIO_NUM_5
 
 /* Interrupt config */
 // #define LL_SIM_DEF_DOWNLOAD_TIME 10000
@@ -71,7 +71,7 @@ typedef struct LL_SIM_intf
     gpio_num_t rx;
     int baudRate;
     // gpio_num_t drt;
-    // gpio_num_t rst;
+    gpio_num_t rst;
     uart_port_t uart;
     // uart_config_t uartConf;
     QueueHandle_t uartQueue;
@@ -110,5 +110,5 @@ void LL_SIM_delay(int ms);
 
 // /* Set DRT pin high/low */
 // LL_SIM_error LL_SIM_setDRT(const LL_SIM_intf *sim, LL_SIM_pin set);
-// /* Set RST pin high/low */
-// LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set);
+/* Set RST pin high/low */
+LL_SIM_error LL_SIM_setRST(const LL_SIM_intf *sim, LL_SIM_pin set);

@@ -9,7 +9,7 @@
 /* ESP32-specyfic libraries */
 #include <esp_event.h>
 #include <esp_log.h>
-#include <esp_log.h>
+#include <esp_err.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
 /* SIM800-specyfic libraries */
@@ -72,12 +72,8 @@ void socket_resp_handler(int *err);
 /* Main */
 void app_main(void)
 {
-    // int err = ESP_OK;
-
-    /* Run main */
+    /* Run startup */
     xTaskCreate(main_task, "mqtt_main_task", 35000, NULL, 3, NULL);
-
-    // vTaskDelete(NULL);
 }
 
 void main_task(void*)
@@ -107,15 +103,25 @@ void main_task(void*)
     auth_load();
     error_create_queue();
 
+    /* Start error handing task */
+    if (xTaskCreate(err_handling_task, "err_handling_task", 2048, NULL, 3, NULL) != pdPASS)
+    {
+        ESP_LOGE("ERROR_DEAMON", "COUNDN'T START, REBOOTING");
+        esp_restart();
+
+    }
+
     /* Start SIM deamon */
     if ((err = sim_deamon_start(&sim_handler)))
     {
-        vTaskDelete(NULL);
+        ESP_LOGE("SIM_DEAMON", "COUNDN'T START, REBOOTING");
+        esp_restart();
     }
     /* Start UART deamon */
     if ((err = uart_deamon_start(&uart_handler)))
     {
-        vTaskDelete(NULL);
+        ESP_LOGE("UART_DEAMON", "COUNDN'T START, REBOOTING");
+        esp_restart();
     }
 
     /* Start mqtt deamon */
@@ -128,7 +134,8 @@ void main_task(void*)
                                  *cert_get_chain(),
                                  socket_resp_handler)))
     {
-        vTaskDelete(NULL);
+        ESP_LOGE("MQTT_DEAMON", "COUNDN'T START, REBOOTING");
+        esp_restart();
     }
 
     /* OK */
@@ -176,11 +183,7 @@ void err_handling_task(void*)
                                              *cert_get_chain(),
                                              socket_resp_handler)))
                 {
-                    ext_error s_err = {.handler = NULL,
-                                       .module = "mqtt_deamon_start",
-                                       .type = ext_type_fatal,
-                                       .err = err};
-                    echo_error(&s_err);
+                    ESP_LOGE("MQTT_DEAMON", "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
                 else
@@ -198,11 +201,7 @@ void err_handling_task(void*)
                 uart_deamon_stop(&uart_handler);
                 if ((err = uart_deamon_start(&uart_handler)))
                 {
-                    ext_error s_err = {.handler = NULL,
-                                       .module = "uart_deamon_start",
-                                       .type = ext_type_fatal,
-                                       .err = err};
-                    echo_error(&s_err);
+                    ESP_LOGE("UART_DEAMON", "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
             }
@@ -228,18 +227,7 @@ exit:
     auth_free_server();
     auth_free_port();
 
-    reboot();
-    // mqtt_publish(&client, MQTT_TOPIC, "test", strlen("test") + 1, MQTT_PUBLISH_QOS_0);
-    // if (client.error != MQTT_OK)
-    // {
-    //     return_error("MQTT-C", client.error);
-    // }
-    // xQueueSend(client_queue, &client.error, portMAX_DELAY);
-
-    // mqtt_deamon_delete_queue();
-    // error_delete_queue();
-    // abort();
-    // vTaskDelete(NULL);
+    esp_restart();
 }
 
 void rec_callback(unsigned char * buf, unsigned int)

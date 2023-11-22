@@ -6,7 +6,7 @@
 /* ESP32-specyfic libraries */
 #include <esp_event.h>
 #include <esp_log.h>
-#include <esp_log.h>
+#include <esp_err.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
 /* SIM800-specyfic libraries */
@@ -35,17 +35,6 @@ int sim_deamon_start(TaskHandle_t *hander)
     {
         return SIM_err;
     }
-
-    /* Enable network connection and multiple TCP streams */
-    // if ((err = SIM_run(sim, SIM_execATE0(&cmd))) ||
-    //     (err = SIM_run(sim, SIM_readCGATT(&cmd))) ||
-    //     (err = SIM_run(sim, SIM_writeCIPMUX(&cmd, 1))) ||
-    //     (err = SIM_run(sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL))) ||
-    //     (err = SIM_run(sim, SIM_execCIICR(&cmd))) ||
-    //     (err = SIM_run(sim, SIM_execCIFSR(&cmd))))
-    // {
-    //     echo_error("SIM", err);
-    // }
 
     return (int)err;
 }

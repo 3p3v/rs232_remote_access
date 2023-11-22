@@ -6,6 +6,8 @@
 /* SIM800-specyfic libraries */
 #include <SIM.h>
 
+#define LINUX_TS_2011 1293840000
+
 typedef struct sim_deamon_handler
 {
     TaskHandle_t handler;
