@@ -23,12 +23,12 @@
 #define GET_STOP_BITS "G_S"
 
 /* Hi commands */
-#define MASTER_HI "G_B"
-#define SLAVE_HI "G_P"
+#define MASTER_HI "M_HI"
+#define SLAVE_HI "S_HI"
 
 /* Keep Alive */
-#define MASTER_KEEP_ALIVE "G_B"
-#define SLAVE_KEEP_ALIVE "G_P"
+#define MASTER_KEEP_ALIVE "M_KA"
+#define SLAVE_KEEP_ALIVE "S_KA"
 
 /* RTS/CTS */
 #define CTS_SET "C_S"
