@@ -2,6 +2,30 @@
 #include <string.h>
 #include <stdio.h>
 
+volatile char *mqtt_num_up(volatile char * num)
+{
+    (*num)++;
+
+    if (*num > MAX_MSG_NUM)
+    {
+        *num = MIN_MSG_NUM;
+    }
+
+    return num;
+}
+
+unsigned short *mqtt_id_up(unsigned short *num)
+{
+    (*num)++;
+    
+    if (*num > MAX_MQTT_ID)
+    {
+        *num = MIN_MQTT_ID;
+    }
+
+    return num;
+}
+
 char *get_channel_name(char *dev_name, char channel_end)
 {
     char *channel_name = (char *)malloc(sizeof(char) * (strlen(dev_name) + 2));

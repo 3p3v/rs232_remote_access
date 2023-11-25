@@ -63,8 +63,48 @@
 #define STOP_BITS_TWO_C 'T'
 
 /* New session */
-#define NEW_SESSION "N_S"
+#define NEW_SESSION "N_S"   // Set by master
 
+/* RTS/CTS */
+#define SET_RTS "S_R"       // Set by master
+#define RESET_RTS "R_R"     // Set by master
+#define SET_CTS "S_C"       // Set by device
+#define RESET_CTS "R_C"     // Set by device
+
+// /* Enable/disable emulated flow control */
+// #define SET_FLOW_CTRL "S_F"
+
+// /* FOLOW_CTRL */
+// #define FLOW_CTRL_HARDWARE "H"
+// #define FLOW_CTRL_SOFTWARE "S"
+// #define FLOW_CTRL_NONE "N"
+// #define FLOW_CTRL_HARDWARE_C 'H'
+// #define FLOW_CTRL_SOFTWARE_C 'S'
+// #define FLOW_CTRL_NONE_C 'N'
+
+// typedef enum mqtt_flow_ctrl
+// {
+//     none = 0,
+//     hardware,
+//     software
+// } mqtt_flow_ctrl;
+
+/* MODE */
+#define MODE_DTE "DTE"
+#define MODE_DCE "DCE"
+
+typedef enum dev_mode
+{
+    dte = 0,
+    dce
+} dev_mode;
+
+/* PACKET NUMBER KEY */
+#define PACKET_NUM_KEY "P"
+#define PACKET_NUM_KEY_C 'P'
+#define PACKET_NUM_MAX 1
+
+/** ERRORS **/
 /* UNKNOWN CMD */
 #define UNKNOWN_CMD "U_C"
 /* ILL-FORMED */
@@ -72,12 +112,44 @@
 /* INVALID ARGUMENT */
 #define INVALID_ARGUMENT "I_A"
 #define INVALID_OPTION "I_O"
+/* INVALID PACKET NUMBER */
+#define INVALID_PACKET_NUM "I_N"
+/* NO PACKET NUMBER */
+#define NO_PACKET_NUMBER "N_N"
+/*  */
+#define PACKET_OVERFLOW "P_O"
 
+/* PACKET ACK */
+#define PACKET_ACK "A"
+/* MAX NOT ACKNOWLEDGED */
+#define MAX_NOT_ACK 20
+/* MAX SAVED */
+#define ACK_AFTER 10
+/* MAX SAVED */
+#define MAX_SAVED 30
+/* MAX MASTER PACKET LENGTH */
+#define MAX_MASTER_PACKET_LEN 2048
+/* MAX SLAVE PACKET LENGTH */
+#define MAX_SLAVE_PACKET_LEN 2500
+/* MAX SLAVE DATA LENGTH */
+#define MAX_SLAVE_DATA_LEN 2048
+
+/* MAX/MIN MESSAGE NUMBER */
+#define MAX_MSG_NUM '~'
+#define MIN_MSG_NUM ' '
+
+/* MAX/MIN MQTT MESAGE ID */
+#define MAX_MQTT_ID 500
+#define MIN_MQTT_ID 200
+
+/**/
 #define SPACE " "
 #define ENDL "\n"
 #define SPACE_C ' '
 #define ENDL_C '\n'
 
+volatile char *mqtt_num_up(volatile char * num);
+unsigned short *mqtt_id_up(unsigned short *);
 char *get_channel_name(char *dev_name, char channel_end);
 /*  */
 char *cmdcmp(char *cmd, char *data, size_t len);

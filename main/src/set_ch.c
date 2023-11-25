@@ -1,5 +1,7 @@
 #include <set_ch.h>
 
+#define TAG "MQTT_S_CH"
+
 int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t len_)
 {
     char *arg_ptr = NULL;
@@ -93,7 +95,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
         }
         else if ((arg_ptr = cmdcmp(SET_CHAR_SIZE, next_cmd_ptr, rem_len)) != NULL)
         {
-            /* Argument in cstring to u=int */
+            /* Argument in cstring to uint */
             char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
             memcpy(arg_str, arg_ptr, endl - arg_ptr);
             arg_str[endl - arg_ptr] = '\0';
@@ -169,9 +171,55 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             /* Add parity set cmd */
             len = add_cmd(&channel_data, len, GET_STOP_BITS, arg_str);
         }
+        else if ((arg_ptr = cmdcmp(SET_RTS, next_cmd_ptr, rem_len)) != NULL)
+        {
+            gpio_set_level(MQTT_RTS_PIN, 1);
+        }
+        else if ((arg_ptr = cmdcmp(RESET_RTS, next_cmd_ptr, rem_len)) != NULL)
+        {
+            gpio_set_level(MQTT_RTS_PIN, 0);
+        }
+        else if ((arg_ptr = cmdcmp(NEW_SESSION, next_cmd_ptr, rem_len)) != NULL)
+        {
+            handler->m_clean_session = true;
+        }
+        else if ((arg_ptr = cmdcmp(INVALID_PACKET_NUM, next_cmd_ptr, rem_len)) != NULL)
+        {
+            /* Argument in cstring to int */
+            char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
+            memcpy(arg_str, arg_ptr, endl - arg_ptr);
+            arg_str[endl - arg_ptr] = '\0';
+            int slave_num = atoi(arg_str);
+            free(arg_str);
+
+            if (mqtt_retransmit(handler, (char)slave_num) <= 0)
+            {
+                len = add_cmd_uint(&channel_data, len, NO_PACKET_NUMBER, slave_num);
+            }
+        }
+        else if ((arg_ptr = cmdcmp(PACKET_ACK, next_cmd_ptr, rem_len)) != NULL)
+        {
+            /* Argument in cstring to int */
+            char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
+            memcpy(arg_str, arg_ptr, endl - arg_ptr);
+            arg_str[endl - arg_ptr] = '\0';
+            int slave_num = atoi(arg_str);
+            free(arg_str);
+
+            mqtt_rec_ack(handler, slave_num);
+        }
+        else if ((arg_ptr = cmdcmp(MODE_DCE, next_cmd_ptr, rem_len)) != NULL)
+        {
+            set_mode(dce);
+        }
+        else if ((arg_ptr = cmdcmp(MODE_DTE, next_cmd_ptr, rem_len)) != NULL)
+        {
+            set_mode(dte);
+        }
         else
         {
             /* Unknown cmd */
+            ESP_LOGE(TAG, "UNKNOWN_CMD");
             len = add_cmd_none(&channel_data, len, UNKNOWN_CMD);
         }
 
@@ -182,13 +230,8 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
         if (rem_len == 0)
         {
             /* Send */
-            unsigned char *buf = (unsigned char *) malloc(sizeof(unsigned char) * (len + 100));
-            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, (unsigned char *)channel_data, len);
-            mqtt_tls_write(buf, write_len);
-
-            free(channel_name);
+            mqtt_write_i(handler, (unsigned char *)channel_data, len);
             free(channel_data);
-            free(buf);
 
             return 0;
         }

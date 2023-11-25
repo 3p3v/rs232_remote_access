@@ -112,7 +112,7 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
             /* Send */
             unsigned char *buf = (unsigned char *) malloc(sizeof(unsigned char) * (len + 100));
             int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, (unsigned char *)channel_data, len);
-            mqtt_tls_write(buf, write_len);
+            mqtt_tls_write(handler, buf, write_len);
 
             free(channel_name);
             free(channel_data);
