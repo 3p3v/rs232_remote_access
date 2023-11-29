@@ -103,11 +103,6 @@ void uart_deamon(void *v_handler)
         }
     }
 
-    /* Send error to main deamon */
-    // TaskHandle_t task = xTaskGetCurrentTaskHandle();
-    // xQueueSend(*error_get_queue(), &task, portMAX_DELAY);
-    // handler->hard_error_handler(handler->handler);
-
     /* wait for the task to be deleted */
     for (;;)
         ;
@@ -134,11 +129,6 @@ TaskHandle_t uart_deamon_delete_task(uart_deamon_handler *handler)
 
 uart_config_t uart_deamon_load_config()
 {
-    // static bool load = false;
-    // uart_config_t *uart_conf = uart_deamon_get_config();
-
-    // if (load == false)
-    // {
     // TODO load config from memory
     uart_config_t uart_def_conf = {
         .baud_rate = UART_DEAMON_DEF_UART_BAUD_RATE,
@@ -149,26 +139,8 @@ uart_config_t uart_deamon_load_config()
         .rx_flow_ctrl_thresh = UART_DEAMON_DEF_UART_RX_FLOW_CTRL_TRESH,
         .source_clk = UART_DEAMON_DEF_UART_SOURCE_CLK};
 
-    // *uart_conf = uart_def_conf;
-    // load = true;
-    // }
-
     return uart_def_conf;
 }
-
-// static uart_config_t *uart_deamon_get_config()
-// {
-//     static uart_config_t uart_conf;
-//     return &uart_conf;
-// }
-
-// uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf)
-// {
-//     uart_config_t *uart_conf = uart_deamon_get_config();
-//     *uart_conf = *new_uart_conf;
-
-//     return uart_conf;
-// }
 
 uart_config_t *uart_deamon_save_config(uart_config_t *new_uart_conf)
 {

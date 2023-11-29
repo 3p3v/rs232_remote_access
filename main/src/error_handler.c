@@ -71,12 +71,6 @@ void ext_error_send(void *handler, const char *module, int type, int err)
     xQueueSend(*queue, (void *)&ext_err, portMAX_DELAY);
 }
 
-// void send_error(TaskHandle_t *handler)
-// {
-//     QueueHandle_t *queue = error_get_queue();
-//     xQueueSend(*queue, handler, sizeof(TaskHandle_t *));
-// }
-
 void ext_mqtt_send_error(ext_error *err)
 {
 

@@ -76,7 +76,7 @@ int sim_deamon_start(sim_deamon_handler *handler)
     /* Disable echo */
     err = SIM_run(&handler->sim, SIM_execATE0(&cmd));
     
-    cycles = 200;
+    cycles = 15;
 
     /* Check if registered to network, it can take some time... */
     ESP_LOGI(TAG, "CHECKING NETWORK REGISTARTION");
@@ -124,7 +124,7 @@ int sim_deamon_start(sim_deamon_handler *handler)
     /* Set time in case it's needed to check a validity of certyficates */
     settimeofday(&tv_now, NULL);
 
-    cycles = 200;
+    cycles = 50;
     
     /* Check if attached to GPRS */
     do

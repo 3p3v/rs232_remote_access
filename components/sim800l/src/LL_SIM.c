@@ -21,11 +21,10 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->unread_num = 0;
     sim->tx = LL_SIM_DEF_UART_TX;
     sim->rx = LL_SIM_DEF_UART_RX;
-    sim->baudRate = 9600; // 19200;
-    // sim->drt = LL_SIM_DEF_DRT_PIN;
+    sim->baudRate = 115200;
     sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
-    sim->uartQueue = NULL; // xQueueCreate(LL_SIM_DEF_QUEUE_SIZE, sizeof(int));
+    sim->uartQueue = NULL; 
     sim->cmds.cmd = NULL;
     sim->cmds.queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
     for (int i = 0; i < LL_SIM_DEF_TCP_CMDS_NUM; i++)
@@ -49,7 +48,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
     xSemaphoreGive(sim->exec_mutex);
 }
 
-/*  UART configuration, includes ESP pattern detection (detects every new line) */
+/*  UART configuration */
 LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
 {
     /* UART */
@@ -62,16 +61,10 @@ LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
         .rx_flow_ctrl_thresh = 0,
         .source_clk = UART_SCLK_DEFAULT};
 
-    // uartQueue =
-
     /* Basic UART config */ // TODO CHECK!
     ESP_ERROR_CHECK(uart_driver_install(sim->uart, LL_SIM_DEF_TX_BUF_SIZE, LL_SIM_DEF_TX_BUF_SIZE, LL_SIM_DEF_QUEUE_SIZE, &sim->uartQueue, 0));
     ESP_ERROR_CHECK(uart_param_config(sim->uart, &uartConf));
     ESP_ERROR_CHECK(uart_set_pin(sim->uart, sim->tx, sim->rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
-    /* Pattern detection event config */
-    // uart_enable_pattern_det_baud_intr(uart, '\n', 1, LL_SIM_PATTERN_INTERVAL, LL_SIM_MIN_POST_IDLE, LL_SIM_MIN_PRE_IDLE);
-    // uart_pattern_queue_reset(uart, LL_SIM_DEF_PATTERN_QUEUE_SIZE);
 
     /* GPIO */
     gpio_config_t gpioConf = {
@@ -83,12 +76,7 @@ LL_SIM_error LL_SIM_init(const LL_SIM_intf *sim)
 
     /* Set DRT and RST pin */
     ESP_ERROR_CHECK(gpio_config(&gpioConf));
-
     LL_SIM_setRST(sim, true);
-
-    // resetForce();
-
-    // setStatus(LL_SIMUARTInitialised);
 
     return SIM_ok;
 }
@@ -165,9 +153,7 @@ START:
     switch (err_pair.err)
     {
     case SIM_noErrCode:
-    {
-        printf("GOT SOME CMD\n");
-        
+    {    
         if (sim->cmds.cmd == NULL)
         {
             err = SIM_noErrCode;
@@ -176,20 +162,17 @@ START:
 
         err = sim->cmds.cmd->handlers[sim->cmds.cmd->handlers_num - 1]((sim->lines + err_pair.line_num), (sim->lines + 0), &sim->cmds.cmd->resp, (void *)sim);
 
-        // Check execution code
+        /* Check execution code */
         if (err == SIM_ok)
         {
-            // Handler was executed correctly
-            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
+            /* Handler was executed correctly */
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end);
             sim->cmds.cmd->handlers_num--;
             if (sim->cmds.cmd->handlers_num == 0)
             {
                 // If all handlers were executed then return with ok code and 'delete' cmd from listener
-                // sim->cmds.cmd->err = err;
-                /* EDIT */
-                xQueueSend(sim->cmds.queue, (void *)&err /*&sim->cmds.cmd->resp.err*/, 5000 / portTICK_PERIOD_MS);
+                xQueueSend(sim->cmds.queue, (void *)&err , 5000 / portTICK_PERIOD_MS);
                 sim->cmds.cmd = NULL;
-                /********/
             }
 
             if (sim->rec_len == 0)
@@ -214,10 +197,9 @@ START:
         else
         {
             // ecountered error
-            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message                /* EDIT */
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->cmds.cmd->resp.msg_end);
             xQueueSend(sim->cmds.queue, (void *)&err, 5000 / portTICK_PERIOD_MS);
             sim->cmds.cmd = NULL;
-            /********/
 
             if (sim->rec_len == 0)
             {
@@ -231,15 +213,12 @@ START:
                 goto START;
             }
         }
-        // }
 
         break;
     }
     case SIM_receive:
     case SIM_closed:
     {
-        printf("GOT TCP\n");
-        
         char num_str[2] = {};
         unsigned char num;
 
@@ -268,28 +247,20 @@ START:
             
 
         /* Excute handler */
-        printf("SIM: START HANDLER EXEC\r\n");
         err = sim->tcp_ret->cmd->handler((sim->lines + err_pair.line_num), (sim->lines + 0), &sim->tcp_ret->cmd->resp, (void *)sim);
-        printf("SIM: END HANDLER EXEC\r\n");
         if (err == SIM_ok)
         {
-            printf("SIM: OK\r\n");
             // Handler was executed correctly
-            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
-            /* EDIT */
-            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
+            // rewrite buffer so it contains only the unread part of the message
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); 
+            // Execute custom handler
+            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); 
             xQueueSend(sim->tcp_ret->queue, (void *)&sim->tcp_ret->cmd->resp.err, 0);
             sim->tcp_ret = NULL;
-            /********/
 
             if (sim->rec_len == 0)
             {
                 // no message left
-                // if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
-                // {
-                //     sim->add_cmd_mutex_taken = false;
-                //     xSemaphoreGive(sim->add_cmd_mutex);
-                // }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -302,30 +273,21 @@ START:
         else if (err == sim_msgDetect)
         {
             // Got some matching output, not enough data though, try again when data arrives
-            printf("SIM: MSGDETECT\r\n");
             goto REGION_END;
         }
         else
         {
             // encountered error
-            printf("SIM: ERROR\r\n");
-            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); // rewrite buffer so it contains only the unread part of the message
-            /* EDIT */
-            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); // Execute custom handler
+            // rewrite buffer so it contains only the unread part of the message
+            SIM_setMsg(sim->buf, &sim->rec_len, sim->tcp_ret->cmd->resp.msg_end); 
+            // Execute custom handler
+            sim->tcp_ret->cmd->resp_handler(&sim->tcp_ret->cmd->resp.err); 
             xQueueSend(sim->tcp_ret->queue, (void *)&err, 5000 / portTICK_PERIOD_MS);
             sim->tcp_ret = NULL;
-            /********/
-            // 'delete' cmd from listener
-            // sim->tcp_ret->cmd = NULL;
 
             if (sim->rec_len == 0)
             {
                 // no message left
-                // if (sim->cmds.cmd == NULL && sim->add_cmd_mutex_taken == true)
-                // {
-                //     sim->add_cmd_mutex_taken = false;
-                //     xSemaphoreGive(sim->add_cmd_mutex);
-                // }
                 sim->unread_num = 0;
                 goto REGION_END;
             }
@@ -335,8 +297,6 @@ START:
                 goto START;
             }
         }
-
-        // }
 
         break;
     }
@@ -359,7 +319,6 @@ START:
     }
 
 REGION_END:
-    printf("SIM: EXITING\n");
     xSemaphoreGive(sim->exec_mutex);
     return err;
 }

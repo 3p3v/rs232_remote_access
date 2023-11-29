@@ -41,28 +41,18 @@ SIM_error SIM_run(SIM_intf *sim, SIM_cmd *cmd)
 {
    SIM_error err = SIM_ok;
    xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
-   // Minimalise the risc of interrupting current reading task
+   /* Minimalise the risc of interrupting current reading task */
    while (sim->tcp_ret);
-   // Send command
-   err = SIM_sendAT(sim, cmd->at);
-   if (err != SIM_ok)
-      goto REGION_END;
+   /* Send command */
+   if ((err = SIM_sendAT(sim, cmd->at)) == SIM_ok)
+   {
+      /* Give handlers to the listener and wait for the end of en execution */
+      err = SIM_sub(sim, cmd);
+   }
 
-   // Give handlers to the listener and wait for the end of en execution
-   err = SIM_sub(sim, cmd);
-
-   REGION_END:
    xSemaphoreGive(sim->add_cmd_mutex);
    return err;
 }
-
-// SIM_error SIM_run_multiple_launch(SIM_intf *sim, SIM_TCP_cmd *cmd)
-// {
-//    // SIM_error err = SIM_ok;
-
-//    // Give handlers to the listener and wait for the end of en execution
-//    return SIM_sub_multiple_launch(sim, cmd);
-// }
 
 SIM_error SIM_sub(SIM_intf *sim, SIM_cmd *cmd)
 {

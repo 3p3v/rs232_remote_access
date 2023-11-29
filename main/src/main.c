@@ -73,7 +73,7 @@ void socket_resp_handler(int *err);
 void app_main(void)
 {
     /* Run startup */
-    xTaskCreate(main_task, "mqtt_main_task", 60000, NULL, 3, NULL);
+    xTaskCreate(main_task, "mqtt_main_task", 35000, NULL, 3, NULL);
 }
 
 void main_task(void*)
@@ -148,38 +148,35 @@ void err_handling_task(void*)
 
     while (1)
     {
-        printf("START READING ERRORS\r\n");
+        ESP_LOGI("START READING ERRORS\r\n");
         xQueueReceive(*main_queue, &ext_err, portMAX_DELAY);
-        printf("GOT ERROR\r\n");
+        ESP_LOGE("GOT ERROR\r\n");
 
-        if (sim_handler.handler == ext_err.handler)
+        echo_error(&ext_err);
+
+        if (ext_err.type != ext_type_fatal)
         {
-            echo_error(&ext_err);
-            /* Unhandlable exception occured in SIM task */
-            if (ext_err.type == ext_type_fatal)
+            ext_mqtt_send_error(&ext_err);
+        }
+        else
+        {
+            if (sim_handler.handler == ext_err.handler)
             {
+                /* Unhandlable exception occured in SIM task */
                 goto exit;
             }
-            else
+            else if (mqtt_handler.handler == ext_err.handler)
             {
-                ext_mqtt_send_error(&ext_err);
-            }
-        }
-        else if (mqtt_handler.handler == ext_err.handler)
-        {
-            echo_error(&ext_err);
-            /* Unhandlable exception occured in MQTT task, reset this task */
-            if (ext_err.type == ext_type_fatal)
-            {
+                /* Unhandlable exception occured in MQTT task, reset this task */
                 mqtt_deamon_stop(&mqtt_handler);
                 if ((err = mqtt_deamon_start(&mqtt_handler,
-                                             &uart_handler.uart_conf,
-                                             *auth_get_server(),
-                                             *auth_get_port(),
-                                             *auth_get_username(),
-                                             *auth_get_password(),
-                                             *cert_get_chain(),
-                                             socket_resp_handler)))
+                                            &uart_handler.uart_conf,
+                                            *auth_get_server(),
+                                            *auth_get_port(),
+                                            *auth_get_username(),
+                                            *auth_get_password(),
+                                            *cert_get_chain(),
+                                            socket_resp_handler)))
                 {
                     ESP_LOGE("MQTT_DEAMON", "COUNDN'T START, REBOOTING");
                     cert_free_chain();
@@ -191,26 +188,21 @@ void err_handling_task(void*)
                     ext_mqtt_send_error(&ext_err);
                 }
             }
-        }
-        else if (uart_handler.handler == ext_err.handler)
-        {
-            echo_error(&ext_err);
-            /* Unhandlable exception occured in MQTT task, reset this task */
-            if (ext_err.type == ext_type_fatal)
+            else if (uart_handler.handler == ext_err.handler)
             {
+                /* Unhandlable exception occured in MQTT task, reset this task */
                 uart_deamon_stop(&uart_handler);
                 if ((err = uart_deamon_start(&uart_handler)))
                 {
                     ESP_LOGE("UART_DEAMON", "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
-            }
-            else
-            {
-                ext_mqtt_send_error(&ext_err);
+                else
+                {
+                    ext_mqtt_send_error(&ext_err);
+                }
             }
         }
-        else if (ext_err.handler)
 
         free(ext_err.module);
     }

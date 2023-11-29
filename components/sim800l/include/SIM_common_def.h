@@ -39,9 +39,6 @@ typedef enum SIM_error
     SIM_ring = -19,
     sim_msgDetect = -20,
     SIM_unknown = -99
-    // SIM_registered = -7,
-    // SIM_roamingRegistered = -8,
-    // SIM_serverErr = -9
 } SIM_error;
 
 typedef enum LL_SIM_error
@@ -113,7 +110,7 @@ typedef struct SIM_resp
 {
     SIM_err_pair *pos_resps;
     char at[SIM_MAX_AT_STR_LEN];
-    char *resp_name;    //TODO delete??
+    char *resp_name;
     char *resp_name_len;
     char *resp;
     unsigned char resp_len;
@@ -121,7 +118,6 @@ typedef struct SIM_resp
     SIM_resp_params params[SIM_MAX_PARAMS];
     void *send_data;
     unsigned int send_data_len;
-    // unsigned char *data_buf;
     SemaphoreHandle_t data_mutex;
     void *data;
     unsigned int data_len;
@@ -136,21 +132,6 @@ typedef enum SIM_cmd_type
 } SIM_cmd_type;
 
 typedef unsigned int SIM_time;
-// typedef struct 
-// {
-//     /* Buffer used for receiving raw messages from SIM800L module */
-//     char *buf;// [LL_SIM_DEF_BUF_SIZE];
-//     unsigned int buf_len;
-//     /* Length of last received message from SIM800L module */
-//     unsigned int rec_len;
-//     // SIM_response resp;
-// } SIM_cont;
-
-// typedef struct SIM_handler
-// {
-//     SIM_error (*func)(char *, unsigned int, SIM_resp *);
-//     int timeout;
-// } SIM_handler;
 
 typedef enum SIM_con_num 
 {
@@ -166,14 +147,11 @@ typedef enum SIM_con_num
 typedef struct SIM_cmd
 {
     char at[SIM_MAX_AT_STR_LEN];
-    // char params[SIM_MAX_PARAMS][SIM_MAX_PARAM_LEN];
-    // unsigned char params_num;
     SIM_error (*handlers[SIM_MAX_HANDLERS_NUM])(SIM_line_pair *, SIM_line_pair *, SIM_resp *, void *);
     unsigned char handlers_num;
     SIM_resp resp;
-    SIM_cmd_type type; // TODO delete
+    SIM_cmd_type type;
     SIM_time timeout;
-    // SIM_error err;
 } SIM_cmd;
 
 void SIM_cmd_init(SIM_cmd *cmd);

@@ -59,12 +59,11 @@ static SIM_error SIM_readCREG_handler(SIM_line_pair *lines, SIM_line_pair *lines
 SIM_cmd *SIM_readCREG(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CREG?", params);
     cmd->handlers[0] = &SIM_readCREG_handler;
     cmd->handlers_num = 1;
     SIM_respNULL(&cmd->resp, cmd->at);
-    cmd->type = SIM_cmd_single_use;
     cmd->timeout = SIM_READCREG_TIMEOUT;
 
     return cmd;

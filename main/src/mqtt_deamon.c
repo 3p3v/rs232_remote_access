@@ -525,10 +525,6 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
     mqtt_deamon_handler *handler = (mqtt_deamon_handler *)v_mqtt_deamon_handler;
     uint8_t recvbuf[MAIN_MQTT_REC_BUF_SIZE];
 
-    /* Used for choosing channel to connect */
-    char next_ch = INFO_CH_C;
-    // if ever received publish from master
-
     /* Used for properties reading */
     MQTTProperty properties_array[PROPERTIES_SIZE];
     MQTTProperties properties = MQTTProperties_initializer;
@@ -540,7 +536,10 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
     while (1)
     {
         /* Wait untill socket informs you that you got a new packet */
-        xQueueReceive(handler->queue, &err, 1000 / portTICK_PERIOD_MS);
+        if (xQueueReceive(handler->queue, &err, MQTT_UNLOCK_T / portTICK_PERIOD_MS) != pdTRUE)
+        {
+            err = SIM_receive;
+        }
         ESP_LOGI(TAG, "GOT MESSAGE");
 
         /* Check if sockt didn't get any error */
@@ -634,10 +633,11 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 /* Start Ping timer */
                 start_ping_timer(handler);
 
-                /* Subscribe to info channel */
-                ESP_LOGE(TAG, "SENDING SUBSCRIBE TO CHANNEL: %c", next_ch);
-                mqtt_subscribe(handler, next_ch);
-                next_ch = SET_CH_C;
+                /* Subscribe to channels */
+                ESP_LOGE(TAG, "SENDING SUBSCRIBE TO CHANNEL: %c", INFO_CH_C);
+                mqtt_subscribe(handler, INFO_CH_C);
+                mqtt_subscribe(handler, SET_CH_C);
+                mqtt_subscribe(handler, DATA_CH_C);
 
                 break;
             }
@@ -651,24 +651,9 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
 
                 if (MQTTV5Deserialize_suback(&msg_id, &properties, 1, &subcount, &reason_code, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1 || reason_code != 0)
                 {
-                    ESP_LOGE(TAG, "NOT CORRECTLY FORMATTED SUB ACK");
+                    ESP_LOGE(TAG, "SUBSCRIBE ERROR");
                     handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, reason_code);
                     goto exit;
-                }
-
-                if (next_ch == SET_CH_C)
-                {
-                    /* Subscribe to set channel */
-                    ESP_LOGE(TAG, "SENDING SUBSCRIBE TO CHANNEL: %c", next_ch);
-                    mqtt_subscribe(handler, next_ch);
-                    next_ch = DATA_CH_C;
-                }
-                else if (next_ch == DATA_CH_C)
-                {
-                    /* Subscribe to data channel */
-                    ESP_LOGE(TAG, "SENDING SUBSCRIBE TO CHANNEL: %c", next_ch);
-                    mqtt_subscribe(handler, next_ch);
-                    next_ch = INFO_CH_C;
                 }
 
                 break;
@@ -924,39 +909,57 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     {
         return err;
     }
-    /* Save ctx */
 
     /* SSL initialized */
     handler->initialized = true;
+
+    /* Will channel */
+    char *channel_name = get_channel_name(handler->username, INFO_CH_C);
+    MQTTString will_topic = MQTTString_initializer;
+    will_topic.cstring = channel_name;
+
+    /* Will message */
+    char *will_str = NULL;
+    add_cmd_null(&will_str, 0, DEV_DISCONNECT);
+    MQTTString will_msg = MQTTString_initializer;
+    will_msg.cstring = will_str;
+
+    /* Will */
+    MQTTV5Packet_willOptions will = MQTTV5Packet_willOptions_initializer
+    will.topicName = will_topic;
+    will.message = will_msg;
+    will.qos = QOS;
 
     /* Connection parameters */
     MQTTV5Packet_connectData connect_data = MQTTV5Packet_connectData_initializer;
     connect_data.username.cstring = username;
     connect_data.password.cstring = password;
     connect_data.MQTTVersion = 5;
-    connect_data.keepAliveInterval = 60;
+    connect_data.keepAliveInterval = 90;
+    connect_data.willFlag = 1;
+    connect_data.will = will;
+
     /* Connection properties, none needed */
     MQTTProperties conn_properties = MQTTProperties_initializer;
 
     xSemaphoreTake(handler->send_buf_mutex_handle, portMAX_DELAY);
-    ESP_LOGI(TAG, "CONNECT SERIALIZE");
     int len = MQTTV5Serialize_connect(handler->sendbuf, MAIN_MQTT_SEND_BUF_SIZE, &connect_data, &conn_properties);
-    ESP_LOGI(TAG, "CONNECT SERIALIZED");
     int write_len = mqtt_tls_write_no_ping(handler, handler->sendbuf, len);
-    ESP_LOGI(TAG, "CONNECT SENT?");
     xSemaphoreGive(handler->send_buf_mutex_handle);
 
-    /* Start deamon */
-    mqtt_deamon_create_task(handler);
-    if (!handler->handler)
-    {
-        /* Couldn't start deamon */
-        return -1;
-    }
+    free(channel_name);
+    free(will_str);
 
-    /* Connect to broker */
     if (write_len == len)
     {
+        /* Start deamon */
+        mqtt_deamon_create_task(handler);
+        if (!handler->handler)
+        {
+            /* Couldn't start deamon */
+            return -1;
+        }
+
         return 0;
     }
     else

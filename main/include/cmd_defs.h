@@ -63,7 +63,7 @@
 #define STOP_BITS_TWO_C 'T'
 
 /* New session */
-#define NEW_SESSION "N_S"   // Set by master
+// #define NEW_SESSION "N_S"   // Set by master
 
 /* RTS/CTS */
 #define SET_RTS "S_R"       // Set by master
@@ -118,6 +118,8 @@ typedef enum dev_mode
 #define NO_PACKET_NUMBER "N_N"
 /*  */
 #define PACKET_OVERFLOW "P_O"
+/*  */
+#define DEV_DISCONNECT "D_D"
 
 /* PACKET ACK */
 #define PACKET_ACK "A"
@@ -128,11 +130,11 @@ typedef enum dev_mode
 /* MAX SAVED */
 #define MAX_SAVED 30
 /* MAX MASTER PACKET LENGTH */
-#define MAX_MASTER_PACKET_LEN 2048
+#define MAX_MASTER_PACKET_LEN 1460
 /* MAX SLAVE PACKET LENGTH */
-#define MAX_SLAVE_PACKET_LEN 2500
+#define MAX_SLAVE_PACKET_LEN 1460
 /* MAX SLAVE DATA LENGTH */
-#define MAX_SLAVE_DATA_LEN 2048
+#define MAX_SLAVE_DATA_LEN 1300
 
 /* MAX/MIN MESSAGE NUMBER */
 #define MAX_MSG_NUM '~'

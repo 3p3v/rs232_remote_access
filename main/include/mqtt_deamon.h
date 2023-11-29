@@ -15,12 +15,15 @@
 /* defs */
 #include <cmd_defs.h>
 
-#define MAIN_MQTT_REC_BUF_SIZE 1024
-#define MAIN_MQTT_SEND_BUF_SIZE 1024
+/* Buffers based on packet sizes */
+#define MAIN_MQTT_REC_BUF_SIZE 1460
+#define MAIN_MQTT_SEND_BUF_SIZE 1460
 
+/* Queue msgs */
 #define PING_REQUEST 1000
 #define CTS_CHANGED_STATE 998
 #define RTS_CHANGED_STATE 999
+#define MQTT_UNLOCK_T 1000
 
 #define SEC_IN_MIN 60
 #define PING_TIMER_RES 1000000

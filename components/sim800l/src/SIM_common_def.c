@@ -3,6 +3,7 @@
 #include <string.h>
 
 const SIM_err_pair SIM_reservedResps[] = {{.name = "+RECEIVE", .err = SIM_receive},
+                                          {.name = "., CLOSED", .err = SIM_closed},
                                           {.name = "SMS READY", .err = SIM_smsReady},
                                           {.name = "Call READY", .err = SIM_callReady},
                                           {.name = "RING", .err = SIM_ring},
