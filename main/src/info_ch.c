@@ -11,11 +11,6 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
     char *channel_data = NULL;
     size_t len = 0;
 
-    /* Create name */
-    MQTTString topicString = MQTTString_initializer;
-    char *channel_name = get_channel_name(handler->username, INFO_CH_C);
-    topicString.cstring = channel_name;
-
     /* Set property */
     MQTTProperties properties = MQTTProperties_initializer;
 
@@ -26,8 +21,10 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
             /* Ill-formed command */
             next_cmd_ptr = (char *)data + len_;
             len = add_cmd_none(&channel_data, len, ILL_FORMED_CMD);
+
+            goto exit;
         }
-        else if ((arg_ptr = cmdcmp(GET_INFO, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(GET_INFO, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Return current settings */
 
@@ -57,7 +54,7 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
             len = add_cmd(&channel_data, len, GET_PARITY, parity_arg);
 
             /* Char size */
-            len = add_cmd_uint(&channel_data, len, GET_CHAR_SIZE, handler->uart_conf->data_bits);
+            len = add_cmd_uint(&channel_data, len, GET_CHAR_SIZE, handler->uart_conf->data_bits + 5);
 
             /* Stop bits */
             char *stop_bits_arg = NULL;
@@ -88,15 +85,10 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
 
             
         }
-        else if ((arg_ptr = cmdcmp(MASTER_KEEP_ALIVE, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(MASTER_KEEP_ALIVE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Keep alive request */
             len = add_cmd_none(&channel_data, len, SLAVE_KEEP_ALIVE);
-        }
-        else if ((arg_ptr = cmdcmp(MASTER_KEEP_ALIVE, next_cmd_ptr, rem_len)) != NULL)
-        {
-            /* Hi */
-            len = add_cmd_none(&channel_data, len, SLAVE_HI);
         }
         else
         {
@@ -105,18 +97,15 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
         }
 
         next_cmd_ptr = endl + 1;
+
+        exit:
         rem_len = len_ - (next_cmd_ptr - (char *)data);
 
         if (rem_len == 0)
         {
             /* Send */
-            unsigned char *buf = (unsigned char *) malloc(sizeof(unsigned char) * (len + 100));
-            int write_len = MQTTV5Serialize_publish(buf, 1024, 0, QOS, 0, 0, topicString, &properties, (unsigned char *)channel_data, len);
-            mqtt_tls_write(handler, buf, write_len);
-
-            free(channel_name);
+            mqtt_write_i(handler, (unsigned char *)channel_data, len);
             free(channel_data);
-            free(buf);
 
             return 0;
         }

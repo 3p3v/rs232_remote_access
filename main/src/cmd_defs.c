@@ -35,6 +35,7 @@ char *get_channel_name(char *dev_name, char channel_end)
     return channel_name;
 }
 
+/* Search for first occurence of char within len */
 char *cmdchr(char *data, size_t len, char c)
 {
     for (size_t i = 0; i < len; i++)
@@ -46,9 +47,12 @@ char *cmdchr(char *data, size_t len, char c)
     return NULL;
 }
 
+/* Search for occurence of cstring at the beggining of data within len.
+ * Returns ptr to argument, but doesn't check if it really exists!
+ */
 char *cmdcmp(char *cmd, char *data, size_t len)
 {
-    if (strlen(cmd) < len)
+    if (strlen(cmd) > len)
         return NULL;
 
     for (unsigned int i = 0; i < strlen(cmd); i++)
@@ -57,7 +61,25 @@ char *cmdcmp(char *cmd, char *data, size_t len)
             return NULL;
     }
 
-    return data + strlen(cmd);
+    return data + strlen(cmd) + 1;
+}
+
+/* Search for command with argument (so len >= strlen(cmd) + 2 to be ok) 
+ * Returns ptr to argument.
+ */
+char *cmdcmp_arg(char *cmd, char *data, size_t len)
+{
+    /* Minimal length of command */
+    if (strlen(cmd) + 2 > len)
+        return NULL;
+
+    for (unsigned int i = 0; i < strlen(cmd); i++)
+    {
+        if (cmd[i] != data[i])
+            return NULL;
+    }
+
+    return data + strlen(cmd) + 1;
 }
 
 size_t add_cmd(char **data, size_t current_len, char *new_cmd, char *new_arg)
@@ -70,7 +92,7 @@ size_t add_cmd(char **data, size_t current_len, char *new_cmd, char *new_arg)
     current_len += strlen(new_cmd);
 
     /* Add space */
-    (*data)[current_len + strlen(new_cmd)] = SPACE_C;
+    (*data)[current_len] = SPACE_C;
     current_len += strlen(SPACE);
 
     /* Add arg */
@@ -78,7 +100,7 @@ size_t add_cmd(char **data, size_t current_len, char *new_cmd, char *new_arg)
     current_len += strlen(new_arg);
 
     /* Add endl */
-    (*data)[current_len + strlen(new_cmd)] = ENDL_C;
+    (*data)[current_len] = ENDL_C;
     current_len += strlen(ENDL);
 
     return current_len;
@@ -94,7 +116,7 @@ size_t add_cmd_none(char **data, size_t current_len, char *new_cmd)
     current_len += strlen(new_cmd);
 
     /* Add endl */
-    (*data)[current_len + strlen(new_cmd)] = ENDL_C;
+    (*data)[current_len] = ENDL_C;
     current_len += strlen(ENDL);
 
     return current_len;
@@ -113,7 +135,7 @@ size_t add_cmd_uint(char **data, size_t current_len, char *new_cmd, int new_arg_
     current_len += strlen(new_cmd);
 
     /* Add space */
-    (*data)[current_len + strlen(new_cmd)] = SPACE_C;
+    (*data)[current_len] = SPACE_C;
     current_len += strlen(SPACE);
 
     /* Add arg */
@@ -121,7 +143,7 @@ size_t add_cmd_uint(char **data, size_t current_len, char *new_cmd, int new_arg_
     current_len += strlen(new_arg);
 
     /* Add endl */
-    (*data)[current_len + strlen(new_cmd)] = ENDL_C;
+    (*data)[current_len] = ENDL_C;
     current_len += strlen(ENDL);
 
     return current_len;

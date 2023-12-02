@@ -62,18 +62,19 @@ static uart_deamon_handler uart_handler;
 
 /* Function decalrations */
 void *client_refresher(void *client);
-void rec_callback(unsigned char * buf, unsigned int);
+static void rec_callback(unsigned char * buf, unsigned int);
 void main_task(void*);
 void err_handling_task(void*);
 void return_error(const char *tag, int err);
 void mqtt_deamon(void *);
-void socket_resp_handler(int *err);
+static void socket_resp_handler(int *err);
+static size_t buf_check(mbedtls_context *ctx);
 
 /* Main */
 void app_main(void)
 {
     /* Run startup */
-    xTaskCreate(main_task, "mqtt_main_task", 35000, NULL, 3, NULL);
+    xTaskCreate(main_task, "mqtt_main_task", 20000, NULL, 3, NULL);
 }
 
 void main_task(void*)
@@ -84,6 +85,7 @@ void main_task(void*)
     mqtt_handler.queue = NULL;
     mqtt_handler.publish_callb = uart_write;
     mqtt_handler.error_handler = ext_error_send;
+    mqtt_handler.buf_check = buf_check;
 
     sim_handler.handler = NULL;
     sim_handler.error_handler = ext_error_send;
@@ -140,6 +142,8 @@ void main_task(void*)
     vTaskDelete(NULL);
 }
 
+#define TAG "ERR"
+
 void err_handling_task(void*)
 {
     ext_error ext_err;
@@ -148,9 +152,9 @@ void err_handling_task(void*)
 
     while (1)
     {
-        ESP_LOGI("START READING ERRORS\r\n");
+        ESP_LOGI(TAG, "START READING ERRORS\r\n");
         xQueueReceive(*main_queue, &ext_err, portMAX_DELAY);
-        ESP_LOGE("GOT ERROR\r\n");
+        ESP_LOGE(TAG, "GOT ERROR\r\n");
 
         echo_error(&ext_err);
 
@@ -221,7 +225,12 @@ exit:
     esp_restart();
 }
 
-void rec_callback(unsigned char * buf, unsigned int len)
+static size_t buf_check(mbedtls_context *ctx)
+{
+    return sim->tcp_cmds[ctx->net_ctx.fd].cmd->resp.data_len;
+}
+
+static void rec_callback(unsigned char * buf, unsigned int len)
 {
     int err;
     if ((err = mqtt_write_d(&mqtt_handler, buf, len)) <= 0)
@@ -230,7 +239,7 @@ void rec_callback(unsigned char * buf, unsigned int len)
     }
 }
 
-void socket_resp_handler(int *err)
+static void socket_resp_handler(int *err)
 {
     mqtt_deamon_awake(&mqtt_handler, err);
 }

@@ -1,4 +1,5 @@
 #include <set_ch.h>
+#include <esp_log.h>
 
 #define TAG "MQTT_S_CH"
 
@@ -13,32 +14,30 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
     char *channel_data = NULL;
     size_t len = 0;
 
-    /* Create name */
-    MQTTString topicString = MQTTString_initializer;
-    char *channel_name = get_channel_name(handler->username, INFO_CH_C);
-    topicString.cstring = channel_name;
-
     /* Set property */
     MQTTProperties properties = MQTTProperties_initializer;
 
     while (1)
     {
+        /* Find endl */
         if ((endl = cmdchr(next_cmd_ptr, rem_len, ENDL_C)) == NULL)
         {
             /* Ill-formed command */
             next_cmd_ptr = (char *)data + len_;
             len = add_cmd_none(&channel_data, len, ILL_FORMED_CMD);
+
+            goto exit;
         }
-        else if ((arg_ptr = cmdcmp(SET_BAUD_RATE, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp_arg(SET_BAUD_RATE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            /* Argument in cstring to u=int */
+            /* Argument in cstring to int */
             char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
             memcpy(arg_str, arg_ptr, endl - arg_ptr);
             arg_str[endl - arg_ptr] = '\0';
             int new_buad_rate = atoi(arg_str);
             free(arg_str);
 
-            if (new_buad_rate > BAUD_RATE_MAX || new_buad_rate > BAUD_RATE_MIN)
+            if (new_buad_rate > BAUD_RATE_MAX || new_buad_rate < BAUD_RATE_MIN)
             {
                 /* Invalid argument */
                 len = add_cmd(&channel_data, len, INVALID_ARGUMENT, SET_BAUD_RATE); 
@@ -54,7 +53,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             /* Add baud rate set cmd */
             len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, handler->uart_conf->baud_rate);            
         }
-        else if ((arg_ptr = cmdcmp(SET_PARITY, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp_arg(SET_PARITY, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {   
             char arg_str[2] = {0};
             *arg_str = *arg_ptr;
@@ -93,7 +92,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             /* Add parity set cmd */
             len = add_cmd(&channel_data, len, GET_PARITY, arg_str);
         }
-        else if ((arg_ptr = cmdcmp(SET_CHAR_SIZE, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp_arg(SET_CHAR_SIZE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Argument in cstring to uint */
             char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
@@ -118,7 +117,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             /* Add baud rate set cmd */
             len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, handler->uart_conf->baud_rate);            
         }
-        else if ((arg_ptr = cmdcmp(SET_STOP_BITS, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp_arg(SET_STOP_BITS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {   
             char arg_str[4] = {0};
             *arg_str = *arg_ptr;
@@ -171,19 +170,20 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
             /* Add parity set cmd */
             len = add_cmd(&channel_data, len, GET_STOP_BITS, arg_str);
         }
-        else if ((arg_ptr = cmdcmp(SET_RTS, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(SET_RTS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             gpio_set_level(MQTT_RTS_PIN, 1);
         }
-        else if ((arg_ptr = cmdcmp(RESET_RTS, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(RESET_RTS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             gpio_set_level(MQTT_RTS_PIN, 0);
         }
-        else if ((arg_ptr = cmdcmp(NEW_SESSION, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(MASTER_HI, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             handler->m_clean_session = true;
+            len = add_cmd_none(&channel_data, len, SLAVE_HI);
         }
-        else if ((arg_ptr = cmdcmp(INVALID_PACKET_NUM, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(INVALID_PACKET_NUM, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Argument in cstring to int */
             char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
@@ -197,7 +197,7 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
                 len = add_cmd_uint(&channel_data, len, NO_PACKET_NUMBER, slave_num);
             }
         }
-        else if ((arg_ptr = cmdcmp(PACKET_ACK, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(PACKET_ACK, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Argument in cstring to int */
             char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
@@ -208,11 +208,11 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
 
             mqtt_rec_ack(handler, slave_num);
         }
-        else if ((arg_ptr = cmdcmp(MODE_DCE, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(MODE_DCE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             set_mode(dce);
         }
-        else if ((arg_ptr = cmdcmp(MODE_DTE, next_cmd_ptr, rem_len)) != NULL)
+        else if ((arg_ptr = cmdcmp(MODE_DTE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             set_mode(dte);
         }
@@ -224,7 +224,11 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
         }
 
         end:
+        /* Set ptr to next command */
         next_cmd_ptr = endl + 1;
+
+        exit:
+        /*  */
         rem_len = len_ - (next_cmd_ptr - (char *)data);
 
         if (rem_len == 0)

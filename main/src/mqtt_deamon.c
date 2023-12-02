@@ -184,7 +184,14 @@ int mqtt_send_ack(mqtt_deamon_handler *handler, char master_num)
 void mqtt_rec_ack(mqtt_deamon_handler *handler, char slave_num)
 {
     /* Decrement unack msgs */
-    handler->s_not_ack -= handler->slave_num - slave_num;
+    char temp = handler->slave_num - slave_num;
+
+    if (temp < 0)
+    {
+        temp += MAX_MSG_NUM - MIN_MSG_NUM;
+    }
+
+    handler->s_not_ack -= temp;
 
     /* Delete msgs */
     char max = slave_num;
@@ -282,27 +289,35 @@ int mqtt_write_d(mqtt_deamon_handler *handler, unsigned char *buf, size_t len)
         /* Set property */
         MQTTProperty ack_properties_array[1];
         MQTTProperties ack_properties = MQTTProperties_initializer;
-        ack_properties.count = 1;
         ack_properties.array = ack_properties_array;
-        ack_properties_array[0].identifier = MQTTPROPERTY_CODE_USER_PROPERTY;
-        ack_properties_array[0].value.string_pair.key.data = PACKET_NUM_KEY;
-        ack_properties_array[0].value.string_pair.key.len = strlen(PACKET_NUM_KEY);
-        ack_properties_array[0].value.string_pair.val.data = (char *)&handler->slave_num;
-        ack_properties_array[0].value.string_pair.val.len = PACKET_NUM_MAX;
+        ack_properties.max_count = 1;
+
+        MQTTProperty packet_num = {
+            .identifier = MQTTPROPERTY_CODE_USER_PROPERTY,
+            .value.string_pair.key.data = PACKET_NUM_KEY,
+            .value.string_pair.key.len = strlen(PACKET_NUM_KEY),
+            .value.string_pair.val.data = (char *)&handler->slave_num,
+            .value.string_pair.val.len = PACKET_NUM_MAX
+        };
+        MQTTProperties_add(&ack_properties, &packet_num);
 
         /* Send ACK */
         len = MQTTV5Serialize_publish(msg_data_ptr, MAX_SLAVE_PACKET_LEN, 0, QOS, 0, 0, topic_str, &ack_properties, buf, len);
         len = mqtt_tls_write(handler, msg_data_ptr, len);
 
         mqtt_num_up(&handler->slave_num);
+        handler->s_not_ack++;
+        ESP_LOGE(TAG, "NOT ACKED: %u", handler->s_not_ack);
         free(channel_name);
         xSemaphoreGive(handler->send_msgs_mutex_handle);
 
-        if (handler->slave_num > MAX_NOT_ACK)
+        if (handler->s_not_ack > MAX_NOT_ACK)
         {
-            char *msg;
+            ESP_LOGE(TAG, "PACKET OVERFLOW MSG");
+            char *msg = NULL;
             len = add_cmd_none(&msg, 0, PACKET_OVERFLOW);
-            mqtt_write_d(handler, (unsigned char *)msg, len);
+            mqtt_write_i(handler, (unsigned char *)msg, len);
+            free(msg);
         }
 
         return len;
@@ -353,6 +368,7 @@ static int mqtt_subscribe(mqtt_deamon_handler *handler, char channel)
     /* Subscribe to channels */
     char *channel_name = get_channel_name(handler->username, channel);
     MQTTString topicString = MQTTString_initializer;
+    topicString.cstring = channel_name;
     MQTTProperties sub_properties = MQTTProperties_initializer;
     MQTTSubscribe_options sub_options = {.noLocal = 1, .retainAsPublished = 0, .retainHandling = 0};
 
@@ -535,12 +551,23 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
 
     while (1)
     {
+        err = SIM_noErrCode;
         /* Wait untill socket informs you that you got a new packet */
         if (xQueueReceive(handler->queue, &err, MQTT_UNLOCK_T / portTICK_PERIOD_MS) != pdTRUE)
         {
-            err = SIM_receive;
+            /* Check if there is any data in buffer */
+            if (handler->buf_check(&handler->ctx) > 0)
+            {
+                ESP_LOGI(TAG, "FOUND DATA");
+                err = SIM_receive;
+            }
+            else
+            {
+                ESP_LOGI(TAG, "FALSE ALARM");
+                continue;
+            }
         }
-        ESP_LOGI(TAG, "GOT MESSAGE");
+        ESP_LOGI(TAG, "GOT MESSAGE, msg: %i", err);
 
         /* Check if sockt didn't get any error */
         if (err == SIM_closed || err == SIM_closedOk)
@@ -677,7 +704,10 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                     goto exit;
                 }
 
-                switch (topic_name.cstring[USERNAME_LEN])
+                if (topic_name.lenstring.len < USERNAME_LEN +  1)
+                    break;
+                
+                switch (topic_name.lenstring.data[USERNAME_LEN])
                 {
                 /* Info arrived */
                 case INFO_CH_C:
@@ -701,7 +731,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                      * Otherwise throw away this packet.
                      */
                     /* Find packet number */
-                    char *data_to_send;
+                    char *data_to_send = NULL;
                     bool num_found = false;
                     char packet_num;
                     for (unsigned char i = 0; i < properties.count; i++)
@@ -728,6 +758,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                         ESP_LOGE(TAG, "NO_PACKET_NUMBER");
                         size_t len = add_cmd_none(&data_to_send, 0, NO_PACKET_NUMBER);
                         mqtt_write_i(handler, (unsigned char *)data_to_send, len);
+                        free(data_to_send);
                     }
                     else if (packet_num != handler->master_num)
                     {
@@ -735,6 +766,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                         ESP_LOGE(TAG, "INVALID_PACKET_NUM");
                         size_t len = add_cmd(&data_to_send, 0, INVALID_PACKET_NUM, &handler->master_num);
                         mqtt_write_i(handler, (unsigned char *)data_to_send, len);
+                        free(data_to_send);
                     }
                     else
                     {
@@ -744,18 +776,19 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                         /* Send data to UART */
                         handler->publish_callb((unsigned char *)payload, payload_len);
                         /* Send ack if exceded ACK_AFTER */
-                        if (handler->m_not_ack > MAX_NOT_ACK)
+                        if (handler->m_not_ack > ACK_AFTER)
                         {
                             mqtt_send_ack(handler, handler->master_num);
+                            handler->m_not_ack = 0;
                         }
                         /* Set next packet number */
                         mqtt_num_up(&handler->master_num);
                     }
                     break;
                 }
+                }
 
                 break;
-                }
             }
             case DISCONNECT:
             {
@@ -781,8 +814,6 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             }
             }
         }
-        // printf("MQTT error: %i", err);
-        err = SIM_noErrCode;
     }
 
 /* Send error to main deamon */
@@ -884,12 +915,16 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     /* Set username */
     handler->username = username;
     /* Set valid msg numbers */
-    handler->msg_id = MIN_MQTT_ID;
+    handler->msg_id = 1;
     handler->m_not_ack = 0;
     handler->m_not_ack = 0;
     handler->m_clean_session = true;
     handler->slave_num = MIN_MSG_NUM;
     handler->uart_conf = uart_conf;
+    for (unsigned char i = 0; i < MAX_SAVED; i++)
+    {
+        handler->send_msgs[i].ack = true;
+    }
 
     /* GPIO RTS, CTS */
     set_mode(dce);
@@ -920,12 +955,12 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
 
     /* Will message */
     char *will_str = NULL;
-    add_cmd_null(&will_str, 0, DEV_DISCONNECT);
+    add_cmd_none(&will_str, 0, DEV_DISCONNECT);
     MQTTString will_msg = MQTTString_initializer;
     will_msg.cstring = will_str;
 
     /* Will */
-    MQTTV5Packet_willOptions will = MQTTV5Packet_willOptions_initializer
+    MQTTV5Packet_willOptions will = MQTTV5Packet_willOptions_initializer;
     will.topicName = will_topic;
     will.message = will_msg;
     will.qos = QOS;
@@ -936,8 +971,8 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     connect_data.password.cstring = password;
     connect_data.MQTTVersion = 5;
     connect_data.keepAliveInterval = 90;
-    connect_data.willFlag = 1;
-    connect_data.will = will;
+    // connect_data.willFlag = 1;
+    // connect_data.will = will;
 
     /* Connection properties, none needed */
     MQTTProperties conn_properties = MQTTProperties_initializer;

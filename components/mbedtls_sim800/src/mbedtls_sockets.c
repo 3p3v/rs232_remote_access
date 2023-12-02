@@ -1,5 +1,7 @@
 #include <mbedtls_sockets.h>
 #include <SIM_TCPIP.h>
+#include <esp_err.h>
+#include <esp_log.h>
 
 #define TAG "SIM_encrypt"
 
@@ -81,6 +83,7 @@ int open_nb_socket(mbedtls_context *ctx,
         goto exit;
     }
 
+    ESP_LOGI(TAG, "mbedtls_ssl_conf_authmode...");
     mbedtls_ssl_conf_authmode(ssl_conf, MBEDTLS_SSL_VERIFY_REQUIRED);
 
     int ca_num = 0;
@@ -100,6 +103,7 @@ int open_nb_socket(mbedtls_context *ctx,
         ca_num++;
     }
 
+    ESP_LOGI(TAG, "mbedtls_ssl_conf_ca_chain...");
     mbedtls_ssl_conf_ca_chain(ssl_conf, ca_crt, NULL);
     mbedtls_ssl_conf_rng(ssl_conf, mbedtls_ctr_drbg_random, ctr_drbg);
 
@@ -117,7 +121,9 @@ int open_nb_socket(mbedtls_context *ctx,
         goto exit;
     }
 
+    ESP_LOGI(TAG, "mbedtls_net_init...");
     mbedtls_net_init(net);
+    ESP_LOGI(TAG, "mbedtls_net_connect...");
     if ((ret = mbedtls_net_connect(net, hostname,
                                    port, MBEDTLS_NET_PROTO_TCP)) != 0)
     {

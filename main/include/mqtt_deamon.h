@@ -83,6 +83,7 @@ typedef struct mqtt_deamon_handler
     // void (*publish_callback)(void **, struct mqtt_response_publish *);
     void (*error_handler)(void *, const char *, int , int );
     int (*publish_callb)(unsigned char *, size_t);
+    size_t (*buf_check)(mbedtls_context *ctx);
     // void (*hard_error_handler)(TaskHandle_t *);
 } mqtt_deamon_handler;
 

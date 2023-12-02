@@ -43,8 +43,7 @@ void uart_deamon(void *v_handler)
             ESP_LOGI(TAG, "uart[%d] event size: %i", UART_DEAMON_DEF_UART_NUM, event.size);
 
             len += uart_read_bytes(UART_DEAMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
-            buf[len] = '\0';
-            // client
+
             if (len > 0)
             {
                 handler->resp_handler(buf, len);
@@ -181,6 +180,7 @@ int uart_deamon_start(uart_deamon_handler *handler)
         err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
         return (int)err;
     }
+    ESP_ERROR_CHECK(uart_set_pin(UART_DEAMON_DEF_UART_NUM, UART_DEAMON_DEF_UART_TX, UART_DEAMON_DEF_UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     /* Finally run the deamon */
     uart_deamon_create_task(handler);

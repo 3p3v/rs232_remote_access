@@ -87,8 +87,8 @@ int sim_deamon_start(sim_deamon_handler *handler)
         if (cmd.resp.params_num > 1 && cmd.resp.params[1].len != 0)
         {
             char *net_reg = cmd.resp.params[1].ptr;
-            if (*net_reg == SIM_CREG_stat_regHomeNet ||
-                *net_reg == SIM_CREG_stat_regRoam)
+            if (*net_reg == '1' ||
+                *net_reg == '5')
                 break;
         }
     } while (err != SIM_ok && cycles-- > 0);

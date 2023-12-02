@@ -338,25 +338,6 @@ void LL_SIM_listen(LL_SIM_intf *sim)
     xTaskCreate(SIM_receiveHandler, "SIM_listener", 5000, (void *)sim, 4, NULL);
 }
 
-// void SIM_receiveHandler(void *sim_void)
-// {
-//     LL_SIM_intf *sim = sim_void;
-
-//     for (;;)
-//     {
-//         LL_SIM_receiveRaw(sim);
-//         SIM_exec(sim);
-//     }
-// }
-
-// LL_SIM_error reinit()
-// {
-//     if(deinit() == LL_SIMOk)
-//         return init();
-//     else
-//         return LL_SIMErr;
-// }
-
 /* Send data to LL_SIM */
 LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned int data_len)
 {
@@ -378,21 +359,9 @@ LL_SIM_error LL_SIM_sendData(const LL_SIM_intf *sim, void *data, const unsigned 
     return err;
 }
 
-// void SIM_receiveAny(LL_SIM_intf *sim)
-// {
-
-//     xSemaphoreTake(sim->add_cmd_mutex, portMAX_DELAY);
-// }
-
-/*  Receive data from LL_SIM using ESP interrupts.
- *   Detects every new line or timeout.
- */
-// #define PATTERN_CHR_NUM 1
-
 SIM_data_len LL_SIM_receiveRaw(LL_SIM_intf *sim)
 {
     uart_event_t event;
-    // size_t buffered_size;
     int startTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
     while (xQueueReceive(sim->uartQueue, (void *)&event, portMAX_DELAY))

@@ -589,6 +589,7 @@ SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
 
 SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
 {
+    printf("SIM: START READ\n");
     if (n > SIM_con_5 || n < SIM_con_0)
         return SIM_err;
 
@@ -614,6 +615,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     err = SIM_noErrCode;
     if (resp->data_len == 0)
     {
+        printf("SIM: WAIT FOR DATA\n");
         xQueueReceive(cmd_grip->queue, &err, SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
     }
 
@@ -622,8 +624,9 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
         return err;
 
     // Read the data and delete it from the buffer
+    printf("SIM: TAKING READ SEMAPHORE\n");
     xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
-    printf("SIM: TAKING READ SEMAPHORE");
+    printf("SIM: TOOK READ SEMAPHORE\n");
     unsigned int read_len;
     if (len < resp->data_len)
     {
@@ -644,15 +647,16 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     else
     {
         xSemaphoreGive(resp->data_mutex);
-        printf("SIM: GIVING READ SEMAPHORE");
+        printf("SIM: GIVING READ SEMAPHORE\n");
         // wait for enough data while raw data is still being processed by main task
         while ((len > resp->data_len) && sim->rec_len)
         {
             printf("WAITING FOR DATA\r\n");
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
+        printf("SIM: TAKING READ SEMAPHORE\n");
         xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
-        printf("SIM: TAKING READ SEMAPHORE");
+        printf("SIM: TOOK READ SEMAPHORE\n");
         if (!resp->data_len)
         {
             /* No data received */
@@ -688,7 +692,7 @@ SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int 
     }
 
 EXIT:
-    printf("SIM: GIVING READ SEMAPHORE");
+    printf("SIM: GIVING READ SEMAPHORE\n");
     xSemaphoreGive(resp->data_mutex);
     return read_len;
 }

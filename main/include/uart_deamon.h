@@ -9,8 +9,8 @@
 
 /* UART config, no changable */
 #define UART_DEAMON_DEF_UART_NUM UART_NUM_2
-#define UART_DEAMON_DEF_UART_TX GPIO_NUM_4
-#define UART_DEAMON_DEF_UART_RX GPIO_NUM_2
+#define UART_DEAMON_DEF_UART_TX GPIO_NUM_2
+#define UART_DEAMON_DEF_UART_RX GPIO_NUM_4
 /* UART config, rewritten during first change of parameters */
 #define UART_DEAMON_DEF_UART_BAUD_RATE 9600
 #define UART_DEAMON_DEF_UART_DATA_BITS UART_DATA_8_BITS
@@ -22,7 +22,7 @@
 /* UART buffers, not changable */
 #define UART_DEAMON_DEF_TX_BUF_SIZE 1000
 #define UART_DEAMON_DEF_RX_BUF_SIZE 1000
-#define UART_DEAMON_DEF_REC_BUF_SIZE 1000
+#define UART_DEAMON_DEF_REC_BUF_SIZE 1300
 /* UART interrupt config, no changable */
 #define UART_DEAMON_DEF_QUEUE_SIZE 60
 

@@ -155,6 +155,7 @@ unsigned short *mqtt_id_up(unsigned short *);
 char *get_channel_name(char *dev_name, char channel_end);
 /*  */
 char *cmdcmp(char *cmd, char *data, size_t len);
+char *cmdcmp_arg(char *cmd, char *data, size_t len);
 char *cmdchr(char *data, size_t len, char c);
 size_t add_cmd(char **data, size_t current_len, char *new_cmd, char *new_arg);
 size_t add_cmd_none(char **data, size_t current_len, char *new_cmd);
