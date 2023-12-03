@@ -102,6 +102,14 @@ void main_task(void*)
     auth_load();
     error_create_queue();
 
+    /* Cout device name */
+    printf("\r\n");
+    printf("/****************************************************************************/\r\n");
+    printf("/*****************/");
+    printf("DEVICE MAC ADDRESS IS: %s", *auth_get_username());
+    printf("/*****************/\r\n");
+    printf("/****************************************************************************/\r\n");
+
     /* Start error handing task */
     if (xTaskCreate(err_handling_task, "err_handling_task", 2048, NULL, 3, NULL) != pdPASS)
     {
@@ -235,7 +243,7 @@ static void rec_callback(unsigned char * buf, unsigned int len)
     int err;
     if ((err = mqtt_write_d(&mqtt_handler, buf, len)) <= 0)
     {
-        ext_error_send(&mqtt_handler, "MQTT", ext_type_fatal, err);
+        ext_error_send(&sim_handler, "MQTT", ext_type_fatal, err);
     }
 }
 

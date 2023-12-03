@@ -185,28 +185,23 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
         }
         else if ((arg_ptr = cmdcmp(INVALID_PACKET_NUM, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            /* Argument in cstring to int */
-            char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
-            memcpy(arg_str, arg_ptr, endl - arg_ptr);
-            arg_str[endl - arg_ptr] = '\0';
-            int slave_num = atoi(arg_str);
-            free(arg_str);
-
-            if (mqtt_retransmit(handler, (char)slave_num) <= 0)
+            char temp[2] = {'\0'};
+            temp[0] = *arg_ptr;
+            
+            if (mqtt_retransmit(handler, *arg_ptr) <= 0)
             {
-                len = add_cmd_uint(&channel_data, len, NO_PACKET_NUMBER, slave_num);
+                len = add_cmd(&channel_data, len, NO_PACKET_NUMBER, *temp);
             }
         }
         else if ((arg_ptr = cmdcmp(PACKET_ACK, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            /* Argument in cstring to int */
-            char *arg_str = (char *) malloc(sizeof(char) * (endl - arg_ptr + 1));
-            memcpy(arg_str, arg_ptr, endl - arg_ptr);
-            arg_str[endl - arg_ptr] = '\0';
-            int slave_num = atoi(arg_str);
-            free(arg_str);
-
-            mqtt_rec_ack(handler, slave_num);
+            mqtt_rec_ack(handler, *arg_ptr);
+        }
+        /*  */
+        else if ((arg_ptr = cmdcmp(NO_PACKET_NUMBER, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
+        {
+            handler->m_clean_session = true;
+            len = add_cmd_none(&channel_data, len, SLAVE_HI);
         }
         else if ((arg_ptr = cmdcmp(MODE_DCE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
@@ -233,8 +228,12 @@ int handle_set_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t
 
         if (rem_len == 0)
         {
-            /* Send */
-            mqtt_write_i(handler, (unsigned char *)channel_data, len);
+            if (len > 0)
+            {
+                /* Send */
+                mqtt_write_i(handler, (unsigned char *)channel_data, len);
+            }
+
             free(channel_data);
 
             return 0;

@@ -116,9 +116,9 @@ typedef enum dev_mode
 #define INVALID_PACKET_NUM "I_N"
 /* NO PACKET NUMBER */
 #define NO_PACKET_NUMBER "N_N"
-/*  */
+/* PACKET OVERFLOW */
 #define PACKET_OVERFLOW "P_O"
-/*  */
+/* DISCONNECT DETECTED */
 #define DEV_DISCONNECT "D_D"
 
 /* PACKET ACK */
@@ -151,6 +151,7 @@ typedef enum dev_mode
 #define ENDL_C '\n'
 
 volatile char *mqtt_num_up(volatile char * num);
+char *mqtt_num_up_(char * num);
 unsigned short *mqtt_id_up(unsigned short *);
 char *get_channel_name(char *dev_name, char channel_end);
 /*  */

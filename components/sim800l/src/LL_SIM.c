@@ -21,7 +21,7 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->unread_num = 0;
     sim->tx = LL_SIM_DEF_UART_TX;
     sim->rx = LL_SIM_DEF_UART_RX;
-    sim->baudRate = 115200;
+    sim->baudRate = LL_SIM_DEF_UART_BAUD_RATE;
     sim->rst = LL_SIM_DEF_RST_PIN;
     sim->uart = LL_SIM_DEF_UART_NUM;
     sim->uartQueue = NULL; 

@@ -104,7 +104,12 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
         if (rem_len == 0)
         {
             /* Send */
-            mqtt_write_i(handler, (unsigned char *)channel_data, len);
+            if (len > 0)
+            {
+                /* Send */
+                mqtt_write_i(handler, (unsigned char *)channel_data, len);
+            }
+
             free(channel_data);
 
             return 0;

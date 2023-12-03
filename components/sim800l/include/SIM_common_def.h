@@ -119,8 +119,8 @@ typedef struct SIM_resp
     void *send_data;
     unsigned int send_data_len;
     SemaphoreHandle_t data_mutex;
-    void *data;
-    unsigned int data_len;
+    volatile void *data;
+    volatile unsigned int data_len;
     char *msg_end;
     SIM_error err;
 } SIM_resp;

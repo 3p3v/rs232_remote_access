@@ -14,6 +14,18 @@ volatile char *mqtt_num_up(volatile char * num)
     return num;
 }
 
+char *mqtt_num_up_(char * num)
+{
+    (*num)++;
+
+    if (*num > MAX_MSG_NUM)
+    {
+        *num = MIN_MSG_NUM;
+    }
+
+    return num;
+}
+
 unsigned short *mqtt_id_up(unsigned short *num)
 {
     (*num)++;
