@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <array>
 #include <atomic>
 #include <Base_serial_ctrl.hpp>
 #include <Serial_ctrl_helper.hpp>
@@ -18,8 +19,39 @@ namespace Ip_serial
 {
     class Console;
 
+    class Mqtt_msg
+    {
+        static constexpr size_t max_size{1300}; 
+
+    public:
+        unsigned char id;
+        std::array<std::byte, max_size> data;
+        size_t data_len;
+        bool freed{true};
+    };
+
+    class Mqtt_msg_cont : protected Ip_packet_defs
+    {
+        std::array<Mqtt_msg, max_saved> msgs;
+
+    public:
+        /// @brief Get msg with given id, if not found throws exception
+        /// @param id 
+        /// @return 
+        Mqtt_msg& operator[](unsigned char id);
+
+        /// @brief Find first free message
+        /// @return 
+        Mqtt_msg& first_free();
+
+        /// @brief Free all messages that have id < argument
+        /// @param id 
+        /// @return 
+        Mqtt_msg& free_untill(unsigned char id);
+    };
+
     /// @brief Object used for mqtt-side communication
-    class Ip_serial_ctrl final : public Base_serial_ctrl, protected Mqtt_defs, protected Ip_defs, protected Ip_hi, public std::enable_shared_from_this<Ip_serial_ctrl>
+    class Ip_serial_ctrl final : public Base_serial_ctrl, protected Mqtt_defs, protected Ip_defs, protected Ip_hi, protected Ip_packet_flow, public std::enable_shared_from_this<Ip_serial_ctrl>
     {
     public:
         using Ip_serial_ctrl_ptr = std::shared_ptr<Ip_serial_ctrl>;

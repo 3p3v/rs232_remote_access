@@ -54,7 +54,7 @@ namespace Ip_serial
                                                              { 
                                                                 helper.set_baud_rate();
                                                              }));
-        add_cmd(Ip_defs::ok_trans(set_baud_rate_s),
+        add_cmd(std::string{get_baud_rate_s},
                 Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                                 const std::string &arg)
                                                              { 
@@ -65,7 +65,7 @@ namespace Ip_serial
                                                                 const std::string &arg)
                                                              { 
                                                                 helper.set_parity(); }));
-        add_cmd(Ip_defs::ok_trans(set_parity_s),
+        add_cmd(std::string{get_parity_s},
                 Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                                 const std::string &arg)
                                                              { 
@@ -76,29 +76,18 @@ namespace Ip_serial
                                                                 const std::string &arg)
                                                              { 
                                                                 helper.set_char_size();}));
-        add_cmd(Ip_defs::ok_trans(set_char_size_s),
+        add_cmd(std::string{get_char_size_s},
                 Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                                 const std::string &arg)
                                                              { 
                                                                 helper.set_char_size_compl(arg); }));
-
-        add_cmd(std::string{set_flow_ctrl_s},
-                Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
-                                                                const std::string &arg)
-                                                             { 
-                                                                helper.set_flow_ctrl(); }));
-        add_cmd(Ip_defs::ok_trans(set_flow_ctrl_s),
-                Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
-                                                                const std::string &arg)
-                                                             { 
-                                                                helper.set_flow_ctrl_compl(arg); }));
 
         add_cmd(std::string{set_stop_bits_s},
                 Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                                 const std::string &arg)
                                                              { 
                                                                 helper.set_stop_bits();}));
-        add_cmd(Ip_defs::ok_trans(set_stop_bits_s),
+        add_cmd(std::string{get_stop_bits_s},
                 Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                                 const std::string &arg)
                                                              { 
