@@ -56,7 +56,8 @@ int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) );
 int open_nb_socket(mbedtls_context *ctx,
                     char *hostname,
                     char *port,
-                    unsigned char **ca_chain);
+                    unsigned char *(*get_cert)(unsigned char),
+                    unsigned char chain_size);
 
 void close_nb_socket(mbedtls_context *ctx);
 

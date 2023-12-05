@@ -20,7 +20,8 @@ void close_nb_socket(mbedtls_context *ctx)
 int open_nb_socket(mbedtls_context *ctx,
                     char *hostname,
                     char *port,
-                    unsigned char **ca_chain)
+                    unsigned char *(*get_cert)(unsigned char),
+                    unsigned char chain_size)
 {
     char buf[512];
     int ret, flags;
@@ -86,21 +87,27 @@ int open_nb_socket(mbedtls_context *ctx,
     ESP_LOGI(TAG, "mbedtls_ssl_conf_authmode...");
     mbedtls_ssl_conf_authmode(ssl_conf, MBEDTLS_SSL_VERIFY_REQUIRED);
 
-    int ca_num = 0;
-    for (;;)
+    for (unsigned char i = chain_size; i > 0; i--)
     {
-        const unsigned char *ca_file = ca_chain[ca_num];
-        if (!ca_file)
-        {
-            break;
-        }
+        /* Lad cert */
+        unsigned char *ca_file = get_cert(i - 1);
 
-        ret = mbedtls_x509_crt_parse(ca_crt, ca_file, strlen((const char *)ca_file) + 1);
-        if (ret != 0) {
+        if (ca_file == NULL)
+        {
+            ESP_LOGE(TAG, "DID NOT FIND CERTYFICATE, RETURNING");
+            ret = -1;
             goto exit;
         }
 
-        ca_num++;
+        ret = mbedtls_x509_crt_parse(ca_crt, ca_file, strlen((const char *)ca_file) + 1);
+
+        /* Free cert */
+        free(ca_file);
+
+        if (ret != 0) {
+            ESP_LOGE(TAG, "PARSING FAILED, RETURNING");
+            goto exit;
+        }
     }
 
     ESP_LOGI(TAG, "mbedtls_ssl_conf_ca_chain...");

@@ -5,7 +5,8 @@ idf_component_register(#SRCS "main.c"
                                 mbedtls_sim800
                                 mbedtls
                                 MQTTClient-C
-                                # mqtt
+                                # ESP
                                 nvs_flash
                                 esp_event
-                                driver)
+                                driver
+                                spiffs)

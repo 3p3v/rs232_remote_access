@@ -9,7 +9,7 @@
 
 /* UART config, no changable */
 #define UART_DEAMON_DEF_UART_NUM UART_NUM_2
-#define UART_DEAMON_DEF_UART_TX GPIO_NUM_2
+#define UART_DEAMON_DEF_UART_TX GPIO_NUM_22
 #define UART_DEAMON_DEF_UART_RX GPIO_NUM_4
 /* UART config, rewritten during first change of parameters */
 #define UART_DEAMON_DEF_UART_BAUD_RATE 9600

@@ -124,9 +124,9 @@ typedef enum dev_mode
 /* PACKET ACK */
 #define PACKET_ACK "A"
 /* MAX NOT ACKNOWLEDGED */
-#define MAX_NOT_ACK 20
+#define MAX_NOT_ACK 16
 /* MAX SAVED */
-#define ACK_AFTER 10
+#define ACK_AFTER 8
 /* MAX SAVED */
 #define MAX_SAVED 30
 /* MAX MASTER PACKET LENGTH */

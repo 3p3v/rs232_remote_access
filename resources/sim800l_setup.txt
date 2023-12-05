@@ -1,0 +1,14 @@
+QEcffvT@neostrada.pl
+
+
+AT+CSTT=internet
+
+AT+CIICR
+
+AT+CIFSR
+
+AT+CIPSTART=TCP,16.171.43.227,2014
+
+AT+CIPSEND
+
+test

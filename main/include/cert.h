@@ -1,5 +1,10 @@
 #pragma once
 
+#define CERT_FILE_NAME "cert_"
+#define CERT_FILE_EXT ".crt"
+#define CERT_SL "/"
+#define CERT_FILE_NAME_MALLLOC_LEN strlen(AUTH_PATH) + strlen(CERT_SL) + strlen(CERT_FILE_NAME) + strlen(CERT_FILE_EXT) + 1
+
 #define SERVER_IM2_CERT                                                  \
     "-----BEGIN CERTIFICATE-----\n"                                      \
     "MIIEzTCCA7WgAwIBAgIRANBLb+XdW9Ih58dM9kaLMUYwDQYJKoZIhvcNAQELBQAw\n" \
@@ -82,10 +87,4 @@
     "03YnnZotBqbJ7DnSq9ufmgsnAjUpsUCV5/nonFWIGUbWtzT1fs45mtk48VH3Tyw=\n" \
     "-----END CERTIFICATE-----"
 
-char **cert_load_chain();
-
-char ***cert_get_chain();
-
-char **cert_set_save_chain(const char ** new_chain);
-
-char **cert_free_chain();
+unsigned char *cert_load_chain(unsigned char number);

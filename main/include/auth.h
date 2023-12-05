@@ -2,6 +2,24 @@
 
 #define MAC_LEN strlen("XX:XX:XX:XX:XX:XX") + 1
 
+/* Files realted */
+#define TAG "AUTH"
+
+/* Conf partition */
+#define AUTH_LABEL "conf"
+#define AUTH_PATH "/conf"
+#define AUTH_MAX_FILES 10
+#define AUTH_CONF_FILE "dev.conf"
+#define AUTH_CONF_PATH "/conf/dev.conf"
+#define AUTH_RW "r"
+
+/* Commands */
+#define AUTH_USERNAME "username"
+#define AUTH_PASSWORD "password"
+#define AUTH_SERVER "server"
+#define AUTH_PORT "port"
+#define AUTH_CHAIN_SIZE "chain_size"
+
 // /* NVS */
 #define NVS_NAMESPACE "settings"
 // /* Password */
@@ -22,20 +40,15 @@
 // #define CHAIN_S "chain"
 // #define CHAIN_LEN_S "chain_len"
 
-void auth_load();
+typedef struct auth_pack
+{
+    char *username;
+    char *password;
+    char *server;
+    char *port;
+    unsigned char chain_size;
+} auth_pack;
 
-char **auth_get_username();
+int auth_load(auth_pack *pack);
 
-char *auth_free_username();
-
-char **auth_get_password();
-
-char *auth_free_password();
-
-char **auth_get_server();
-
-char *auth_free_server();
-
-char **auth_get_port();
-
-char *auth_free_port();
+void auth_free(auth_pack *pack);

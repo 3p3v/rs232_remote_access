@@ -113,10 +113,10 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
                       uart_config_t *uart_conf,
                       char *server,
                       char *port,
-                      // const char *client_id,
                       char *username,
                       char *password,
-                      char **chain,
+                      unsigned char (*get_cert)(unsigned char),
+                      unsigned char chain_size,
                       void (*socket_resp_handler)(int *err));
 
 /* Kill deamon */

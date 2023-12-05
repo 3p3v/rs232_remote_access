@@ -1,60 +1,125 @@
 #include <cert.h>
+#include <auth.h>
+#include <esp_log.h>
+#include <esp_err.h>
+#include <esp_spiffs.h>
 #include <string.h>
 #include <memory.h>
 
-#define NVS_CHAIN_SIZE "NVS_CHAIN_SIZE" // How many chaines are stored in nvs
-#define NVS_CHAIN_SEGMENT_PREFIX "NVS_CHAIN_SEGMENT_" // prefix
-
-char **cert_load_chain()
+/* Malloc cert */
+unsigned char *cert_load_chain(unsigned char number)
 {
-    char ***chain = cert_get_chain();
-    // TODO get from nvs
-    const unsigned char *ca_chain[] = {(const unsigned char *)SERVER_IM2_CERT,
-                                       (const unsigned char *)SERVER_IM1_CERT,
-                                       (const unsigned char *)SERVER_ROOT_CERT};//,
-                                    //    NULL};
-    *chain = realloc(*chain, sizeof(ca_chain) / sizeof(unsigned char *));
+    FILE* f;
 
-    for (int i = 0; i < (sizeof(ca_chain) / sizeof(unsigned char *)); i++)
+    /* Start initialization */
+    ESP_LOGI(TAG, "INITIALIZING SPIFFS PARTITION");
+
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = AUTH_PATH,
+        .partition_label = AUTH_LABEL,
+        .max_files = AUTH_MAX_FILES,
+        .format_if_mount_failed = true};
+
+    /* Mount */
+    esp_err_t err = esp_vfs_spiffs_register(&conf);
+
+    if (err != ESP_OK)
     {
+        if (err == ESP_FAIL)
+        {
+            ESP_LOGE(TAG, "FAILED TO MOUNT OR FORMAT FILE SYSTEM");
+        }
+        else if (err == ESP_ERR_NOT_FOUND)
+        {
+            ESP_LOGE(TAG, "PARTITION DOES NOT EXIST");
+        }
+        else
+        {
+            ESP_LOGE(TAG, "FAILED TO INITIALIZE SPIFFS (%s)", esp_err_to_name(err));
+        }
+
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "MOUNTING OK");
+
+    /* Check if valid */
+    err = esp_spiffs_check(conf.partition_label);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "SPIFFS_check() failed (%s)", esp_err_to_name(err));
+
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "PARTITION CHECK SUCCESSFUL");
+
+    /* Partition info */
+    size_t total = 0, used = 0;
+    err = esp_spiffs_info(conf.partition_label, &total, &used);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s). Formatting...", esp_err_to_name(err));
+        esp_spiffs_format(conf.partition_label);
+
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+
+    char *file_name;
+    char num[10];
+    int len;
+    
+    /* Load cert */
+    if ((len = sprintf(num, "%u", number)) <= 0)
+    {
+        return NULL;
+    }
+
+    /* Set cert file name */
+    file_name = calloc(CERT_FILE_NAME_MALLLOC_LEN + len, sizeof(char));
+    strcat(file_name, AUTH_PATH);
+    strcat(file_name, CERT_SL);
+    strcat(file_name, CERT_FILE_NAME);
+    strcat(file_name, num);
+    strcat(file_name, CERT_FILE_EXT);
+    
+    /* Open cert file */
+    ESP_LOGI(TAG, "OPENING %s FILE", file_name);
+    f = fopen(file_name, AUTH_RW);
+
+    if (f == NULL) {
+        ESP_LOGE(TAG, "FAILED TO OPEN %s FILE", file_name);
         
-
-        *(*chain + i) = malloc(sizeof(unsigned char) * (strlen((*((char **)ca_chain + i))) + 1));
-        memcpy(*(*chain + i), *(((char **)ca_chain) + i), strlen(*(((char **)ca_chain) + i)) + 1);
+        return NULL;
     }
-
-    *(*chain + (sizeof(ca_chain) / sizeof(unsigned char *) - 1)) = NULL;
-
-    return *chain;
-}
-
-char ***cert_get_chain()
-{
-    static char **chain = NULL;
-    return &chain;
-}
-
-char **cert_set_save_chain(const char ** new_chain)
-{
-    char ***chain = cert_get_chain();
-    //TODO save to nvs
-    // chain = realloc(password, sizeof(char) * (strlen(new_password) + 1));
-    return *chain;
-}
-
-char **cert_free_chain()
-{
-    char ***chain = cert_get_chain();
-    unsigned int i = 0;
-    for(;;)
+    
+    /* Allocate cert */
+    fseek(f, 0L, SEEK_END);
+    size_t fsize = ftell(f);
+    rewind(f);
+    ESP_LOGE(TAG, "CERT SIZE: %u", fsize);
+    char *content = malloc(fsize * sizeof(char));
+    size_t loaded;
+    if ((loaded = fread(content, sizeof(char), fsize, f)) != fsize)
     {
-        if (*(*chain + i) == NULL)
-            break;
-
-        free(*(*chain + i));
-
-        i++;
+        /* Length doesn't match */
+        ESP_LOGI(TAG, "LOADED %u BYTES INSTEAD OF %u, ERROR", loaded, fsize);
+        free(content);
+        fclose(f);
+        esp_vfs_spiffs_unregister(conf.partition_label);
+        return NULL;
     }
-    free(*chain);
-    return *chain;
+
+    ESP_LOGI(TAG, "SUCCESSFULLY LOADED CERT %u", number);
+
+    /* Close file */
+    fclose(f);
+
+    /* Close partition */
+    esp_vfs_spiffs_unregister(conf.partition_label);
+    
+    return (unsigned char *)content;
 }

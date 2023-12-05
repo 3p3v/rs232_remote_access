@@ -925,7 +925,8 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
                       char *port,
                       char *username,
                       char *password,
-                      char **chain,
+                      unsigned char (*get_cert)(unsigned char),
+                      unsigned char chain_size,
                       void (*socket_resp_handler)(int *err))
 {
     int err;
@@ -963,7 +964,7 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     handler->trp.state = 0;
 
     /* Open encrypted socket */
-    if ((err = open_nb_socket(&handler->ctx, server, port, (unsigned char **)chain)) != 0)
+    if ((err = open_nb_socket(&handler->ctx, server, port, get_cert, chain_size)) != 0)
     {
         return err;
     }
@@ -983,9 +984,9 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
 
     /* Will message */
     char *will_str = NULL;
-    size_t len = add_cmd_none(&will_str, 0, DEV_DISCONNECT);
-    will_str = realloc(will_str, sizeof(char) * len + 1);
-    will_str[len] = '\0';
+    size_t len_ = add_cmd_none(&will_str, 0, DEV_DISCONNECT);
+    will_str = realloc(will_str, sizeof(char) * len_ + 1);
+    will_str[len_] = '\0';
     MQTTString will_msg = MQTTString_initializer;
     will_msg.cstring = will_str;
 
