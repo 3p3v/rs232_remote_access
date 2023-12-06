@@ -3,7 +3,7 @@
 
 namespace Phy_serial
 {
-    Serial_port::Serial::Io_context_ptr Serial_context::shared_io_context_{new boost::asio::io_context{}};
+    std::shared_ptr<boost::asio::io_context> Serial_context::shared_io_context_{new boost::asio::io_context{}};
     std::atomic_bool Serial_context::is_running{false};
 
     Serial_context::~Serial_context() {}

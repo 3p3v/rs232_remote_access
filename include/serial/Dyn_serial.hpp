@@ -4,7 +4,7 @@
 #include <atomic>
 #include <mutex>
 #include <Serial_context.hpp>
-
+#include <array>
 
 namespace Phy_serial
 {
@@ -17,7 +17,7 @@ namespace Phy_serial
 
     protected:
         /* Callbacks */
-        void read_callback(const Data &data, std::size_t read_len) override;
+        void read_callback(Data_interface::Data::iterator data, std::size_t read_len) override;
         void error_callback(const unsigned int code, const std::string &err) override;
 
     public:
@@ -39,7 +39,7 @@ namespace Phy_serial
     }
 
     template <typename Rc, typename Ec>
-    void Dyn_serial<Rc, Ec>::read_callback(const Data &data, std::size_t write_len) 
+    void Dyn_serial<Rc, Ec>::read_callback(Data_interface::Data::iterator data, std::size_t write_len) 
     {
         rc(data, write_len);
     }

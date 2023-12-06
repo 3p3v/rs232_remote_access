@@ -143,6 +143,12 @@ namespace Mqtt_port
             /// @param ec_callb
             template <typename Iter, typename Ok_callb, typename Ec_callb>
             void write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+        
+            // template <typename Iter, typename S1, typename S2>
+            // void Controller::write(const std::string &channel_name, const unsigned char qos, S1 &&key, S2 &&val, const Iter begin, const Iter end);
+
+            template <typename Iter, typename S1, typename S2, typename Ok_callb, typename Ec_callb>
+            void write(const std::string &channel_name, const unsigned char qos, S1 &&key, S2 &&val, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
         };
 
         template <typename Ok_callb, typename Ec_callb, typename Conn_ec_callb>
@@ -221,6 +227,25 @@ namespace Mqtt_port
             }
         }
 
+        // template <typename Iter, typename S1, typename S2>
+        // void Controller::write(const std::string &channel_name, const unsigned char qos, S1 &&key, S2 &&val, const Iter begin, const Iter end)
+        // {
+        //     if (!is_conn)
+        //     {
+        //         // auto data = std::make_shared<std::string>(begin, end);
+
+        //         // pub_delay.emplace(channel_name, qos, data);//, std::unique_ptr<mqtt::iaction_listener>{new IO_callb_data{data, data->size(), [](size_t){}, [](int){}}});
+        //     }
+        //     else
+        //     {
+        //         mqtt::message_ptr msg_ptr = std::make_shared<mqtt::message>(channel_name, &(*begin), end - begin, qos, false);
+        //         mqtt::properties prop{mqtt::property{MQTTPROPERTY_CODE_USER_PROPERTY, std::forward(key), std::forward(val)}};
+        //         msg_ptr->set_properties(std::move(prop));
+        //         /* Send message */
+        //         client->publish(std::move(msg_ptr));
+        //     }
+        // }
+
         template <typename Iter, typename Ok_callb, typename Ec_callb>
         void Controller::write(const std::string &channel_name, const unsigned char qos, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
@@ -234,6 +259,26 @@ namespace Mqtt_port
             {
                 /* Send message */
                 client->publish(channel_name, &(*begin), end - begin, qos, false, nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+            }
+        }
+
+        template <typename Iter, typename S1, typename S2, typename Ok_callb, typename Ec_callb>
+        void Controller::write(const std::string &channel_name, const unsigned char qos, S1 &&key, S2 &&val, const Iter begin, const Iter end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+        {
+            if (!is_conn)
+            {
+                // auto data = std::make_shared<std::string>(begin, end);
+
+                // pub_delay.emplace(channel_name, qos, data, std::make_unique<IO_callb_data>(data, data.size(), std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+            }
+            else
+            {
+                mqtt::property p(mqtt::property::code::USER_PROPERTY, std::forward<S1>(key), std::forward<S2>(val));
+                mqtt::properties prop{std::move(p)};
+                mqtt::message_ptr msg_ptr = std::make_shared<mqtt::message>(channel_name, &(*begin), end - begin, qos, false, prop);
+                msg_ptr->set_properties(std::move(prop));
+                /* Send message */
+                client->publish(std::move(msg_ptr), nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
             }
         }
     }

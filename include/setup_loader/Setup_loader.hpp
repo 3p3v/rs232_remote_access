@@ -152,13 +152,13 @@ Setup_loader::Setup_loader(Str &&file_name)
                                        current_device->second.info.char_size = char_size_trans(str);
                                    }));
 
-    console.add_cmd("flow_ctrl", Handle::Policies<>::Dyn_handle(
-                                   [this](std::string &&str)
-                                   {
-                                       auto current_device = get_current();
-                                       current_device->second.settings_known = true;
-                                       current_device->second.info.flow_ctrl = flow_ctrl_trans(str);
-                                   }));
+    // console.add_cmd("flow_ctrl", Handle::Policies<>::Dyn_handle(
+    //                                [this](std::string &&str)
+    //                                {
+    //                                    auto current_device = get_current();
+    //                                    current_device->second.settings_known = true;
+    //                                    current_device->second.info.flow_ctrl = flow_ctrl_trans(str);
+    //                                }));
 
     console.add_cmd("stop_bits", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)

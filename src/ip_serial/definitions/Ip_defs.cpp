@@ -76,45 +76,4 @@ namespace Ip_serial
     }
 
     Ip_defs::~Ip_defs() = default;
-    Ip_hi::~Ip_hi() = default;
-
-    char Ip_packet_flow::num_up(std::atomic<char> &next_n)
-    {
-        char temp = next_n;
-        
-        if (++next_n > max_msg_num)
-        {
-            next_n = min_msg_num;
-        }
-
-        return temp;
-    }
-
-    char Ip_packet_flow::master_num_up()
-    {
-        return num_up(m_next_num);
-    }
-
-    char Ip_packet_flow::slave_num_up(char num)
-    {
-        if (s_reload)
-        {
-            s_reload = false;
-            s_next_num = num + 1;
-            return s_next_num;
-        }
-        else
-        {
-            return num_up(s_next_num);
-        }
-    }
-
-    void Ip_packet_flow::slave_reload()
-    {
-        s_reload = true;
-    }
-
-    Ip_packet_flow::~Ip_packet_flow() = default;
-    
-    Ip_packet_defs::~Ip_packet_defs() = default;
 }

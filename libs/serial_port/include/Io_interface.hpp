@@ -11,10 +11,8 @@ namespace Serial_port
     class Io_interface : public Connection_interface, public Data_interface
     {
     protected:
-        Data buffer;
-        
         /* Callbacks */
-        virtual void read_callback(const Data &data, std::size_t write_len) = 0;
+        virtual void read_callback(Data::iterator datadata, std::size_t write_len) = 0;
         virtual void error_callback(const unsigned int code, const std::string &err) = 0;
     };
 }

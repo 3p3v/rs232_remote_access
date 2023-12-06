@@ -94,20 +94,67 @@ namespace Ip_serial
     controller.subscribe(
         device->get_data_ch(),
         qos,
-        [serial_ctrl = shared_from_this()](mqtt::const_message_ptr &&data)
+        [serial_ctrl = shared_from_this(), this](mqtt::const_message_ptr &&data)
         {
           auto beg = data->cbegin();
           auto end = data->cend();
 
           /* Reset keep alive timer if started */
           serial_ctrl->keep_alive();
-          /* Increment number of data that was received */
-          /* Write data to phisical port */
-          // typename std::remove_reference_t<decltype(data->get_payload())>
-          serial_ctrl->write<std::string>(beg, end, [data = std::move(data)](size_t)
-                                                      {
-                                                        // Copy shared_ptr of data so it's not deallocated
-                                                      }); },
+
+          /* Get packet number */
+          std::for_each_n(data->get_properties().c_struct().array,
+                          data->get_properties().c_struct().count,
+                          [&, this](auto &&c)
+                          {
+                            /* Find user property */
+                            if (c.identifier == MQTTPROPERTY_CODE_USER_PROPERTY)
+                            {
+                              /* Find packet number */
+                              if (c.value.data.len == packet_num_s.size() && *c.value.data.data == packet_num_s[0])
+                              {
+                                if (c.value.value.len == sizeof(min_msg_num))
+                                {
+                                  auto num = c.value.value.data[0];
+
+                                  /* Found packet number */
+                                  try
+                                  {
+                                    num_up(num);
+
+                                    /* Send ack id exceeded ack_after */
+                                    if (get_not_acked() > ack_after)
+                                    {
+                                      write_info(packet_ack_s, num);
+                                    }
+
+                                    /* Send it to serial */
+                                    // typename std::remove_reference_t<decltype(data->get_payload())>
+                                    serial_ctrl->write<std::string>(beg, end, [data = std::move(data)](size_t)
+                                                                    {
+                                                                      // Copy shared_ptr of data so it's not deallocated
+                                                                    });
+                                  }
+                                  catch(const std::logic_error &)
+                                  {
+                                    /* Not correct packet number, ask for one, skip receivd data */
+                                    write_info_no_timer(invalid_number_s.data(), num);
+                                  }
+                                }
+                                else
+                                {
+                                  /* Protocol error, show error to user */
+                                  Monitor::get().error(Exception::Cmds_except{"Not correct packet number length!"});
+                                }
+                              }
+                              else
+                              {
+                                /* Packet number was not found, show error to user */
+                                Monitor::get().error(Exception::Cmds_except{"No packet nuber, this should never happen!"});
+                              }
+                            }
+                          });
+        },
         [](int) {
 
         },
@@ -202,7 +249,6 @@ namespace Ip_serial
       set_baud_rate();
       set_parity();
       set_char_size();
-      set_flow_ctrl();
       set_stop_bits();
     };
 
@@ -242,11 +288,11 @@ namespace Ip_serial
     write_info(set_baud_rate_s.data(), char_size_trans(char_size));
   }
 
-  void Ip_serial_ctrl::set_flow_ctrl(const Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl)
-  {
-    Monitor::get().debug(device, "Sending set flow ctrl request...");
-    write_info(set_baud_rate_s.data(), flow_ctrl_trans(flow_ctrl));
-  }
+  // void Ip_serial_ctrl::set_flow_ctrl(const Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl)
+  // {
+  //   Monitor::get().debug(device, "Sending set flow ctrl request...");
+  //   write_info(set_baud_rate_s.data(), flow_ctrl_trans(flow_ctrl));
+  // }
 
   void Ip_serial_ctrl::set_stop_bits(const Serial_port::Ctrl_defs::Stop_bits stop_bits)
   {
@@ -272,16 +318,51 @@ namespace Ip_serial
     info.timers.start_timer(std::string{set_char_size_s});
   }
 
-  void Ip_serial_ctrl::set_flow_ctrl()
-  {
-    Monitor::get().debug(device, "Received set flow ctrl request...");
-    info.timers.start_timer(std::string{set_flow_ctrl_s});
-  }
+  // void Ip_serial_ctrl::set_flow_ctrl()
+  // {
+  //   Monitor::get().debug(device, "Received set flow ctrl request...");
+  //   info.timers.start_timer(std::string{set_flow_ctrl_s});
+  // }
 
   void Ip_serial_ctrl::set_stop_bits()
   {
     Monitor::get().debug(device, "Received set stop bits request...");
     info.timers.start_timer(std::string{set_stop_bits_s});
+  }
+
+  void Ip_serial_ctrl::ack_packet(char id)
+  {
+    master_counter->ack(id);
+    msgs->free_untill(id);
+  }
+
+  void Ip_serial_ctrl::resend(char id)
+  {
+    try
+    {
+      Mqtt_msg & msg = msgs->operator[](id);
+
+      controller.write(device->get_data_ch(), 
+                       qos, 
+                       std::string{packet_num_s},
+                       std::to_string(msg.id),
+                       msg.data.begin(), 
+                       msg.data.begin() + msg.data_len,
+                       [serial = shared_from_this(), this, id = msg.id](size_t){
+                        /* Make entity accessable again */
+                        msgs->unmark(id);
+                       },
+                       [](int){
+
+                       }
+                       );
+    }
+    catch(const std::logic_error& e)
+    {
+      /* Start communication from the beggining */
+      say_hi_();
+      Monitor::get().error(Exception::Cmds_except{"Could not resend packet, becaurse id does not exist!"});
+    }
   }
 
   void Ip_serial_ctrl::set_baud_rate_compl(const std::string &arg)
@@ -311,14 +392,14 @@ namespace Ip_serial
     info.serial->set_char_size(arg_);
   }
 
-  void Ip_serial_ctrl::set_flow_ctrl_compl(const std::string &arg)
-  {
-    Monitor::get().debug(device, "Received set flow ctrl confirmation, value: " + arg + ".");
-    info.timers.stop_timer(std::string{set_flow_ctrl_s});
-    auto arg_ = flow_ctrl_trans(arg);
-    info.info.flow_ctrl = arg_;
-    info.serial->set_flow_ctrl(arg_);
-  }
+  // void Ip_serial_ctrl::set_flow_ctrl_compl(const std::string &arg)
+  // {
+  //   Monitor::get().debug(device, "Received set flow ctrl confirmation, value: " + arg + ".");
+  //   info.timers.stop_timer(std::string{set_flow_ctrl_s});
+  //   auto arg_ = flow_ctrl_trans(arg);
+  //   info.info.flow_ctrl = arg_;
+  //   info.serial->set_flow_ctrl(arg_);
+  // }
 
   void Ip_serial_ctrl::set_stop_bits_compl(const std::string &arg)
   {

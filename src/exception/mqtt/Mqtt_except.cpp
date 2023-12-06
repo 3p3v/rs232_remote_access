@@ -1,5 +1,3 @@
-#pragma once
-
 #include <Mqtt_except.hpp>
 
 namespace Exception

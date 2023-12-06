@@ -6,17 +6,20 @@
 
 namespace Serial_port
 {
+    
     Serial::~Serial()
     {
         if (serial.is_open())
             serial.close();
     }
 
+    
     std::string Serial::get_port()
     {
         return port;
     }
 
+    
     void Serial::open()
     {
         if (!serial.is_open())
@@ -34,6 +37,7 @@ namespace Serial_port
         }
     }
 
+    
     void Serial::close()
     {
         if (serial.is_open())
@@ -51,37 +55,7 @@ namespace Serial_port
         }
     }
 
-    void Serial::listen()
-    {
-        serial.async_read_some(boost::asio::buffer(buffer, 2000), [this](const boost::system::error_code &err, std::size_t read_len)
-                                {
-                                    if (err)
-                                    {
-                                        error_callback(err.value(), err.what());
-                                    }
-                                    else
-                                    {
-                                        read_callback(buffer, read_len);
-                                        // listen();
-                                    }
-                                });
-        
-        // boost::asio::async_read(serial,
-        //                         boost::asio::dynamic_buffer(buffer),
-        //                         [this](const boost::system::error_code &err, std::size_t read_len)
-        //                         {
-        //                             if (err)
-        //                             {
-        //                                 error_callback(err.value(), err.what());
-        //                             }
-        //                             else
-        //                             {
-        //                                 read_callback(buffer, read_len);
-        //                                 listen();
-        //                             }
-        //                         });
-    }
-
+    
     void Serial::set_baud_rate(unsigned int baud_rate)
     {
         this->baud_rate = baud_rate;
@@ -95,6 +69,7 @@ namespace Serial_port
             throw std::runtime_error("Could not set baud rate on serial port.");
     }
 
+    
     void Serial::set_parity(const Parity parity)
     {
         this->parity = parity;
@@ -125,6 +100,7 @@ namespace Serial_port
             throw std::runtime_error("Could not set parity on serial port.");
     }
 
+    
     void Serial::set_char_size(unsigned int char_size)
     {
         this->char_size = char_size;
@@ -138,6 +114,7 @@ namespace Serial_port
             throw std::runtime_error("Could not set character size on serial port.");
     }
 
+    
     void Serial::set_flow_ctrl(const Flow_ctrl flow_ctrf)
     {
         this->flow_ctrl = flow_ctrf;
@@ -168,6 +145,7 @@ namespace Serial_port
             throw std::runtime_error("Could not set flow control on serial port.");
     }
 
+    
     void Serial::set_stop_bits(const Stop_bits stop_bits)
     {
         this->stop_bits = stop_bits;
@@ -198,34 +176,33 @@ namespace Serial_port
             throw std::runtime_error("Could not set stop bits on serial port.");
     }
 
+    
     void Serial::set_baud_rate()
     {
         set_baud_rate(this->baud_rate);
     }
 
+    
     void Serial::set_parity()
     {
         set_parity(this->parity);
     }
 
+    
     void Serial::set_char_size()
     {
         set_char_size(this->char_size);
     }
 
+    
     void Serial::set_flow_ctrl()
     {
         set_flow_ctrl(this->flow_ctrl);
     }
 
+    
     void Serial::set_stop_bits()
     {
         set_stop_bits(this->stop_bits);
-    }
-
-    void Serial::run()
-    {
-        open();
-        listen();
     }
 }

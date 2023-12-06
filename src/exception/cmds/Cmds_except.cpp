@@ -1,5 +1,3 @@
-#pragma once
-
 #include <Cmds_except.hpp>
 
 namespace Exception

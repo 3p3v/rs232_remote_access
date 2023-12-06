@@ -16,6 +16,6 @@ namespace Ip_serial
         Mqtt_defs& operator=(Mqtt_defs&&) = default;
         Mqtt_defs(Mqtt_defs&) = default;
         Mqtt_defs& operator=(Mqtt_defs&) = default;
-        virtual ~Mqtt_defs() = default;
+        virtual ~Mqtt_defs() = 0;
     };
 }

@@ -49,7 +49,7 @@ namespace Mqtt_port
                                             client->subscribe(sub.channel_name, 
                                                               sub.qos, 
                                                               nullptr, 
-                                                              std::move(sub.callb)
+                                                              std::move(sub.callb),
                                                               mqtt::subscribe_options{true});
                                         }
                                         else

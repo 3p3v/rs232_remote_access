@@ -1,5 +1,3 @@
-#pragma once
-
 #include <Serial_except.hpp>
 
 namespace Exception

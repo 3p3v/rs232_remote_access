@@ -45,17 +45,45 @@ namespace Serial_port
         void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb);
 
         /* Start */
-        void run() override final;
+        template <typename Iter>
+        void run(typename Iter::iterator iter, size_t len);
 
-        void listen();
+        template <typename Iter>
+        void listen(typename Iter::iterator iter, size_t len);
     };
 
+    template <typename Iter>
+    void Serial::run(typename Iter::iterator iter, size_t len)
+    {
+        open();
+        listen<Iter>(iter, len);
+    }
+
+    
+    template <typename Iter>
+    void Serial::listen(typename Iter::iterator iter, size_t len)
+    {
+        serial.async_read_some(boost::asio::buffer(&(*iter), len), [this, &iter](const boost::system::error_code &err, std::size_t read_len)
+                                {
+                                    if (err)
+                                    {
+                                        error_callback(err.value(), err.what());
+                                    }
+                                    else
+                                    {
+                                        read_callback(iter, read_len);
+                                    }
+                                });
+    }
+
+    
     template <typename Str>
     Serial::Serial(Io_context_ptr io_context_, Str &&port)
         : Connection{io_context_}, serial{get_io_context()}, port{std::forward<Str>(port)}
     {
     }
 
+    
     template <typename Cont, typename Ok_callb>
     void Serial::write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb)
     {

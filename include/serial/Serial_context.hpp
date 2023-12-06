@@ -9,7 +9,7 @@ namespace Phy_serial
     {
     protected:
         /* Io_context used by every serial */
-        static Serial_port::Serial::Io_context_ptr shared_io_context_;
+        static std::shared_ptr<boost::asio::io_context> shared_io_context_;
         static std::atomic_bool is_running;
 
     public:

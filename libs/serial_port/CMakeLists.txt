@@ -21,6 +21,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${serial_port_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

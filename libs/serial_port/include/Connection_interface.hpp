@@ -4,6 +4,6 @@ namespace Serial_port
 {
     class Connection_interface
     {
-        virtual void run() = 0;
+        // virtual void run() = 0;
     };
 }

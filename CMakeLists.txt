@@ -24,14 +24,22 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/serial_ctrl/Serial_ctrl.cpp
                                src/serial_ctrl/Serial_ctrl_helper.cpp
                                src/serial_ctrl/Ip_serial_ctrl.cpp
+                               src/serial_ctrl/msgs/Mqtt_msg_cont.cpp
                                # serial
                                src/serial/Serial_context.cpp
                                src/serial/Dyn_serial.cpp
                                src/serial/Controller.cpp
                                # ip/mqtt serial
                                src/ip_serial/Ip_console.cpp
-                               src/ip_serial/Ip_defs.cpp
-                            #    src/ip_serial/Controller.cpp
+                               # ip defs
+                               src/ip_serial/definitions/Ip_defs.cpp
+                               src/ip_serial/definitions/Ip_get.cpp
+                               src/ip_serial/definitions/Ip_hi.cpp
+                               src/ip_serial/definitions/Ip_packet.cpp
+                               src/ip_serial/definitions/Ip_packet_flow.cpp
+                               src/ip_serial/definitions/Ip_master.cpp
+                               src/ip_serial/definitions/Ip_slave.cpp
+                               src/ip_serial/definitions/Mqtt_defs.cpp
                                # main serial
                                src/main/Controller.cpp
                                src/main/Dispacher_impl.cpp
@@ -51,15 +59,18 @@ add_executable(${PROJECT_NAME}   #WIN32
                                src/exception/setup/Setup_except.cpp
                                src/exception/mqtt/Mqtt_except.cpp
                                src/exception/cmds/Cmds_except.cpp
+                               src/exception/cmds/Num_except.cpp
                                src/exception/serial/Serial_except.cpp
                                # main
                                main.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
+                                                  "include/serial_ctrl/msgs"                                                  
                                                   "include/device"
                                                   "include/timer"
                                                   "include/serial"
                                                   "include/ip_serial"
+                                                  "include/ip_serial/definitions"
                                                   "include/exception"
                                                   "include/exception/setup"
                                                   "include/exception/mqtt"

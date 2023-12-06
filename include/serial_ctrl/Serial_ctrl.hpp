@@ -4,6 +4,9 @@
 #include <impl/Controller.hpp>
 #include <Mqtt_defs.hpp>
 #include <Dispacher.hpp>
+#include <Ip_master.hpp>
+#include <Num_except.hpp>
+#include <array>
 
 namespace Serial_port
 {
@@ -14,7 +17,11 @@ namespace Phy_serial
 {
     class Console;
 
-    class Serial_ctrl : public Base_serial_ctrl, protected Ip_serial::Mqtt_defs, public std::enable_shared_from_this<Serial_ctrl>
+    class Serial_ctrl : public Base_serial_ctrl, 
+                        protected Ip_serial::Mqtt_defs, 
+                        // protected Ip_master, 
+                        protected Ip_serial::Ip_packet,
+                        public std::enable_shared_from_this<Serial_ctrl>
     {
     public:
         using Serial_ptr = std::shared_ptr<Serial_port::Serial>;
@@ -71,14 +78,30 @@ namespace Phy_serial
     template <typename Iter_t>
     void Serial_ctrl::write(const Iter_t begin, const Iter_t end)
     {
+        auto id = master_counter->num_up();
+        
         controller.write(
             channel_name,
             qos,
+            std::string{packet_num_s},
+            std::to_string(id),
             begin,
             end,
-            [serial = this->serial](size_t) {
+            [serial_ = shared_from_this(), this, id](size_t) {
+                if (master_counter->get_not_acked() > max_not_ack)
+                {
+                    Monitor::get().error(Exception::Num_except{"Device did not send packet ack."});
+                }
+                
+                /* Make entity accessable again */
+                msgs->unmark(id);
+                
+                /* Set message number */
+                auto &msg = msgs->first_free();
+                msg.id = master_counter->exp();
+                
                 // Unlock serial's buffer
-                serial->listen();
+                serial->listen<Serial_port::Serial::Data>(msg.data.begin(), msg.max_size);
             },
             [](int)
             {

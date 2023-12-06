@@ -7,15 +7,19 @@
 #include <Flow.hpp>
 // #include <Controller.hpp>
 #include <Monitor.hpp>
-// #include <Ip_console.hpp>
+#include <Mqtt_msg_cont.hpp>
+#include <Ip_master.hpp>
 
 class Console;
 
 class Base_serial_ctrl
 {
 protected:
-    const std::shared_ptr<const Device> device; // 0
-    Flow flow;                                  // 0
+    const std::shared_ptr<const Device> device; 
+    /* Messages saving */
+    std::shared_ptr<Ip_serial::Mqtt_msg_cont> msgs{std::make_shared<Ip_serial::Mqtt_msg_cont>()};
+    Flow flow;   
+    std::shared_ptr<Ip_serial::Ip_master> master_counter{std::make_shared<Ip_serial::Ip_master>()};                               
 
 public:
     const Flow get_flow() const;

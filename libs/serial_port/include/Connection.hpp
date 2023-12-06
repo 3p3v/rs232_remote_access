@@ -28,6 +28,6 @@ namespace Serial_port
         Connection& operator=(Connection &&) = default;
         virtual ~Connection() = 0;
 
-        virtual void run() = 0;
+        // virtual void run() = 0;
     };
 }

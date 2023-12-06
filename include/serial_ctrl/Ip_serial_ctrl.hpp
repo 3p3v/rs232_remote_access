@@ -1,57 +1,45 @@
 #pragma once
 
+/* STL */
 #include <memory>
 #include <array>
 #include <atomic>
+/* Connection handling base */
 #include <Base_serial_ctrl.hpp>
 #include <Serial_ctrl_helper.hpp>
-#include <Mqtt_defs.hpp>
 #include <ip_serial/Console.hpp>
-#include <Serial_except.hpp>
-#include <Mqtt_except.hpp>
-#include <Ip_defs.hpp>
+/* Timers */
 #include <Periodic_timer.hpp>
 #include <Custom_timer.hpp>
+/* Error handling */
 #include <Dispacher.hpp>
+#include <Serial_except.hpp>
+#include <Mqtt_except.hpp>
+/* Mqtt controller */
 #include <impl/Controller.hpp>
+/* Definitions */
+#include <Ip_defs.hpp>
+#include <Ip_hi.hpp>
+#include <Mqtt_defs.hpp>
+#include <Ip_get.hpp>
+#include <Ip_packet.hpp>
+#include <Ip_slave.hpp>
+/* Messages saving */
+#include <Mqtt_msg_cont.hpp>
 
 namespace Ip_serial
 {
     class Console;
 
-    class Mqtt_msg
-    {
-        static constexpr size_t max_size{1300}; 
-
-    public:
-        unsigned char id;
-        std::array<std::byte, max_size> data;
-        size_t data_len;
-        bool freed{true};
-    };
-
-    class Mqtt_msg_cont : protected Ip_packet_defs
-    {
-        std::array<Mqtt_msg, max_saved> msgs;
-
-    public:
-        /// @brief Get msg with given id, if not found throws exception
-        /// @param id 
-        /// @return 
-        Mqtt_msg& operator[](unsigned char id);
-
-        /// @brief Find first free message
-        /// @return 
-        Mqtt_msg& first_free();
-
-        /// @brief Free all messages that have id < argument
-        /// @param id 
-        /// @return 
-        Mqtt_msg& free_untill(unsigned char id);
-    };
-
     /// @brief Object used for mqtt-side communication
-    class Ip_serial_ctrl final : public Base_serial_ctrl, protected Mqtt_defs, protected Ip_defs, protected Ip_hi, protected Ip_packet_flow, public std::enable_shared_from_this<Ip_serial_ctrl>
+    class Ip_serial_ctrl final : public Base_serial_ctrl, 
+                                 protected Mqtt_defs, 
+                                 protected Ip_defs, 
+                                 protected Ip_get,
+                                 protected Ip_hi, 
+                                 protected Ip_slave, 
+                                 protected Ip_packet,
+                                 public std::enable_shared_from_this<Ip_serial_ctrl>
     {
     public:
         using Ip_serial_ctrl_ptr = std::shared_ptr<Ip_serial_ctrl>;
@@ -80,6 +68,9 @@ namespace Ip_serial
 
         template <typename Cont_t>
         void write_info_no_timer(Cont_t &&msg);
+
+        template <typename Cont_t, typename Arg_cont_t>
+        void write_info_no_timer(Cont_t &&msg, Arg_cont_t &&arg);
 
         template <typename Cont_t, typename Callb>
         void write_info_custom(Cont_t &&msg, Callb &&callb);
@@ -113,21 +104,22 @@ namespace Ip_serial
         void set_baud_rate(const unsigned int baud_rate);
         void set_parity(const Serial_port::Ctrl_defs::Parity parity);
         void set_char_size(const unsigned int char_size);
-        void set_flow_ctrl(const Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl);
         void set_stop_bits(const Serial_port::Ctrl_defs::Stop_bits stop_bits);
 
         /* Wait for params */
         void set_baud_rate();
         void set_parity();
         void set_char_size();
-        void set_flow_ctrl();
         void set_stop_bits();
+
+        /* Packet numbering */
+        void ack_packet(char id);
+        void resend(char id);
 
         /* Set param completer */
         void set_baud_rate_compl(const std::string &arg);
         void set_parity_compl(const std::string &arg);
         void set_char_size_compl(const std::string &arg);
-        void set_flow_ctrl_compl(const std::string &arg);
         void set_stop_bits_compl(const std::string &arg);
 
         Ip_serial_ctrl(Base_serial_ctrl &&base,
@@ -217,6 +209,35 @@ namespace Ip_serial
     void Ip_serial_ctrl::write_info_no_timer(Cont_t &&msg)
     {
         auto msg_ptr = std::make_unique<std::string>(std::string{msg} + "\n");
+
+        auto beg = msg_ptr->cbegin();
+        auto end = msg_ptr->cend();
+
+        auto callb = [msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr)](size_t size) {
+        };
+
+        try
+        {
+            controller.write(device->get_info_ch(),
+                             qos,
+                             beg,
+                             end,
+                             std::forward<decltype(callb)>(callb),
+                             [](int)
+                             {
+                                 Monitor::get().error(Exception::Mqtt_write_except{});
+                             });
+        }
+        catch (const mqtt::exception &e)
+        {
+            Monitor::get().error(Exception::Mqtt_except{e});
+        }
+    }
+
+    template <typename Cont_t, typename Arg_cont_t>
+    void Ip_serial_ctrl::write_info_no_timer(Cont_t &&msg, Arg_cont_t &&arg)
+    {
+        auto msg_ptr = std::make_unique<std::string>(std::string{msg} + " " + std::string{arg} + "\n");
 
         auto beg = msg_ptr->cbegin();
         auto end = msg_ptr->cend();
