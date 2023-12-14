@@ -23,7 +23,7 @@ namespace Ip_serial
                         if (cmds[p_cmd.name]->validate(p_cmd.arg))
                             cmds[p_cmd.name]->exec(info, std::move(p_cmd.arg));
                         else
-                            throw Exception::Cmds_except{"Received command: \"" + p_cmd.name + "\" didn't pass validation!"}; });
+                            throw Exception::Cmds_bad_cmd{"Received command: \"" + p_cmd.name + "\" didn't pass validation!"}; });
         }
     };
 }

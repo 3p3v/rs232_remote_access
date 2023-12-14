@@ -40,7 +40,7 @@ int main()
         {
             /* Init */
             auto& serial_controller = Dispacher::get_controller(std::move(config_data.server), std::move(config_data.user));
-            auto& monitor = Monitor::get();
+            auto& monitor = Monitor::get(std::move(config_data.app_opts));
             
             std::for_each(config_data.devices.begin(), 
                           config_data.devices.end(),

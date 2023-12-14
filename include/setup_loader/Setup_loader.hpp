@@ -25,7 +25,17 @@ public:
     public:
         bool write_access{false};
         bool settings_known{false}; 
+        std::string port;
+        bool port_set{false};
         Serial_info info;
+    };
+
+    class App_opts
+    {
+    public:
+        bool close_on_timeout{true};
+        bool close_on_data_loss{true};
+        bool debug{false};
     };
 
 private:
@@ -40,9 +50,8 @@ public:
     class Data_pack
     {
     public:
-        bool close_on_timeout{true};
         bool auto_reload{true};
-        bool debug{false};
+        App_opts app_opts{};
         Mqtt_port::User::Cont user{};
         Mqtt_port::Server::Cont server{};
         Device_cont devices;
@@ -73,6 +82,7 @@ template <typename Str>
 Setup_loader::Setup_loader(Str &&file_name)
     : file_name{std::forward<Str>(file_name)}
 {
+    /* Connection settings */
     console.add_cmd("username", Handle::Policies<>::Dyn_handle(
                                     [this](std::string &&str)
                                     {
@@ -120,6 +130,7 @@ Setup_loader::Setup_loader(Str &&file_name)
     handle3.set_mandatority(Handle_type::mandatory);
     console.add_cmd("crt", std::move(handle3));
 
+    /* Device setings */
     auto handle4 = Handle::Policies<>::Dyn_handle{[this](std::string &&str)
                                                   {
                                                       data_pack.devices.emplace_back(std::make_pair(Device{std::move(str)}, Info_pack{}));
@@ -144,21 +155,13 @@ Setup_loader::Setup_loader(Str &&file_name)
                                        current_device->second.info.parity = parity_trans(str);
                                    }));
 
-    console.add_cmd("char_size", Handle::Policies<Numbers_only>::Dyn_handle(
+    console.add_cmd("char_size", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
                                    {
                                        auto current_device = get_current();
                                        current_device->second.settings_known = true;
                                        current_device->second.info.char_size = char_size_trans(str);
                                    }));
-
-    // console.add_cmd("flow_ctrl", Handle::Policies<>::Dyn_handle(
-    //                                [this](std::string &&str)
-    //                                {
-    //                                    auto current_device = get_current();
-    //                                    current_device->second.settings_known = true;
-    //                                    current_device->second.info.flow_ctrl = flow_ctrl_trans(str);
-    //                                }));
 
     console.add_cmd("stop_bits", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
@@ -182,17 +185,31 @@ Setup_loader::Setup_loader(Str &&file_name)
                                        current_device->second.write_access = write_access_trans(str);
                                    }));
 
+    console.add_cmd("com_port", Handle::Policies<>::Dyn_handle(
+                                   [this](std::string &&str)
+                                   {
+                                       auto current_device = get_current();
+                                       current_device->second.port = std::move(str);
+                                       current_device->second.port_set = true;
+                                   }));
+
     /* App settings */
     console.add_cmd("debug", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
                                    {
-                                       data_pack.debug = bool_trans(str);
+                                       data_pack.app_opts.debug = bool_trans(str);
                                    }));
 
     console.add_cmd("close_on_timeout", Handle::Policies<>::Dyn_handle(
                                    [this](std::string &&str)
                                    {
-                                       data_pack.close_on_timeout = bool_trans(str);
+                                       data_pack.app_opts.close_on_timeout = bool_trans(str);
+                                   }));
+
+    console.add_cmd("close_on_data_loss", Handle::Policies<>::Dyn_handle(
+                                   [this](std::string &&str)
+                                   {
+                                       data_pack.app_opts.close_on_data_loss = bool_trans(str);
                                    }));
 
     console.add_cmd("auto_reload", Handle::Policies<>::Dyn_handle(

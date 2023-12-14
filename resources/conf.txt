@@ -1,8 +1,10 @@
-user_id 1
 username admin
 password admin
-ip localhost
-port 1883
-pem asdda
-crt asdasd
+ip 192.168.0.17
+port 8883
+pem ./key.pem
+crt ./cert.crt
 device XX:XX:XX:XX:XX:XX
+close_on_timeout false
+close_on_data_loss false
+auto_reload true

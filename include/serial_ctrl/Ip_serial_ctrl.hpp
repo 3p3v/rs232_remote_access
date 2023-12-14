@@ -31,7 +31,7 @@ namespace Ip_serial
 {
     class Console;
 
-    /// @brief Object used for mqtt-side communication
+    /// @brief Class used for mqtt-side communication
     class Ip_serial_ctrl final : public Base_serial_ctrl, 
                                  protected Mqtt_defs, 
                                  protected Ip_defs, 

@@ -1,6 +1,7 @@
 #include <Dispacher.hpp>
 #include <stdexcept>
 #include <Dispacher_impl.hpp>
+#include <Monitor.hpp>
 
 Dispacher Dispacher::dispacher_s{};
 
@@ -48,6 +49,22 @@ Main_serial::Monitor &Dispacher::get()
 
     if (dispacher_s.credential_supplied)
     {
+        return dispacher_s.dispacher->get_monitor();
+    }
+    else
+    {
+        throw std::logic_error{"Can not execute action while credentials were not supplied."};
+    }
+}
+
+Main_serial::Monitor &Dispacher::get(Setup_loader::App_opts &&app_opts)
+{
+    while (dispacher_s.reboot_lock);
+
+    if (dispacher_s.credential_supplied)
+    {
+        dispacher_s.dispacher->get_monitor().set_opts(std::move(app_opts));
+
         return dispacher_s.dispacher->get_monitor();
     }
     else

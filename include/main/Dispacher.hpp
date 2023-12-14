@@ -4,6 +4,7 @@
 #include <atomic>
 #include <Server.hpp>
 #include <User.hpp>
+#include <Setup_loader.hpp>
 
 class Dispacher_impl;
 
@@ -20,6 +21,7 @@ class Dispacher
     static Dispacher dispacher_s;
 
     std::atomic_bool credential_supplied{false};
+    Setup_loader::App_opts app_opts;
     Mqtt_port::Server::Get_cont server;
     Mqtt_port::User::Get_cont user;
     
@@ -32,6 +34,8 @@ public:
     static Main_serial::Controller &get_controller(Mqtt_port::Server::Get_cont &&server,
                                                    Mqtt_port::User::Get_cont &&user);
     static Main_serial::Monitor &get();
+
+    static Main_serial::Monitor &get(Setup_loader::App_opts &&app_opts);
 
     static void reboot();
 };

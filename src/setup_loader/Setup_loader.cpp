@@ -32,6 +32,16 @@ void Setup_loader::load_data_handler()
     {
         throw std::runtime_error("Configuration file: " + file_name + "not found or could not be opened!");
     }
+
+    /* Check if every device has a specyfied port */
+    if (std::none_of(data_pack.devices.cbegin(), 
+                     data_pack.devices.cend(),
+                     [](const auto &d) {
+                        return d.second.port_set;
+                     }))
+    {
+        throw Exception::Setup_except{"Some devices do not have specyfied port!"};
+    }
 }
 
 Setup_loader::Data_pack& Setup_loader::load_data() &

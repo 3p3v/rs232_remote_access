@@ -56,7 +56,7 @@ namespace Ip_serial
                                                            {
                                                              if (auto serial = serial_ctrl.lock())
                                                              {
-                                                               Monitor::get().error(Exception::Cmds_except{"Keep alive timed out, retrying if enabled..."});
+                                                               Monitor::get().error(Exception::Cmds_timeout{"Keep alive timed out, retrying if enabled..."});
                                                                /* Try to say hi to device again */
                                                                say_hi_();
                                                              }
@@ -67,7 +67,7 @@ namespace Ip_serial
         device->get_info_ch(),
         qos,
         /* Successful message receive */
-        [serial_ctrl = shared_from_this()](mqtt::const_message_ptr &&data)
+        [serial_ctrl = shared_from_this()](auto &&data)
         {
           /* Reset keep alive timer if started */
           serial_ctrl->keep_alive();
@@ -94,7 +94,7 @@ namespace Ip_serial
     controller.subscribe(
         device->get_data_ch(),
         qos,
-        [serial_ctrl = shared_from_this(), this](mqtt::const_message_ptr &&data)
+        [serial_ctrl = shared_from_this(), this](auto &&data)
         {
           auto beg = data->cbegin();
           auto end = data->cend();
@@ -185,7 +185,7 @@ namespace Ip_serial
                       {
                         if (auto serial = serial_ctrl.lock())
                         {
-                          Monitor::get().error(Exception::Cmds_except{"Saying hi timed out, retrying if enabled..."});
+                          Monitor::get().error(Exception::Cmds_timeout{"Saying hi timed out, retrying if enabled..."});
                           /* Try to say hi to device again */
                           serial->say_hi_();
                         }
@@ -288,12 +288,6 @@ namespace Ip_serial
     write_info(set_baud_rate_s.data(), char_size_trans(char_size));
   }
 
-  // void Ip_serial_ctrl::set_flow_ctrl(const Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl)
-  // {
-  //   Monitor::get().debug(device, "Sending set flow ctrl request...");
-  //   write_info(set_baud_rate_s.data(), flow_ctrl_trans(flow_ctrl));
-  // }
-
   void Ip_serial_ctrl::set_stop_bits(const Serial_port::Ctrl_defs::Stop_bits stop_bits)
   {
     Monitor::get().debug(device, "Sending set stop bits request...");
@@ -318,12 +312,6 @@ namespace Ip_serial
     info.timers.start_timer(std::string{set_char_size_s});
   }
 
-  // void Ip_serial_ctrl::set_flow_ctrl()
-  // {
-  //   Monitor::get().debug(device, "Received set flow ctrl request...");
-  //   info.timers.start_timer(std::string{set_flow_ctrl_s});
-  // }
-
   void Ip_serial_ctrl::set_stop_bits()
   {
     Monitor::get().debug(device, "Received set stop bits request...");
@@ -332,12 +320,15 @@ namespace Ip_serial
 
   void Ip_serial_ctrl::ack_packet(char id)
   {
+    Monitor::get().debug(device, "Received ack: " + id);
     master_counter->ack(id);
     msgs->free_untill(id);
   }
 
   void Ip_serial_ctrl::resend(char id)
   {
+    Monitor::get().debug(device, "Received resend: " + id);
+    
     try
     {
       Mqtt_msg & msg = msgs->operator[](id);
@@ -353,15 +344,17 @@ namespace Ip_serial
                         msgs->unmark(id);
                        },
                        [](int){
-
+                        Monitor::get().error(Exception::Mqtt_write_except{});
                        }
                        );
     }
-    catch(const std::logic_error& e)
+    catch(const Exception::Cmds_no_packet& e)
     {
+      Monitor::get().debug(device, "Did not find packet: " + id);
+      
       /* Start communication from the beggining */
       say_hi_();
-      Monitor::get().error(Exception::Cmds_except{"Could not resend packet, becaurse id does not exist!"});
+      Monitor::get().error(e);
     }
   }
 
@@ -391,15 +384,6 @@ namespace Ip_serial
     info.info.char_size = arg_;
     info.serial->set_char_size(arg_);
   }
-
-  // void Ip_serial_ctrl::set_flow_ctrl_compl(const std::string &arg)
-  // {
-  //   Monitor::get().debug(device, "Received set flow ctrl confirmation, value: " + arg + ".");
-  //   info.timers.stop_timer(std::string{set_flow_ctrl_s});
-  //   auto arg_ = flow_ctrl_trans(arg);
-  //   info.info.flow_ctrl = arg_;
-  //   info.serial->set_flow_ctrl(arg_);
-  // }
 
   void Ip_serial_ctrl::set_stop_bits_compl(const std::string &arg)
   {

@@ -1,6 +1,6 @@
 #include <Mqtt_msg_cont.hpp>
 #include <algorithm>
-#include <stdexcept>
+#include <Cmds_except.hpp>
 
 namespace Ip_serial
 {
@@ -18,7 +18,7 @@ namespace Ip_serial
                                 });
 
         if (msg == msgs.end())
-            throw std::logic_error{"This message does not exist!"};
+            throw Exception::Cmds_no_packet{"Could not resend packet, becaurse id does not exist!"};
 
         msg->used = true;
         return *msg;
