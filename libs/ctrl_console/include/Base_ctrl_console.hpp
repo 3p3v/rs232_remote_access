@@ -10,7 +10,7 @@
 namespace Cmd_ctrl
 {
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
-    class Base_ctrl_console : protected Common_defs//, protected Ctrl_con_defs
+    class Base_ctrl_console : protected Common_defs //, protected Ctrl_con_defs
     {
     protected:
         using Ctrl_cmd_name = std::string;
@@ -28,6 +28,9 @@ namespace Cmd_ctrl
     public:
         template <typename Str, typename Handle_t>
         void add_cmd(Str &&cmd_name, Handle_t &&handle);
+
+        template <typename Iter_t, typename... Args>
+        void exec(const Iter_t begin, const Iter_t end, Args... args) const;
     };
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
@@ -43,5 +46,20 @@ namespace Cmd_ctrl
         {
             throw std::logic_error{"The comand with specyfied name already exists!"};
         }
+    }
+
+    template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
+    template <typename Iter_t, typename... Args>
+    void Base_ctrl_console<Base_handle_t, endl_opt, endl, space>::exec(const Iter_t begin, const Iter_t end, Args... args) const
+    {
+        auto parsed_cmds = parser.parse(begin, end);
+
+        std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this, &...args](auto &p_cmd)
+                      {
+                        if (cmds[p_cmd.name]->validate(p_cmd.arg))
+                            cmds[p_cmd.name]->exec(std::move(p_cmd.arg), args...);
+                        else
+                            throw std::logic_error{"Received command: \"" + p_cmd.name + "\" didn't pass validation!"};   
+                      });
     }
 }

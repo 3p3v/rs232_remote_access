@@ -65,7 +65,8 @@ add_executable(${PROJECT_NAME}   #WIN32
                                main.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include/serial_ctrl"
-                                                  "include/serial_ctrl/msgs"                                                  
+                                                  "include/serial_ctrl/msgs"   
+                                                  "include/serial_ctrl/lr"                                                  
                                                   "include/device"
                                                   "include/timer"
                                                   "include/serial"

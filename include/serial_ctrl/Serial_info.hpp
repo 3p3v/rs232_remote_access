@@ -6,6 +6,7 @@
 class Serial_info
 {
 public:
+    std::string com;
     unsigned int baud_rate{9600};
     Serial_port::Ctrl_defs::Parity parity{Serial_port::Ctrl_defs::Parity::none};
     unsigned int char_size{8};

@@ -16,7 +16,7 @@ namespace Ip_serial
             if (next_num != num)
                 throw std::logic_error{""};
 
-            return Ip_packet_flow::num_up();
+            return Ip_packet_flow::num_up_();
         }
     }
 

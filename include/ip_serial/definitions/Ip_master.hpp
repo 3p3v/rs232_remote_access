@@ -7,7 +7,6 @@ namespace Ip_serial
     /// @brief Master packet number control
     class Ip_master : public Ip_packet_flow
     {
-    public:
-        // void nullout();
+        char num_up();
     };
 }

@@ -78,7 +78,7 @@ namespace Phy_serial
     template <typename Iter_t>
     void Serial_ctrl::write(const Iter_t begin, const Iter_t end)
     {
-        auto id = master_counter->num_up();
+        auto id = master_counter->num_up_();
         
         controller.write(
             channel_name,

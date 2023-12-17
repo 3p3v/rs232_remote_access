@@ -2,7 +2,7 @@
 
 namespace Ip_serial
 {
-    char Ip_packet_flow::num_up()
+    char Ip_packet_flow::num_up_()
     {
         char temp = next_num;
 
