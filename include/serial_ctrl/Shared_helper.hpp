@@ -7,30 +7,17 @@
 #include <Serial_info.hpp>
 
 /// @brief Common objects for communication in both ways
-/// @tparam Mqtt 
-/// @tparam Phy 
-template <typename Mqtt, typename Phy>
 class Shared_helper
 {
 public:
-    /* Message control */
+    /* Storage for sending messages */
     Ip_serial::Mqtt_msg_cont msgs{}; 
+    /* Message counting in respect of protocol */
     Ip_serial::Ip_master master_counter{};  
 
-    /* Lock communictaion */
+    /* Lock communictaion from MQTT to serial */
     std::atomic_bool mqtt_lock{true};
+    /* Lock communictaion from serial to MQTT */
     std::atomic_bool phy_lock{true};
-
-    /* Objects implementing communication */
-    Mqtt mqtt;
-    Phy phy;
-
-    Shared_helper(Mqtt &&mqtt, Phy &&phy); 
 };
-
-template <typename Mqtt, typename Phy>
-Shared_helper<Mqtt, Phy>::Shared_helper(Mqtt &&mqtt, Phy &&phy)
-    : mqtt{std::move(mqtt)}, phy{std::move(phy)}
-{
-}
 
