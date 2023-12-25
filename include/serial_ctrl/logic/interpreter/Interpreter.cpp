@@ -1,10 +1,11 @@
-#include <Ip_console.hpp>
+#include <Interpreter.hpp>
 /* Policies */
-#include <Numbers_only.hpp>
+#include <Bigger_or_equal.hpp>
+#include <Lower_or_equal.hpp>
 
-namespace Ip_serial
+namespace Logic
 {
-   Ip_console::Ip_console()
+   Interpreter::Interpreter()
    {
       /* HI */
       add_cmd(std::string{master_hi_s},

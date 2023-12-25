@@ -18,8 +18,10 @@ template <
         ((2 * (max_msg_num - min_msg_num)) > max_saved)>>
 class Mqtt_msg_cont : Mqtt_msg_cont_base
 {
+public:
     using Msg = Mqtt_msg<Val_t>;
 
+private:
     std::array<Msg, max_saved> msgs;
 
 public:
@@ -29,10 +31,12 @@ public:
     Msg &operator[](Val_t id);
 
     /// @brief Find first free message, if not found throws exception
+    /// @param id
     /// @return
     Msg &first_free(Val_t id);
 
     /// @brief Get oldest message, if no more unused messages exist throws error
+    /// @param id
     /// @return
     Msg &oldest(Val_t id);
 
@@ -49,7 +53,7 @@ template <
     typename T1,
     typename T2,
     typename T3>
-Mqtt_msg<Val_t> &Mqtt_msg_cont<
+inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
     Val_t,
     min_msg_num,
     max_msg_num,
@@ -83,7 +87,7 @@ template <
     typename T1,
     typename T2,
     typename T3>
-Mqtt_msg<Val_t> &Mqtt_msg_cont<
+inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
     Val_t,
     min_msg_num,
     max_msg_num,
@@ -117,7 +121,7 @@ template <
     typename T1,
     typename T2,
     typename T3>
-Mqtt_msg<Val_t> &Mqtt_msg_cont<
+inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
     Val_t,
     min_msg_num,
     max_msg_num,
@@ -126,16 +130,16 @@ Mqtt_msg<Val_t> &Mqtt_msg_cont<
     T2,
     T3>::oldest(Val_t id)
 {
-    auto msg = std::find_if(
+    auto msg = std::find_if_not(
         msgs.begin(),
         msgs.end(),
         [](auto &c)
         {
-            return !c.used;
+            return static_cast<bool>(c.used);
         });
 
     if (msg == msgs.end())
-        std::logic_error{"No more not used msgs!"};
+        throw std::logic_error{"No more not used msgs!"};
 
     auto iter = msgs.begin();
 
@@ -196,7 +200,7 @@ template <
     typename T1,
     typename T2,
     typename T3>
-void Mqtt_msg_cont<
+inline void Mqtt_msg_cont<
     Val_t,
     min_msg_num,
     max_msg_num,

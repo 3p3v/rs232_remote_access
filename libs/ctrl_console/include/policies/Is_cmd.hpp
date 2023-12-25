@@ -4,11 +4,11 @@
 
 namespace Cmd_ctrl
 {
-    class Numbers_only final
+    class Is_cmd final
     {
     public:
         static bool validate_t(const std::string &arg);
 
-        Numbers_only() = delete;
+        Is_cmd() = delete;
     };
 }

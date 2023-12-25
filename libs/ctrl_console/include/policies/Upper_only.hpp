@@ -4,11 +4,11 @@
 
 namespace Cmd_ctrl
 {
-    class Numbers_only final
+    class Upper_only final
     {
     public:
         static bool validate_t(const std::string &arg);
 
-        Numbers_only() = delete;
+        Upper_only() = delete;
     };
 }

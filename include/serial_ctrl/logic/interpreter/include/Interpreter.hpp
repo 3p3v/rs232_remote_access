@@ -8,11 +8,11 @@
 
 using namespace Cmd_ctrl;
 
-namespace Ip_serial
+namespace Logic
 {
-    class Ip_console : public Console, protected Ip_defs, protected Ip_hi, protected Ip_get, protected Ip_packet
+    class Interpreter : public Console, protected Ip_defs, protected Ip_hi, protected Ip_get, protected Ip_packet
     {
     public:
-        Ip_console();
+        Interpreter();
     };
 }

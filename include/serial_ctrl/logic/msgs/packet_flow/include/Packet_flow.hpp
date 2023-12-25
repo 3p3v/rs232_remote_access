@@ -22,6 +22,8 @@ protected:
     /// @return Previous value
     Val_t num_up_();
 
+    Val_t num_down_();
+
 public:
     /// @brief How many messages were not acked
     /// @return
@@ -76,6 +78,25 @@ template <
     Val_t max_msg_num,
     typename T1,
     typename T2>
+inline Val_t Packet_flow<
+    Val_t,
+    min_msg_num,
+    max_msg_num,
+    T1,
+    T2>::num_down_()
+{
+    if (--next_num < min_msg_num)
+        next_num = max_msg_num;
+    
+    return next_num;
+}
+
+template <
+    typename Val_t,
+    Val_t min_msg_num,
+    Val_t max_msg_num,
+    typename T1,
+    typename T2>
 std::make_unsigned_t<Val_t> Packet_flow<
     Val_t,
     min_msg_num,
@@ -99,7 +120,7 @@ void Packet_flow<
     T1,
     T2>::ack(Val_t id)
 {
-    not_acked -= next_num - id - 1;
+    not_acked = next_num - id - 1;
 }
 
 template <

@@ -197,6 +197,32 @@ TEST(msgs, choose_oldest)
       std::logic_error);
 }
 
+TEST(msgs, no_more_unused_msgs)
+{
+  Cont msgs{};
+
+  constexpr auto end_msg = Packet_defs::min_msg_num + max_saved;
+
+  for (Id_t i = (Packet_defs::min_msg_num);
+       i < end_msg;
+       i++)
+  {
+    auto &msg = msgs.first_free(i);
+  }
+
+  ASSERT_THROW(
+      {
+        msgs.first_free(end_msg + 1);
+      },
+      std::logic_error);
+
+  ASSERT_THROW(
+      {
+        msgs.oldest(end_msg + 1);
+      },
+      std::logic_error);
+}
+
 /* Helper functions */
 static void fill_with_msgs(Cont &msgs, Id_t offset, Id_t max_saved)
 {

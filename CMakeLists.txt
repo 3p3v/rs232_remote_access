@@ -107,13 +107,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROTOCOL_LOGIC_INCLUDE_DIR})
 
 # # find console library
 # set(CTRL_CONSOLE_LIB_PATHS "libs/ctrl_console")
-# add_subdirectory("libs/ctrl_console")
-# target_include_directories(${PROJECT_NAME} PUBLIC ${ctrl_console_INCLUDE_DIR})
+add_subdirectory("libs/ctrl_console")
+target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
 
 # # Link libs
 # target_link_libraries(${PROJECT_NAME} PUBLIC serial_port)
 # target_link_libraries(${PROJECT_NAME} PUBLIC mqtt_port)
-# target_link_libraries(${PROJECT_NAME} PUBLIC ctrl_console)
+target_link_libraries(${PROJECT_NAME} PUBLIC ctrl_console)
 target_link_libraries(${PROJECT_NAME} PUBLIC protocol_logic)
 
 # # language standard
