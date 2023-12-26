@@ -3,6 +3,7 @@
 #include <Exec.hpp>
 #include <string>
 #include <Lower_or_equal.hpp>
+#include <No_arg.hpp>
 
 using Handle_t = Cmd_ctrl::Exec<int &, std::string &&>;
 using Ctrl_console = Cmd_ctrl::Base_ctrl_console<Handle_t, Cmd_ctrl::Endl_opt::without>;
@@ -86,6 +87,42 @@ TEST(cmd_ctrl, apply_policy)
         {
             /* ERROR */
             console.exec(input_2.begin(), input_2.end(), val);
+        },
+        std::logic_error);
+}
+
+TEST(cmd_ctrl, no_argument)
+{
+    Ctrl_console console{};
+
+    int dummy_val{};
+
+    constexpr int exp{9};
+    constexpr int start{0};
+    int var{start};
+    
+    std::string ok_cmd{"test_cmd"};
+    std::string ec_cmd{"test_cmd 1"};
+
+    std::string rec_arg{};
+    console.add_cmd(
+        std::string("test_cmd"),
+        Ctrl_console::Handle::Policies<Cmd_ctrl::No_arg>::Dyn_handle(
+            [&var, exp](int &val, std::string &&arg)
+            {
+                /**/
+                var = exp;
+            }));
+
+    /* OK */
+    EXPECT_EQ(var, start);
+    console.exec(ok_cmd.begin(), ok_cmd.end(), dummy_val);
+    EXPECT_EQ(var, exp);
+
+    ASSERT_THROW(
+        {
+            /* ERROR */
+            console.exec(ec_cmd.begin(), ec_cmd.end(), dummy_val);
         },
         std::logic_error);
 }

@@ -15,7 +15,7 @@ public:
     static constexpr std::string_view no_number_s{"N_N"};
 
     static constexpr unsigned char ack_after{8};
-    // static constexpr unsigned char max_saved{30};
+    static constexpr unsigned char max_saved{30};
     static constexpr unsigned char max_not_ack{16};
 
     Packet_defs() = default;

@@ -29,7 +29,7 @@ namespace Impl
         /// @param ok_callb
         /// @param ec_callb
         template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-        void write(unsigned char id, const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+        void write(char id, const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
         /// @brief Read from device to buffer, use callbacks
         /// @tparam Ok_callb
@@ -52,7 +52,7 @@ namespace Impl
     };
 
     template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-    inline void Mqtt_side::write(unsigned char id, const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+    inline void Mqtt_side::write(char id, const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {
         try
         {

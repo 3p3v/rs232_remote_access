@@ -2,6 +2,11 @@
 /* Policies */
 #include <Bigger_or_equal.hpp>
 #include <Lower_or_equal.hpp>
+#include <No_arg.hpp>
+#include <Numbers_only.hpp>
+#include <Alpha_only.hpp>
+
+using namespace Cmd_ctrl;
 
 namespace Logic
 {
@@ -9,12 +14,12 @@ namespace Logic
    {
       /* HI */
       add_cmd(std::string{master_hi_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<No_arg>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.say_hi(); }));
 
       add_cmd(std::string{slave_hi_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<No_arg>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { 
                                                                 /* Delete timer */
@@ -38,53 +43,53 @@ namespace Logic
                                                                 } }));
 
       add_cmd(std::string{slave_keep_alive_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<No_arg>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.keep_alive(); }));
 
       /* Add commands used to control UART settings */
       add_cmd(std::string{set_baud_rate_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_baud_rate(); }));
       add_cmd(std::string{get_baud_rate_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_baud_rate_compl(arg); }));
 
       add_cmd(std::string{set_parity_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Alpha_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_parity(); }));
       add_cmd(std::string{get_parity_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Alpha_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_parity_compl(arg); }));
 
       add_cmd(std::string{set_char_size_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_char_size(); }));
       add_cmd(std::string{get_char_size_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_char_size_compl(arg); }));
 
       add_cmd(std::string{set_stop_bits_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_stop_bits(); }));
       add_cmd(std::string{get_stop_bits_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.set_stop_bits_compl(arg); }));
 
       add_cmd(std::string{packet_ack_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.ack_packet(*arg.data()); }));
       add_cmd(std::string{invalid_number_s},
-              Handle_t::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
+              Command::Policies<Numbers_only>::Dyn_handle([](Ip_serial_ctrl &helper,
                                                               const std::string &arg)
                                                            { helper.resend(*arg.data()); }));
    }

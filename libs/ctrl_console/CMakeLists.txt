@@ -11,7 +11,8 @@ add_library(${PROJECT_NAME} STATIC
             src/Alpha_only.cpp
             src/Upper_only.cpp
             src/Floor_only.cpp
-            src/Is_cmd.cpp)
+            src/Is_cmd.cpp
+            src/No_arg.cpp)
 
 
 if(${BUILD_TESTING} true)

@@ -27,8 +27,8 @@ namespace Impl
         void write(const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
         template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-        void connect(const typename Cont_t::const_iterator begin,
-                     const typename Cont_t::const_iterator end,
+        void connect(const typename Cont_t::iterator begin,
+                     const typename Cont_t::iterator end,
                      Ok_callb &&ok_callb,
                      Ec_callb &&ec_callb);
 
@@ -69,7 +69,7 @@ namespace Impl
     }
 
     template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-    inline void Serial_side::connect(const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+    inline void Serial_side::connect(const typename Cont_t::iterator begin, const typename Cont_t::iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {
         if (auto serial = get_serial_ptr() == nullptr)
         {
