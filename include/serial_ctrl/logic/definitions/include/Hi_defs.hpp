@@ -4,7 +4,7 @@
 
 namespace Ip_serial
 {
-    class Ip_hi
+    class Hi_defs
     {
     public:
         static constexpr std::string_view master_hi_s{"M_HI"};
@@ -12,11 +12,11 @@ namespace Ip_serial
         static constexpr std::string_view master_keep_alive_s{"M_KA"};
         static constexpr std::string_view slave_keep_alive_s{"S_KA"};
 
-        Ip_hi() = default;
-        Ip_hi(Ip_hi &&) = default;
-        Ip_hi &operator=(Ip_hi &&) = default;
-        Ip_hi(const Ip_hi &) = default;
-        Ip_hi &operator=(const Ip_hi &) = default;
-        virtual ~Ip_hi() = 0;
+        Hi_defs() = default;
+        Hi_defs(Hi_defs &&) = default;
+        Hi_defs &operator=(Hi_defs &&) = default;
+        Hi_defs(const Hi_defs &) = default;
+        Hi_defs &operator=(const Hi_defs &) = default;
+        virtual ~Hi_defs() = 0;
     };
 }

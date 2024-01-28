@@ -26,7 +26,6 @@ namespace Logic
         template <typename Ok_callb, typename Ec_callb>
         void connect(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
-        // Mqtt_settings(const Impl &impl);
         Mqtt_settings(Impl &&impl);
     };
 

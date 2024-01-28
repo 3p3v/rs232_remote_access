@@ -9,7 +9,7 @@ using namespace Serial_port;
 
 namespace Ip_serial
 {
-    class Ip_defs
+    class Set_defs
     {
         using Parity_bimap = boost::bimap<Ctrl_defs::Parity, std::string>;
         using Flow_ctrl_bimap = boost::bimap<Ctrl_defs::Flow_ctrl, std::string>;
@@ -44,11 +44,11 @@ namespace Ip_serial
         static Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl_trans(const std::string &flow_ctrl);
         static Serial_port::Ctrl_defs::Stop_bits stop_bits_trans(const std::string &stop_bits);
 
-        Ip_defs() = default;
-        Ip_defs(Ip_defs&&) = default;
-        Ip_defs& operator=(Ip_defs&&) = default;
-        Ip_defs(const Ip_defs&) = default;
-        Ip_defs& operator=(const Ip_defs&) = default;
-        virtual ~Ip_defs() = 0;
+        Set_defs() = default;
+        Set_defs(Set_defs&&) = default;
+        Set_defs& operator=(Set_defs&&) = default;
+        Set_defs(const Set_defs&) = default;
+        Set_defs& operator=(const Set_defs&) = default;
+        virtual ~Set_defs() = 0;
     };
 }

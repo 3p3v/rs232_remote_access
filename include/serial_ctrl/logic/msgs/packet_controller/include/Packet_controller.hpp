@@ -31,10 +31,16 @@ namespace Logic
             flow{};
 
     public:
+        /// @brief How many messages were not acked
+        /// @return
+        std::make_unsigned_t<Val_t> get_not_acked();
+
         /// @brief Get msg with given id, if not found throws exception
         /// @param id
         /// @return
         decltype(auto) operator[](Val_t id);
+
+        auto get(Val_t id);
 
         /// @brief Create new message, if no more unused messages exist throws error
         /// @tparam Ec_callb
@@ -51,9 +57,21 @@ namespace Logic
     };
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
+    inline std::make_unsigned_t<Val_t> Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::get_not_acked()
+    {
+        return flow.get_not_acked();
+    }
+
+    template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
     inline decltype(auto) Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::operator[](Val_t id)
     {
         return cont.operator[](id);
+    }
+
+    template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
+    inline auto Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::get(Val_t id)
+    {
+        return cont.get(id);
     }
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>

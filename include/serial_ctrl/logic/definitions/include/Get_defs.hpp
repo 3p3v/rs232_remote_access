@@ -4,7 +4,7 @@
 
 namespace Ip_serial
 {
-    class Ip_get
+    class Hi_defs
     {
     public:
         static constexpr std::string_view get_info_s{"G_I"};
@@ -19,11 +19,11 @@ namespace Ip_serial
         static constexpr std::string_view rts_set_s{"R_S"};
         static constexpr std::string_view rts_reset_s{"R_R"};
 
-        Ip_get() = default;
-        Ip_get(Ip_get &&) = default;
-        Ip_get &operator=(Ip_get &&) = default;
-        Ip_get(const Ip_get &) = default;
-        Ip_get &operator=(const Ip_get &) = default;
-        virtual ~Ip_get() = 0;
+        Hi_defs() = default;
+        Hi_defs(Hi_defs &&) = default;
+        Hi_defs &operator=(Hi_defs &&) = default;
+        Hi_defs(const Hi_defs &) = default;
+        Hi_defs &operator=(const Hi_defs &) = default;
+        virtual ~Hi_defs() = 0;
     };
 }

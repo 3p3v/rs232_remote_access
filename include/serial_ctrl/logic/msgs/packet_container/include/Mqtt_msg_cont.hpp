@@ -30,6 +30,11 @@ public:
     /// @return
     Msg &operator[](Val_t id);
 
+    /// @brief Get all message references that are >= id
+    /// @param id
+    /// @return
+    auto get(Val_t id);
+
     /// @brief Find first free message, if not found throws exception
     /// @param id
     /// @return
@@ -77,6 +82,57 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
 
     msg->used = true;
     return *msg;
+}
+
+template <
+    typename Val_t,
+    Val_t min_msg_num,
+    Val_t max_msg_num,
+    std::make_unsigned_t<Val_t> max_saved,
+    typename T1,
+    typename T2,
+    typename T3>
+inline auto Mqtt_msg_cont<
+    Val_t,
+    min_msg_num,
+    max_msg_num,
+    max_saved,
+    T1,
+    T2,
+    T3>::get(Val_t id)
+{
+    std::vector<Mqtt_msg<Val_t> &> msgs{};
+
+    if ((id + max_saved) <= max_msg_num)
+    {
+        std::for_each(msgs.begin(),
+                      msgs.end(),
+                      [this, id, &msgs](auto &&c)
+                      {
+                          if ((c.id_ >= id || c.id_ <= (id + max_saved)) && c.used == false)
+                          {
+                              c.used = true;
+                              msgs.emplace_back(c);
+                          }
+                      });
+    }
+    else
+    {
+        auto end = (id + max_saved) % max_msg_num;
+
+        std::for_each(msgs.begin(),
+                      msgs.end(),
+                      [this, id, beg, &msgs](auto &&c)
+                      {
+                          if ((c.id_ >= id || c.id_ < end) && c.used == false)
+                          {
+                              c.used = true;
+                              msgs.emplace_back(c);
+                          }
+                      });
+    }
+
+    return msgs;
 }
 
 template <

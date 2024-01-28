@@ -7,7 +7,7 @@ template <
     typename Val_t,
     Val_t min_msg_num,
     Val_t max_msg_num>
-class Ip_slave : public Ip_packet_flow
+class Ip_slave : public Packet_flow
 {
     std::atomic_bool s_reload{true};
 
