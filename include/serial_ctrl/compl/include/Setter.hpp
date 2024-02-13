@@ -30,14 +30,11 @@ namespace Logic
         /// @return
         auto def_ec_callb();
 
-    protected:
-        std::shared_ptr<Setter> shared_from_this_() override;
-        std::weak_ptr<Setter> weak_from_this_() override;
+    public:
         void write_i(const char *cmd, std::string &&arg) override;
         void write_i(const char *cmd, std::string &&arg, std::function<void()> &&ok_callb) override;
         void write_i(const char *cmd, std::function<void()> &&ok_callb) override;
 
-    public:
         template <typename Mqtt_t,
                   typename Serial_t,
                   typename Shared_helper_ptr_t,

@@ -7,15 +7,15 @@ add_library(${PROJECT_NAME} STATIC
     # Definitions
     "./logic/definitions/Packet_defs.cpp"
     # Messages store
-    "./logic/msgs/packet_container/Mqtt_msg_cont_base.cpp"
-    "./logic/msgs/packet_container/Mqtt_msg.cpp"
-    "./logic/msgs/packet_container/Mqtt_msg_cont.cpp"
+    "./extensions/helpers/msgs/packet_container/Mqtt_msg_cont_base.cpp"
+    "./extensions/helpers/msgs/packet_container/Mqtt_msg.cpp"
+    "./extensions/helpers/msgs/packet_container/Mqtt_msg_cont.cpp"
     # Packet counter
-    "./logic/msgs/packet_flow/Packet_flow.cpp"
-    "./logic/msgs/packet_flow/Packet_master.cpp"
-    "./logic/msgs/packet_flow/Packet_slave.cpp"
+    "./extensions/helpers/msgs/packet_flow/Packet_flow.cpp"
+    "./extensions/helpers/msgs/packet_flow/Packet_master.cpp"
+    "./extensions/helpers/msgs/packet_flow/Packet_slave.cpp"
     # Master packet complete container
-    "./logic/msgs/packet_controller/Packet_controller.cpp"
+    "./extensions/helpers/msgs/packet_controller/Packet_controller.cpp"
 )
 
 # Header files
@@ -23,11 +23,11 @@ set(PROTOCOL_LOGIC_INCLUDE_DIR
     # Definitions
     "./logic/definitions/include"
     # Messages store
-    "./logic/msgs/packet_container/include/"
+    "./extensions/helpers/msgs/packet_container/include/"
     # Packet counter
-    "./logic/msgs/packet_flow/include"
+    "./extensions/helpers/msgs/packet_flow/include"
     # Master packet complete container
-    "./logic/msgs/packet_controller/include"
+    "./extensions/helpers/msgs/packet_controller/include"
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROTOCOL_LOGIC_INCLUDE_DIR})
 
@@ -37,11 +37,11 @@ if(${BUILD_TESTING} true)
     # Test code
     add_executable(${PROTOCOL_LOGIC_TESTS} 
         # Messages store
-        "./logic/msgs/packet_container/unit_tests/Mqtt_msg_test.cpp"
+        "./extensions/helpers/msgs/packet_container/unit_tests/Mqtt_msg_test.cpp"
         # Packet counter
-        "./logic/msgs/packet_flow/unit_tests/Packet_flow_test.cpp"
+        "./extensions/helpers/msgs/packet_flow/unit_tests/Packet_flow_test.cpp"
         # Master packet complete container
-        "./logic/msgs/packet_controller/unit_tests/Packet_controller_test.cpp")
+        "./extensions/helpers/msgs/packet_controller/unit_tests/Packet_controller_test.cpp")
 
     # Link test library with others
     target_link_libraries(

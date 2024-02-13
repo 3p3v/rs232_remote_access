@@ -8,7 +8,7 @@ using namespace Serial_port;
 namespace Logic
 {
     /// @brief Declares operations that can be done by a user
-    class User_setter : public Ext_setter
+    class Inter_setter : public Ext_setter
     {
     public:
         public:

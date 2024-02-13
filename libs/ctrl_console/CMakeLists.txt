@@ -3,16 +3,22 @@ project(ctrl_console VERSION 0.1.0 LANGUAGES CXX)
 set(CTRL_CONSOLE_TESTS ctrl_console_tests)
 
 add_library(${PROJECT_NAME} STATIC
-            src/Ctrl_console.cpp
-            src/Common_defs.cpp
-            src/Ctrl_con_defs.cpp
+            # Ctrl_console
+            ctrl_console/src/Ctrl_console.cpp
+            ctrl_console/src/Common_defs.cpp
+            ctrl_console/src/Ctrl_con_defs.cpp
+            # Job_ctrl
+            job_ctrl/src/Job.cpp
+            job_ctrl/src/Worker.cpp
+            job_ctrl/src/Storage.cpp
+            job_ctrl/src/Forwarder.cpp
             # Policies
-            src/Numbers_only.cpp
-            src/Alpha_only.cpp
-            src/Upper_only.cpp
-            src/Floor_only.cpp
-            src/Is_cmd.cpp
-            src/No_arg.cpp)
+            policies/src/Numbers_only.cpp
+            policies/src/Alpha_only.cpp
+            policies/src/Upper_only.cpp
+            policies/src/Floor_only.cpp
+            policies/src/Is_cmd.cpp
+            policies/src/No_arg.cpp)
 
 
 if(${BUILD_TESTING} true)
@@ -21,7 +27,12 @@ if(${BUILD_TESTING} true)
     # Test code
     add_executable(${CTRL_CONSOLE_TESTS} 
         # base ctrl console
-        "./unit_tests/Base_ctrl_console_test.cpp"
+        "./unit_tests/ctrl_console/Base_ctrl_console_test.cpp"
+        # jobs
+        "./unit_tests/job_ctrl/Job_test.cpp"
+        "./unit_tests/job_ctrl/Job_handler_test.cpp"
+        "./unit_tests/job_ctrl/Worker_test.cpp"
+        "./unit_tests/job_ctrl/Manager_test.cpp"
         # policies
         "./unit_tests/policies/Numbers_only_test.cpp"
         "./unit_tests/policies/Alpha_only_test.cpp"
@@ -50,8 +61,9 @@ endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 # include dirs
-set(CTRL_CONSOLE_INCLUDE_DIR "include"
-                             "include/policies")
+set(CTRL_CONSOLE_INCLUDE_DIR "ctrl_console/include"
+                             "job_ctrl/include"
+                             "policies/include")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
 
