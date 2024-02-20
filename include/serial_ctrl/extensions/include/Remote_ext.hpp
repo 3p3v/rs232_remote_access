@@ -13,6 +13,10 @@ namespace Logic
     protected:
         virtual void add_restart_job() = 0;
 
+        /// @brief Default error callback
+        /// @return
+        auto def_ec_callb();
+
     public:
         /// @brief Type of parameter used by all commands
         using Cmd_param = const std::string&;
@@ -38,5 +42,10 @@ namespace Logic
     {
         // Add job for at least resetting all timers (used when there was error in communication with device)
         add_restart_job();
+    }
+
+    inline auto Remote_ext::def_ec_callb()
+    {
+        return [](const std::except &e) {};
     }
 }

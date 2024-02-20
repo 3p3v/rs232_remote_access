@@ -25,6 +25,9 @@ namespace Logic
 
         void add_restart_job() override;
 
+        /// @brief
+        void clear_timers();
+
     public:
         template <typename Forwarder_ptr_t>
         Common_ext(Forwarder_ptr_t&& manager);
@@ -35,9 +38,16 @@ namespace Logic
         ~Common_ext() = 0;
     };
 
+    template <typename Timer_t>
     template <typename Forwarder_ptr_t>
-    inline Common_ext::Common_ext(Forwarder_ptr_t &&manager)
+    inline Common_ext<Timer_t>::Common_ext(Forwarder_ptr_t &&manager)
         : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
     {
+    }
+
+    template <typename Timer_t>
+    inline void Common_ext<Timer_t>::clear_timers()
+    {
+        timers.clear();
     }
 }

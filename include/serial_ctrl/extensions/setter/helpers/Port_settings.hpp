@@ -17,6 +17,12 @@ namespace Logic
             onepointfive,
             two
         };
+
+        using Baud_rate = unsigned int;
+
+        using Char_size = unsigned int;
     };
+
+    
     
 }
