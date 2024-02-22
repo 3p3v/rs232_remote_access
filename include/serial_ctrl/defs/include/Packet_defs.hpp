@@ -18,10 +18,10 @@ public:
     static constexpr unsigned char max_saved{30};
     static constexpr unsigned char max_not_ack{16};
 
-    Packet_defs() = default;
-    Packet_defs(Packet_defs &&) = default;
-    Packet_defs &operator=(Packet_defs &&) = default;
-    Packet_defs(const Packet_defs &) = default;
-    Packet_defs &operator=(const Packet_defs &) = default;
-    virtual ~Packet_defs() = 0;
+    Packet_defs() = delete;
+    // Packet_defs(Packet_defs &&) = default;
+    // Packet_defs &operator=(Packet_defs &&) = default;
+    // Packet_defs(const Packet_defs &) = default;
+    // Packet_defs &operator=(const Packet_defs &) = default;
+    // virtual ~Packet_defs() = 0;
 };

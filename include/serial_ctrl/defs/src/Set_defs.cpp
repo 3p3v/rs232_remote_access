@@ -74,6 +74,4 @@ namespace Ip_serial
     {
         return stop_bits_bi.right.find(stop_bits)->get_left();
     }
-
-    Set_defs::~Set_defs() = default;
 }

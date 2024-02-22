@@ -6,6 +6,7 @@
 #include <Change_param_job.hpp>
 #include <Param_change_notify_job.hpp>
 #include <Param_ready_notify_job.hpp>
+#include <Change_postponed_job.hpp>
 
 namespace Logic
 {
@@ -18,19 +19,23 @@ namespace Logic
           public std::shared_from_this<Setter>
     {
     public:
+        static constexpr params_count{4};
+
         /////////////////
         /* Definitions */
         /////////////////
     public:
-        using Remote_settings_ptr = std::shared_ptr<Mqtt_settings<Remote_sett_impl>>;
-        using Serial_settings_ptr = std::shared_ptr<Serial_settings<Serial_sett_impl>>;
+        using Remote_settings_ptr = Mqtt_settings<Remote_sett_impl>;
+        using Serial_settings_ptr = Serial_settings<Serial_sett_impl>;
         using Remote_record_ptr = std::shared_ptr<Remote_record>;
 
         ////////////////////////////////
         /* Data handled inside object */
         ////////////////////////////////
     private:
+        /// @brief Remote settings
         Remote_settings_ptr remote_s;
+        /// @brief Local settings
         Serial_settings_ptr serial_s;
 
         /// @brief Port settings, remote state
@@ -42,6 +47,8 @@ namespace Logic
         void add_established_param();
         /// @brief
         void if_all_params_established();
+        /// @brief
+        void check_if_all_params_established();
 
         /////////////////
         /* Jobs to add */
@@ -51,14 +58,16 @@ namespace Logic
         void add_get_set_param_job();
         /// @brief
         void add_change_param_job();
+        /// @brief
+        void add_change_postponed_job();
 
         ////////////////////////////////
         /* Actions with other modules */
         ////////////////////////////////
     private:
-        /// @brief 
+        /// @brief
         void param_change_notify_job();
-        /// @brief 
+        /// @brief
         void param_ready_notify_job();
 
         ////////////////////////////////////////////
@@ -159,11 +168,17 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::if_all_params_established()
     {
-        if(remote_rec->params_established == remote_rec->all_established)
+        if (remote_rec->params_established == remote_rec->all_established)
         {
             /* All parameters established, ready to exchange data */
             param_ready_notify_job();
         }
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
+    inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::check_if_all_params_established()
+    {
+        return remote_rec->params_established == remote_rec->all_established;
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -184,10 +199,19 @@ namespace Logic
                     /* Else send settings */
                     else
                     {
-                        set_baud_rate(remote_rec->port_settings.baud_rate);
-                        set_parity(remote_rec->port_settings.parity);
-                        set_char_size(remote_rec->port_settings.char_size);
-                        set_stop_bits(remote_rec->port_settings.stop_bits);
+                        /* Try to set parameters set by user */
+                        if (!check_for_jobs<Change_param_job>())
+                        {
+                            /* Send commands to change parameters if user did not sent them in the meantime */
+                            set_baud_rate_(remote_rec->port_settings.baud_rate);
+                            set_parity_(remote_rec->port_settings.parity);
+                            set_char_size_(remote_rec->port_settings.char_size);
+                            set_stop_bits_(remote_rec->port_settings.stop_bits);
+                        }
+                        else
+                        {
+                            take_job<Change_param_job>();
+                        }
                     }
                 }));
     }
@@ -200,42 +224,77 @@ namespace Logic
             Job_policies<>::make_job_handler<Change_param_job>(
                 [this](auto &job)
                 {
+                    if (!remote_rec->conf_port)
+                    {
+                        // TODO tell monitor it is impossible
+                    }
+                    else
+                    {
+                        if (if_all_params_established())
+                        {
+                            reset_established_params();
+
+                            /* Notify other modules about change in connection parameters */
+                            param_change_notify_job();
+
+                            /* Send commands to change parameters */
+                            set_baud_rate(job.port_settings.baud_rate);
+                            set_parity(job.port_settings.parity);
+                            set_char_size(job.port_settings.char_size);
+                            set_stop_bits(job.port_settings.stop_bits);
+                        }
+                        else
+                        {
+                            /* Some other action is being cared of in the moment, postpone changing parameters for later */
+                            give_job(Change_postponed_job{job});
+                        }
+                    }
+                }));
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
+    inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::add_change_postponed_job()
+    {
+        add_handler(
+            Job_type::Trivial,
+            Job_excluded::Only_private_queue,
+            Job_policies<>::make_job_handler<Change_param_job>(
+                [this](auto &job)
+                {
                     reset_established_params();
 
                     /* Notify other modules about change in connection parameters */
                     param_change_notify_job();
 
                     /* Send commands to change parameters */
-                    if (remote_rec->conf_port)
-                    {
-                        set_baud_rate(job.port_settings.baud_rate);
-                        set_parity(job.port_settings.parity);
-                        set_char_size(job.port_settings.char_size);
-                        set_stop_bits(job.port_settings.stop_bits);
-                    }
+                    set_baud_rate(job.port_settings.baud_rate);
+                    set_parity(job.port_settings.parity);
+                    set_char_size(job.port_settings.char_size);
+                    set_stop_bits(job.port_settings.stop_bits);
                 }));
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::param_change_notify_job()
     {
-        manager->forward_job(Param_change_notify_job{});
+        forward_job(Param_change_notify_job{});
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::param_ready_notify_job()
     {
-        manager->forward_job(Param_ready_notify_job{});
+        forward_job(Param_ready_notify_job{});
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::get_settings_()
     {
-        remote_s.write_i(std::string{get_info_s},
-                         [serial_ctrl = shared_from_this(), this]()
-                         {
-                             get_settings();
-                         });
+        remote_s.write_i(
+            std::string{get_info_s},
+            [serial_ctrl = shared_from_this(), this]()
+            {
+                get_settings();
+            });
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -453,62 +512,147 @@ namespace Logic
         pack.emplace(
             std::string{set_baud_rate_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { set_baud_rate(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port)
+                    {
+                        set_baud_rate();
+                    }
+                    else
+                    {
+                        // TODO inform monitor
+                    }
+                }));
 
         pack.emplace(
             std::string{get_baud_rate_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { 
-                    add_established_param();
-                    set_baud_rate_compl(arg);
-                    if_all_params_established(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port || !check_if_all_params_established())
+                    {
+                        set_baud_rate_compl(arg);
+                    }
+                    else
+                    {
+                        // TODO tell monitor about bad sequence
+                        return;
+                    }
+
+                    if (remote_rec->conf_port)
+                    {
+                        add_established_param();
+                        if_all_params_established();
+                    }
+                }));
 
         pack.emplace(
             std::string{set_parity_s},
             Command::Policies<Alpha_only>::Dyn_handle(
-                [](const std::string &arg)
-                { set_parity(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port)
+                    {
+                        set_parity();
+                    }
+                    else
+                    {
+                    }
+                }));
 
         pack.emplace(
             std::string{get_parity_s},
             Command::Policies<Alpha_only>::Dyn_handle(
-                [](const std::string &arg)
-                { 
-                    add_established_param();
-                    set_parity_compl(arg);
-                    if_all_params_established(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port || !check_if_all_params_established())
+                    {
+                        set_parity_compl(arg);
+                    }
+                    else
+                    {
+                        // TODO tell monitor about bad sequence
+                        return;
+                    }
+
+                    if (remote_rec->conf_port)
+                    {
+                        add_established_param();
+                        if_all_params_established();
+                    }
+                }));
 
         pack.emplace(
             std::string{set_char_size_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { set_char_size(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port)
+                    {
+                        set_char_size();
+                    }
+                    else
+                    {
+                    }
+                }));
 
         pack.emplace(
             std::string{get_char_size_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { 
-                    add_established_param();
-                    set_char_size_compl(arg);
-                    if_all_params_established(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port || !check_if_all_params_established())
+                    {
+                        set_char_size_compl(arg);
+                    }
+                    else
+                    {
+                        // TODO tell monitor about bad sequence
+                        return;
+                    }
+
+                    if (remote_rec->conf_port)
+                    {
+                        add_established_param();
+                        if_all_params_established();
+                    }
+                }));
 
         pack.emplace(
             std::string{set_stop_bits_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { set_stop_bits(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port)
+                    {
+                        set_stop_bits();
+                    }
+                    else
+                    {
+                    }
+                }));
 
         pack.emplace(
             std::string{get_stop_bits_s},
             Command::Policies<Numbers_only>::Dyn_handle(
-                [](const std::string &arg)
-                { 
-                    add_established_param();
-                    set_stop_bits_compl(arg);
-                    if_all_params_established(); }));
+                [this](const std::string &arg)
+                {
+                    if (!remote_rec->conf_port || !check_if_all_params_established())
+                    {
+                        set_stop_bits_compl(arg);
+                    }
+                    else
+                    {
+                        // TODO tell monitor about bad sequence
+                        return;
+                    }
+
+                    if (remote_rec->conf_port)
+                    {
+                        add_established_param();
+                        if_all_params_established();
+                    }
+                }));
 
         return pack;
     }
@@ -523,6 +667,8 @@ namespace Logic
           serial_s{std::forward<Serial_settings_ptr_t>(serial_s)},
           remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
     {
+        assert("Parameter count not match", params_count == remote_rec->all_established);
+
         add_get_set_param_job();
         add_change_param_job();
     }

@@ -25,7 +25,7 @@ private:
     std::array<Msg, max_saved> msgs;
 
 public:
-    /// @brief Get msg with given id, if not found throws exception
+    /// @brief Get msg with given id, if not found throws an exception
     /// @param id
     /// @return
     Msg &operator[](Val_t id);
@@ -67,15 +67,16 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
     T2,
     T3>::operator[](Val_t id)
 {
-    auto msg = std::find_if(msgs.begin(),
-                            msgs.end(),
-                            [this, id](auto &&c)
-                            {
-                                if (c.id_ == id && c.used == false)
-                                    return true;
-                                else
-                                    return false;
-                            });
+    auto msg = std::find_if(
+        msgs.begin(),
+        msgs.end(),
+        [this, id](auto &&c)
+        {
+            if (c.id_ == id && c.used == false)
+                return true;
+            else
+                return false;
+        });
 
     if (msg == msgs.end())
         throw std::logic_error{"Packet: " + std::to_string(id) + " does not exist!"};

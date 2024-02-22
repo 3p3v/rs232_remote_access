@@ -11,7 +11,9 @@
 #include <Restart_job.hpp>
 #include <Start_job.hpp>
 #include <Change_param_job.hpp>
+#include <Param_change_notify_job.hpp>
 #include <Param_ready_notify_job.hpp>
+#include <Get_set_param_job.hpp>
 
 namespace Logic
 {
@@ -21,17 +23,14 @@ namespace Logic
     class Logic final
         : public Authed_ext,
           protected Hi_defs,
-          public std::enable_shared_from_this
+          public std::enable_shared_from_this<Logic>
     {
         /////////////////
         /* Definitions */
         /////////////////
     public:
-        using Remote_settings_ptr = std::shared_ptr<Mqtt_settings<Remote_sett_impl>>;
-        using Remote_record_ptr = std::shared_ptr<Remote_record>;
-        using Remote_status_record_ptr = std::shared_ptr<Remote_status_record>;
-        using Next_cmds = std::vector<std::string_view &>;
-        using Next_cmds_ptr = std::shared_ptr<Next_cmds>;
+        using Remote_settings_ptr = Mqtt_settings<Remote_sett_impl>;
+        using Remote_record_ptr = std::shared_ptr<Remote_status_record>;
 
     private:
         /// @brief For setting action timeouts
@@ -47,9 +46,9 @@ namespace Logic
         auto def_t_ec_callb(Str &&cmd_name);
 
         Remote_settings_ptr remote_s;
-        
+
         /// @brief Remote state
-        Remote_status_record_ptr remote_rec;
+        Remote_record_ptr remote_rec;
 
         /// @brief For setting action timeouts
         Timers timers;
@@ -61,11 +60,11 @@ namespace Logic
         void add_restart_job() override;
 
     private:
-        /// @brief Connect to remote and serial
+        /// @brief Send start command
         void add_start_job();
-        /// @brief 
+        /// @brief
         void add_param_change_notify_job();
-        /// @brief 
+        /// @brief
         void add_param_ready_notify_job();
 
         ////////////////////////////////
@@ -74,6 +73,8 @@ namespace Logic
     private:
         /// @brief Reset all extensions
         void reset_exts_job();
+        /// @brief
+        void get_set_param_job();
 
         ////////////////////////////////////////////
         /* Commands sent to info and set channels */
@@ -92,8 +93,6 @@ namespace Logic
     private:
         /// @brief
         void say_hi();
-        /// @brief 
-        void keep_alive();
 
         //////////////////
         /* Timer resets */
@@ -103,7 +102,7 @@ namespace Logic
         void clear_timers();
         /// @brief
         void say_hi_compl();
-        /// @brief 
+        /// @brief
         void keep_alive_compl();
         /// @brief
         void reboot();
@@ -119,7 +118,6 @@ namespace Logic
         template <
             typename Manager_ptr_t,
             typename Remote_settings_ptr_t,
-            typename Serial_settings_ptr_t,
             template Remote_record_ptr_t,
             typename = std::enable_if_t<
                 std::is_base_of_v<
@@ -131,12 +129,12 @@ namespace Logic
                     std::decay_t<Remote_settings_ptr_t>>>,
             typename = std::enable_if_t<
                 std::is_same_v<
-                    Serial_settings_ptr,
-                    std::decay_t<Serial_settings_ptr_t>>>>
+                    Remote_record_ptr,
+                    std::decay_t<Remote_record_ptr_t>>>>
         Logic(
             Manager_ptr_t &&manager,
-            Remote_settings_ptr_t<Remote_sett_impl> &&remote_s,
-            Serial_settings_ptr_t<Serial_sett_impl> &&serial_s);
+            Remote_settings_ptr_t &&remote_s,
+            Remote_record_ptr_t &&remote_rec);
     };
 
     template <
@@ -145,19 +143,21 @@ namespace Logic
     template <
         typename Manager_ptr_t,
         typename Remote_settings_ptr_t,
-        typename Serial_settings_ptr_t,
+        template Remote_record_ptr_t,
         typename,
         typename,
         typename>
     inline Logic::Logic(
         Manager_ptr_t &&manager,
         Remote_settings_ptr_t &&remote_s,
-        Serial_settings_ptr_t &&serial_s)
+        Remote_record_ptr_t &&remote_rec)
         : Authed_ext{std::forward<Manager_ptr_t>(manager)},
           remote_s{std::forward<Remote_settings_ptr_t>(remote_s)},
-          serial_s{std::forward<Serial_settings_ptr_t>(serial_s)}
+          remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
     {
         add_start_job();
+        add_param_change_notify_job();
+        add_param_ready_notify_job();
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -202,15 +202,7 @@ namespace Logic
                         remote_rec->port_settings = std::move(job.port_settings);
 
                         /* Say hi */
-                        remote_s.write_s(
-                            master_hi_s.data(),
-                            [this, logic_ = std::shared_from_this()]() mutable
-                            {
-                                timers.start_timer(
-                                    master_hi_s.data(),
-                                    def_t_ec_callb(master_hi_s.data()));
-                            },
-                            def_ec_callb());
+                        say_hi_();
                     }
                 }));
     }
@@ -244,7 +236,13 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::reset_exts_job()
     {
-        manager->forward_job(Restart_job{});
+        forward_job(Restart_job{});
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::get_set_param_job()
+    {
+        forward_job(Get_set_param_job{});
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -253,10 +251,20 @@ namespace Logic
         if (remote_rec->conf_port)
         {
             remote_s.write_s(
-                std::string{master_hi_s},
+                master_hi_s.data(),
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    say_hi_timeout_();
+                    say_hi();
+                },
+                def_ec_callb());
+        }
+        else
+        {
+            remote_s.write_s(
+                master_keep_alive_s.data(),
+                [serial_ctrl = shared_from_this(), this]()
+                {
+                    say_hi();
                 },
                 def_ec_callb());
         }
@@ -266,32 +274,8 @@ namespace Logic
     inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi_timeout_()
     {
         reset_exts_job();
-        
-        if (remote_rec->conf_port)
-        {
-            remote_s.write_s(
-                std::string{master_hi_s},
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    // TODO tell monitor about timeout
-                    say_hi_timeout_();
-                },
-                def_ec_callb());
-        }
-        else
-        {
-            remote_s.write_i(
-                std::string{master_keep_alive_s},
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    // TODO tell monitor about timeout
-                    say_hi_timeout_();
-                },
-                def_ec_callb());
-        }
+        say_hi_();
     }
-
-    
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline Cmds_pack Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::get_cmds()
@@ -300,29 +284,20 @@ namespace Logic
 
         pack.emplace(
             std::string{master_hi_s},
-            Command::Policies<No_arg>::Dyn_handle([](const std::string &arg)
-                                                  { say_hi_(); }));
+            Command::Policies<No_arg>::Dyn_handle(
+                [](const std::string &arg)
+                { say_hi_(); }));
 
         pack.emplace(
             std::string{slave_hi_s},
-            Command::Policies<No_arg>::Dyn_handle([](const std::string &arg)
-                                                  { 
-                                                    /* Delete timer */
-                                                    helper.say_hi_compl();
+            Command::Policies<No_arg>::Dyn_handle(
+                [](const std::string &arg)
+                { 
+                    /* Delete timer */
+                    helper.say_hi_compl();
 
-                                                    /* Get settings if unknown or not configurable */
-                                                    if (!remote_rec->settings_known || !remote_rec->conf_port)
-                                                    {
-                                                        get_settings_();
-                                                    }
-                                                    /* Else send settings */
-                                                    else
-                                                    {
-                                                        set_baud_rate(remote_rec->port_settings.baud_rate);
-                                                        set_parity(remote_rec->port_settings.parity);
-                                                        set_char_size(remote_rec->port_settings.char_size);
-                                                        set_stop_bits(remote_rec->port_settings.stop_bits);
-                                                    } }));
+                    /* Start establishing parameters */
+                    get_set_param_job() }));
 
         return pack;
     }
@@ -330,29 +305,26 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi()
     {
-        timers.start_timer(
-            std::string{master_hi_s},
+        if (remote_rec->conf_port)
+        {
             timers.start_timer(
-                Custom_timer(
-                    [serial_ctrl = shared_from_this(), this]()
-                    {
-                        /* Try to say hi to device again */
-                        say_hi_timeout_();
-                    });));
-    }
-
-    template <typename Timer_t, typename Remote_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl>::keep_alive()
-    {
-        timers.start_timer(
-            std::string{keep_alive_s},
+                slave_hi_s.data(),
+                [serial_ctrl = shared_from_this(), this]()
+                {
+                    /* Try to say hi to device again */
+                    say_hi_timeout_();
+                });
+        }
+        else
+        {
             timers.start_timer(
-                Custom_timer(
-                    [serial_ctrl = shared_from_this(), this]()
-                    {
-                        /* Try to say hi to device again */
-                        say_hi_timeout_();
-                    });));
+                slave_keep_alive_s.data(),
+                [serial_ctrl = shared_from_this(), this]()
+                {
+                    /* Try to say hi to device again */
+                    say_hi_timeout_();
+                });
+        }
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -364,12 +336,12 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::keep_alive_compl()
     {
-        timers.stop_timer(std::string{keep_alive_s});
+        timers.stop_timer(master_keep_alive_s.data());
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi_timeout_compl()
     {
-        timers.stop_timer(std::string{master_hi_s});
+        timers.stop_timer(master_hi_s.data());
     }
 }

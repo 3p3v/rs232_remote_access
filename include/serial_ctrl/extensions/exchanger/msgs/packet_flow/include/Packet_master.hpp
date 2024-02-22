@@ -7,10 +7,11 @@ template <
     typename Val_t,
     Val_t min_msg_num,
     Val_t max_msg_num>
-class Packet_master : public Packet_flow<
-                          Val_t,
-                          min_msg_num,
-                          max_msg_num>
+class Packet_master
+    : public Packet_flow<
+          Val_t,
+          min_msg_num,
+          max_msg_num>
 {
 public:
     Val_t num_up();

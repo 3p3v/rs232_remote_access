@@ -8,7 +8,7 @@ namespace Job_ctrl
     {
         auto ids = std::vector<Job_info>(job_handlers.size());
         std::for_each(
-            ids.begin(), 
+            ids.begin(),
             ids.end(),
             [job_iter = job_handlers.begin()](auto &id) mutable
             {
@@ -19,13 +19,26 @@ namespace Job_ctrl
         return ids;
     }
 
+    size_t Worker::check_for_jobs()
+    {
+        return jobs.size();
+    }
+
     size_t Worker::take_job()
     {
-        /* Do job */
-        get_handler(jobs.front()->second)->exec(*(get_queue(jobs.front()->second).front()));
-        /* Delete job */
-        get_queue(jobs.front()->second).pop();
-        jobs.pop();
+        size_t done{};
+        
+        if (jobs.size())
+        {
+            /* Do job */
+            get_handler(jobs.front()->second)->exec(*(get_queue(jobs.front()->second).front()));
+            /* Delete job */
+            get_queue(jobs.front()->second).pop();
+            jobs.pop();
+
+            done++;
+        }
+
         /* Return number of jobs left */
         return jobs.size();
     }

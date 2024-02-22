@@ -13,7 +13,7 @@ namespace Job_ctrl
 namespace Logic
 {
     /// @brief Base functionality of any module implementing functionality of MQTT<->Serial communication
-    /// @tparam Timer_t 
+    /// @tparam Timer_t Timer implementation
     template <typename Timer_t>
     class Common_ext : public Unauthed_ext
     {
@@ -23,6 +23,7 @@ namespace Logic
         /// @brief For setting action timeouts
         Timers timers;
 
+        /// @brief 
         void add_restart_job() override;
 
         /// @brief

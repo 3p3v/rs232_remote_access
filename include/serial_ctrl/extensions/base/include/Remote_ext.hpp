@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Forwarder.hpp>
+#include <Restart_job.hpp>
 
 using namespace Job_ctrl;
 using namespace Cmd_ctrl;
@@ -11,7 +12,12 @@ namespace Logic
     class Remote_ext : public Worker
     {
     protected:
+        virtual void forward_job(Job &&job) = 0;
+        virtual void forward_job(const Job &job) = 0;
+        /// @brief Restart module procedure
         virtual void add_restart_job() = 0;
+        /// @brief Send signal to restart all modules
+        void restart_job();
 
         /// @brief Default error callback
         /// @return
@@ -42,6 +48,11 @@ namespace Logic
     {
         // Add job for at least resetting all timers (used when there was error in communication with device)
         add_restart_job();
+    }
+
+    inline void Remote_ext::restart_job()
+    {
+        forward_job(Restart_job{});
     }
 
     inline auto Remote_ext::def_ec_callb()

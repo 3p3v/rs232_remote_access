@@ -44,11 +44,11 @@ namespace Ip_serial
         static Serial_port::Ctrl_defs::Flow_ctrl flow_ctrl_trans(const std::string &flow_ctrl);
         static Serial_port::Ctrl_defs::Stop_bits stop_bits_trans(const std::string &stop_bits);
 
-        Set_defs() = default;
-        Set_defs(Set_defs&&) = default;
-        Set_defs& operator=(Set_defs&&) = default;
-        Set_defs(const Set_defs&) = default;
-        Set_defs& operator=(const Set_defs&) = default;
-        virtual ~Set_defs() = 0;
+        Set_defs() = delete;
+        // Set_defs(Set_defs&&) = default;
+        // Set_defs& operator=(Set_defs&&) = default;
+        // Set_defs(const Set_defs&) = default;
+        // Set_defs& operator=(const Set_defs&) = default;
+        // virtual ~Set_defs() = 0;
     };
 }

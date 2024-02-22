@@ -17,9 +17,13 @@ namespace Logic
     {
         using Forwarder_ptr = std::weak_ptr<Manager>;
 
-    protected:
+    private:
         /// @brief Used to send messages to other modules
         Forwarder_ptr manager;
+
+    protected:
+        void forward_job(Job &&job) override final;
+        void forward_job(const Job &job) override final;
 
     public:
         template <typename Forwarder_ptr_t>
