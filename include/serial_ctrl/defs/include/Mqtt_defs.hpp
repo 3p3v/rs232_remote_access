@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace Ip_serial
+namespace Logic
 {
     class Mqtt_defs
     {

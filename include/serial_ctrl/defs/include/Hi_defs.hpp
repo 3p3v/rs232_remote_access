@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace Ip_serial
+namespace Logic
 {
     class Hi_defs
     {

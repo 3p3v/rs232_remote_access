@@ -22,7 +22,7 @@ namespace Job_ctrl
     enum class Job_excluded : bool
     {
         Only_private_queue = true,
-        Main_queue = false 
+        Main_queue = false
     };
 
     class Worker
@@ -53,7 +53,7 @@ namespace Job_ctrl
             typename = std::enable_if_t<
                 std::is_base_of_v<
                     Job_handler_intf,
-                    Job_handler_t>>>
+                    std::decay_t<Job_handler_t>>>>
         void add_handler(Job_type mandatority, Job_handler_t &&handler);
 
         template <
@@ -61,14 +61,14 @@ namespace Job_ctrl
             typename = std::enable_if_t<
                 std::is_base_of_v<
                     Job_handler_intf,
-                    Job_handler_t>>>
+                    std::decay_t<Job_handler_t>>>>
         void add_handler(Job_type mandatority, Job_excluded excluded, Job_handler_t &&handler);
 
         size_t check_for_jobs();
 
         template <typename Job_t>
         size_t check_for_jobs();
-        
+
         size_t take_job();
 
         template <typename Job_t>
@@ -82,7 +82,11 @@ namespace Job_ctrl
             typename = std::enable_if_t<
                 std::is_base_of_v<
                     Job,
-                    Job_t>>>
+                    std::decay_t<Job_t>>>,
+            typename = std::enable_if_t<
+                !std::is_same_v<
+                    Job,
+                    std::decay_t<Job_t>>>>
         void give_job(Job_t &&job);
 
         Worker() = default;
@@ -100,7 +104,7 @@ namespace Job_ctrl
 
     inline decltype(auto) Worker::get_excluded(Job_tuple &t)
     {
-        return std::get<4>(t);
+        return std::get<3>(t);
     }
 
     inline decltype(auto) Worker::get_handler(Job_tuple &t)
@@ -116,7 +120,7 @@ namespace Job_ctrl
     template <typename Job_handler_t, typename>
     inline void Worker::add_handler(Job_type run_type, Job_handler_t &&handler)
     {
-        add_handler(run_type, false, std::forward<Job_handler_t>(handler));
+        add_handler(run_type, Job_excluded::Main_queue, std::forward<Job_handler_t>(handler));
     }
 
     template <typename Job_handler_t, typename>
@@ -132,7 +136,7 @@ namespace Job_ctrl
                 excluded));
     }
 
-    template <typename Job_t, typename>
+    template <typename Job_t, typename, typename>
     inline void Worker::give_job(Job_t &&job)
     {
         auto job_h = job_handlers.find(job.get_id());

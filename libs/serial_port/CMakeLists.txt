@@ -13,7 +13,7 @@ add_library(${PROJECT_NAME} STATIC
             src/Serial.cpp)
 
 # include dirs
-set(serial_port_INCLUDE_DIR "include")
+set(serial_port_INCLUDE_DIR "./include/")
 
 # include libs
 target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIR})   # include boost

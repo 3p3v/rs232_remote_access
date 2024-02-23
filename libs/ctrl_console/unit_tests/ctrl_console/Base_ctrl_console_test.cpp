@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
-#include <Base_ctrl_console.hpp>
+#include <Ctrl_console.hpp>
 #include <Exec.hpp>
 #include <string>
 #include <Lower_or_equal.hpp>
 #include <No_arg.hpp>
 
 using Handle_t = Cmd_ctrl::Exec<int &>::Param<std::string &&>;
-using Ctrl_console = Cmd_ctrl::Base_ctrl_console<Handle_t, Cmd_ctrl::Endl_opt::without>;
+using Ctrl_console = Cmd_ctrl::Ctrl_console<Handle_t, Cmd_ctrl::Endl_opt::without>;
 
 TEST(cmd_ctrl, recognise_command)
 {

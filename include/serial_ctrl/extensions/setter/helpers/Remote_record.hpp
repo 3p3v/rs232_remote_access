@@ -8,7 +8,7 @@ namespace Logic
     class Remote_record : virtual public Remote_conf_port_rec
     {
     public:
-        static constexpr all_established{4};
+        static constexpr auto all_established{4};
 
         /// @brief Configurable device?
         bool settings_known{true};

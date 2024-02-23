@@ -8,7 +8,7 @@ using namespace Cmd_ctrl;
 
 namespace Job_ctrl
 {
-    using Job_handler_param = Exec<>::Param<Job&>;
+    using Job_handler_param = Exec<>::Param<Job &>;
 
     using Job_handler_intf = Job_handler_param::Base_handle_intf;
 
@@ -24,8 +24,9 @@ namespace Job_ctrl
             typename Handler_t,
             std::enable_if_t<
                 std::is_base_of_v<
-                    Job,
-                    Job_t>, bool> = true>
+                    std::decay_t<Job>,
+                    std::decay_t<Job_t>>,
+                bool> = true>
         class Job_handler final : public Base_handle
         {
             Handler_t handler;
@@ -38,7 +39,7 @@ namespace Job_ctrl
 
             void exec(Job &arg) const override
             {
-                handler(dynamic_cast<Job_t&>(arg));
+                handler(dynamic_cast<Job_t &>(arg));
             }
 
             Job::Job_id get_id()

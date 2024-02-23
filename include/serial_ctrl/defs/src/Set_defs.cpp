@@ -3,7 +3,7 @@
 
 using namespace Serial_port;
 
-namespace Ip_serial
+namespace Logic
 {
     const Set_defs::Parity_bimap Set_defs::parity_bi = boost::assign::list_of<Set_defs::Parity_bimap::relation>
     (Ctrl_defs::Parity::even, "e")

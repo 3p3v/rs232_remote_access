@@ -88,15 +88,15 @@ add_executable(${PROJECT_NAME} "./temp/main.cpp")
 
 # Find message saving
 add_subdirectory("include/serial_ctrl/")
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROTOCOL_LOGIC_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${TEMP_NAME_INCLUDE_DIR})
 
 # # 
 # target_include_directories(${PROJECT_NAME} PUBLIC $${PAHO_MQTT_C_INCLUDE_DIRS})
 
 # # find serial port library
-# set(SERIAL_LIB_NAMES serial_port)
+set(SERIAL_LIB_NAMES serial_port)
 # set(SERIAL_LIB_PATHS "libs/serial_port")
-# add_subdirectory("libs/serial_port")
+add_subdirectory("libs/serial_port")
 # target_include_directories(${PROJECT_NAME} PUBLIC ${serial_port_INCLUDE_DIR})
 
 # # find mqtt_port library
@@ -114,7 +114,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
 # target_link_libraries(${PROJECT_NAME} PUBLIC serial_port)
 # target_link_libraries(${PROJECT_NAME} PUBLIC mqtt_port)
 target_link_libraries(${PROJECT_NAME} PUBLIC ctrl_console)
-target_link_libraries(${PROJECT_NAME} PUBLIC protocol_logic)
+target_link_libraries(${PROJECT_NAME} PUBLIC temp_main)
 
 # # language standard
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)

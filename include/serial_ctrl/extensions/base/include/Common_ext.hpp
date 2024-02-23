@@ -18,7 +18,7 @@ namespace Logic
     class Common_ext : public Unauthed_ext
     {
     protected:
-        using Timers = Timer_cont<Timer_t>;
+        using Timers = Timer_cont;
 
         /// @brief For setting action timeouts
         Timers timers;
@@ -34,8 +34,8 @@ namespace Logic
         Common_ext(Forwarder_ptr_t&& manager);
         Common_ext(const Common_ext&) = delete;
         Common_ext& operator=(const Common_ext&) = delete;
-        Common_ext(const Common_ext&) = default;
-        Common_ext& operator=(const Common_ext&) = default;
+        Common_ext(Common_ext&&) = default;
+        Common_ext& operator=(Common_ext&&) = default;
         ~Common_ext() = 0;
     };
 
@@ -47,8 +47,24 @@ namespace Logic
     }
 
     template <typename Timer_t>
+    void Common_ext<Timer_t>::add_restart_job()
+    {
+        // Add job for resetting all timers (used when there was error in communication with device)
+        add_handler(
+            Job_type::Urgent,
+            Job_policies<>::make_job_handler<Restart_job>(
+                [this]()
+                {
+                    timers.clear();
+                }));
+    }
+
+    template <typename Timer_t>
     inline void Common_ext<Timer_t>::clear_timers()
     {
         timers.clear();
     }
+
+    template <typename Timer_t>
+    inline Common_ext<Timer_t>::~Common_ext() = default;
 }

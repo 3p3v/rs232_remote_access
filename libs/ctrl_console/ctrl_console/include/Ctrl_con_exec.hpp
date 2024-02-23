@@ -5,7 +5,7 @@
 namespace Cmd_ctrl
 {
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
-    class Base_ctrl_con_exec : virtual protected Base_ctrl_console<Base_handle_t, endl_opt, endl_, space_>
+    class Ctrl_con_exec : virtual protected Base_ctrl_console<Base_handle_t, endl_opt, endl_, space_>
     {
     public:
         template <typename... Args, typename Iter_t>
@@ -14,7 +14,7 @@ namespace Cmd_ctrl
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
     template <typename... Args, typename Iter_t>
-    void Base_ctrl_con_exec<Base_handle_t, endl_opt, endl, space>::exec(const Iter_t begin, const Iter_t end, Args&&... args) const
+    void Ctrl_con_exec<Base_handle_t, endl_opt, endl, space>::exec(const Iter_t begin, const Iter_t end, Args&&... args) const
     {
         auto parsed_cmds = parser.parse(begin, end);
 

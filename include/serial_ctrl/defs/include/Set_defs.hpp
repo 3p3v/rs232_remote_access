@@ -7,7 +7,7 @@
 
 using namespace Serial_port;
 
-namespace Ip_serial
+namespace Logic
 {
     class Set_defs
     {

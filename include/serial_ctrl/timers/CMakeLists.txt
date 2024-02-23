@@ -6,7 +6,7 @@ add_library(${PROJECT_NAME} STATIC
     "./src/Basic_timer_impl.cpp"
     "./src/Basic_timer.cpp"
     "./src/Timer_cont.cpp"
-    "./src/Timer.cpp"
+    # "./src/Timer.cpp"
 )
 
 # Header files
@@ -18,6 +18,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${TIMERS_INCLUDE_DIR})
 # Boost asio
 target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+# Context
+target_include_directories(${PROJECT_NAME} PUBLIC ${COMMON_CONTEXT_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} common_context)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 

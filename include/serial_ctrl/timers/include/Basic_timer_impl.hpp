@@ -2,8 +2,8 @@
 
 #include <boost/asio.hpp>
 #include <Basic_timer.hpp>
-#include <serial/Serial_context.hpp>
-#include <Cmds_except.hpp>
+#include <Serial_context.hpp>
+// #include <Cmds_except.hpp>
 
 /// @brief Basic_timer_impl fireing callback after given time
 class Basic_timer_impl : public Basic_timer, protected Phy_serial::Serial_context

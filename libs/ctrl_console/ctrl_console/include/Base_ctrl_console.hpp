@@ -30,40 +30,40 @@ namespace Cmd_ctrl
         Ctrl_parser<endl_opt, endl, space> parser;
 
     public:
-        template <typename Str, typename Handle_t>
-        void add_cmd(Str &&cmd_name, Handle_t &&handle);
+        // template <typename Str, typename Handle_t>
+        // void add_cmd(Str &&cmd_name, Handle_t &&handle);
 
-        template <typename... Args, typename Iter_t>
-        void exec(const Iter_t begin, const Iter_t end, Args&&... args) const;
+        // template <typename... Args, typename Iter_t>
+        // void exec(const Iter_t begin, const Iter_t end, Args&&... args) const;
     };
 
-    template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
-    template <typename Str, typename Handle_t>
-    void Base_ctrl_console<Base_handle_t, endl_opt, endl, space>::add_cmd(Str &&cmd_name, Handle_t &&handle)
-    {
-        if (cmds.find(cmd_name) == cmds.end())
-        {
-            cmds.emplace(std::forward<Str>(cmd_name),
-                         Ctrl_handle(std::make_unique<Handle_t>(std::forward<Handle_t>(handle))));
-        }
-        else
-        {
-            throw std::logic_error{"The comand with specyfied name already exists!"};
-        }
-    }
+    // template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
+    // template <typename Str, typename Handle_t>
+    // void Base_ctrl_console<Base_handle_t, endl_opt, endl, space>::add_cmd(Str &&cmd_name, Handle_t &&handle)
+    // {
+    //     if (cmds.find(cmd_name) == cmds.end())
+    //     {
+    //         cmds.emplace(std::forward<Str>(cmd_name),
+    //                      Ctrl_handle(std::make_unique<Handle_t>(std::forward<Handle_t>(handle))));
+    //     }
+    //     else
+    //     {
+    //         throw std::logic_error{"The comand with specyfied name already exists!"};
+    //     }
+    // }
 
-    template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
-    template <typename... Args, typename Iter_t>
-    void Base_ctrl_console<Base_handle_t, endl_opt, endl, space>::exec(const Iter_t begin, const Iter_t end, Args&&... args) const
-    {
-        auto parsed_cmds = parser.parse(begin, end);
+    // template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
+    // template <typename... Args, typename Iter_t>
+    // void Base_ctrl_console<Base_handle_t, endl_opt, endl, space>::exec(const Iter_t begin, const Iter_t end, Args&&... args) const
+    // {
+    //     auto parsed_cmds = parser.parse(begin, end);
 
-        std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this, &args...](auto &p_cmd)
-                      {
-                        if (cmds[p_cmd.name]->validate(p_cmd.arg))
-                            cmds[p_cmd.name]->exec(std::forward<Args...>(args...), std::forward<std::decay_t<decltype(p_cmd.arg)>>(p_cmd.arg));
-                        else
-                            throw std::logic_error{"Received command: \"" + p_cmd.name + "\" didn't pass validation!"};   
-                      });
-    }
+    //     std::for_each(parsed_cmds.begin(), parsed_cmds.end(), [this, &args...](auto &p_cmd)
+    //                   {
+    //                     if (cmds[p_cmd.name]->validate(p_cmd.arg))
+    //                         cmds[p_cmd.name]->exec(std::forward<Args...>(args...), std::forward<std::decay_t<decltype(p_cmd.arg)>>(p_cmd.arg));
+    //                     else
+    //                         throw std::logic_error{"Received command: \"" + p_cmd.name + "\" didn't pass validation!"};   
+    //                   });
+    // }
 }

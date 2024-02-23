@@ -11,13 +11,14 @@ add_library(${PROJECT_NAME} STATIC
 
 # Header files
 set(EXTENSIONS_BASE_INCLUDE_DIR 
-    "./include"
+    "./include/"
+    "./jobs/"
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_BASE_INCLUDE_DIR})
 
-# Commands interpreter console and jobs
-target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}  ctrl_console)
+# 
+target_include_directories(${PROJECT_NAME} PUBLIC ${GENERAL_INTERFACE_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME}  general_interface)
 # Universal settings and data objects
 target_include_directories(${PROJECT_NAME} PUBLIC ${SIDES_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}  sides)

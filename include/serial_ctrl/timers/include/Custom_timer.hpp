@@ -41,8 +41,12 @@ Custom_timer(Callb&&) -> Custom_timer<Callb>;
 template <typename Callb>
 Custom_timer(Callb&&, std::chrono::milliseconds) -> Custom_timer<Callb>;
 
-// template <typename Callb>
-// decltype(auto) make_custom_timer(Callb &&callb, std::chrono::milliseconds interval = std::chrono::seconds{10})
-// {
-//     return std::make_unique<Custom_timer<Callb>>(std::forward<Callb>(callb), interval);
-// }
+class Custom_timer_maker
+{
+public:
+    template <typename Callb>
+    auto make_timer(Callb &&callb, std::chrono::milliseconds interval = std::chrono::seconds{10})
+    {
+        return std::make_unique<Custom_timer<Callb>>(std::forward<Callb>(callb), interval);
+    }
+};

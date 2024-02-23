@@ -9,9 +9,9 @@ add_library(${PROJECT_NAME} STATIC
 
 # Header files
 set(LOGIC_EXT_INCLUDE_DIR 
-    "./logic/include/"
-    "./logic/helpers/"
-    "./logic/jobs/"
+    "./include/"
+    "./helpers/"
+    "./jobs/"
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${LOGIC_EXT_INCLUDE_DIR})
 
@@ -21,6 +21,10 @@ if(${BUILD_TESTING} true)
     # Test code
     add_executable(${LOGIC_EXT_TESTS} 
         "./unit_tests/logic_tests.cpp"
+    )
+
+    target_include_directories(${LOGIC_EXT_TESTS}
+        "./unit_tests/include/"
     )
 
     # Link test library with others
@@ -39,6 +43,9 @@ endif()
 # Base extensions
 target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_BASE_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}  extensions_base)
+# Base extensions
+target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_COMMONS_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME}  extensions_commons)
 # Additional definitions
 target_include_directories(${PROJECT_NAME} PUBLIC ${DEFS_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}  defs)

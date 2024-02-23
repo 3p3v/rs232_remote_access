@@ -1,95 +1,51 @@
 #include <gtest/gtest.h>
 #include <Logic.hpp>
-#include <Basic_timer.hpp>
+#include <Process_full.hpp>
+#include <Hi_defs.hpp>
 
-using namespace Logic;
-
-class Remote_sett_impl;
-
-template <typename Callb>
-class Custom_timer_impl;
-
-using Logic_under_test = Logic<Custom_timer_impl, Remote_sett_impl>;
-
-TEST(logic, recognise_command)
+namespace Logic
 {
-    auto manager = std::make_shared<Process_manager>();
-    auto rec = std::make_shared<Remote_status_record>(Remote_conf_port::Configurable);
 
-    Logic_under_test log{manager, rec, Remote_sett_impl{}};
+    class Remote_sett_impl;
 
-    /* Start communication */
-    log.give_job(Start_job{});
-    EXPECT_EQ()
+    template <typename Callb>
+    class Custom_timer_impl;
 
+    class Custom_timer_impl_maker;
 
-    log.give_job(Start_job{});
+    class Observer;
 
-    EXPECT_EQ(val, new_val);
-    EXPECT_STREQ(rec_arg.data(), argument.data());
+    using Logic_under_test = Logic<Custom_timer_impl_maker, Remote_sett_impl>;
+
+    TEST(logic, usual_non_error)
+    {
+        auto manager = std::make_shared<Process_full>();
+        auto rec = std::make_shared<Remote_status_record>(Remote_conf_port::Configurable);
+
+        /* Create logic extension and add it to manager */
+        manager->add_ext<Logic_under_test>(manager, rec, Remote_sett_impl{});
+
+        /* Initial */
+        EXPECT_EQ(Remote_sett_impl::get_last_msg_s().empty(), true);
+        EXPECT_EQ(Remote_sett_impl::get_last_msg_i().empty(), true);
+        EXPECT_EQ(rec->status, Remote_status::Not_connected);
+
+        /* Start communication */
+        manager->forward_job(Start_job{});
+        EXPECT_EQ(Remote_sett_impl::get_last_msg_s(), Hi_defs::master_hi_s.data());
+        EXPECT_EQ(Remote_sett_impl::get_last_msg_i().empty(), true);
+        EXPECT_EQ(rec->status, Remote_status::Not_connected);
+
+        /* Remote sends hi */
+        auto sh = std::string{Hi_defs::slave_hi_s} + '\n';
+        manager->exec(std::begin(sh), std::end(sh));
+        EXPECT_EQ(rec->status, Remote_status::Establishing_parameters);
+        EXPECT_EQ(Observer::if_get_set_param_fired(), true);
+
+        /* Send signal that parameters were established */
+        Observer::param_ready_notify_job();
+        EXPECT_EQ(rec->status, Remote_status::Data_exchange);
+    }
+
+    
 }
-
-class Remote_sett_impl
-{
-    static std::string last_msg_s{};
-    static std::string last_msg_i{};
-
-public:
-    auto get_last_msg_s()
-    {
-        auto last_ = last_msg_s;
-        last_msg.clear();
-        return last_;
-    }
-
-    auto get_last_msg_i()
-    {
-        auto last_ = last_msg_i;
-        last_msg.clear();
-        return last_;
-    }
-
-    template <typename Cont_t, typename Arg_cont_t, typename Ok_callb, typename Ec_callb>
-    inline void write_i(Cont_t &&msg, Arg_cont_t &&arg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-    {
-        last_msg_i = msg + ' ' + arg;
-    }
-
-    template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-    inline void write_i(Cont_t &&msg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-    {
-        last_msg_i = msg;
-    }
-
-    template <typename Cont_t, typename Arg_cont_t, typename Ok_callb, typename Ec_callb>
-    inline void write_s(Cont_t &&msg, Arg_cont_t &&arg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-    {
-        last_msg_s = msg + ' ' + arg;
-    }
-
-    template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-    inline void write_s(Cont_t &&msg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
-    {
-        last_msg_s = msg;
-    }
-}
-
-template <typename Callb>
-class Custom_timer_impl : public Basic_timer
-{
-    /* Callback */
-    Callb callb;
-
-public:
-    void start() override
-    {
-
-    }
-
-    void stop() override
-    {
-        
-    }
-
-    Custom_timer(Callb &&callb);
-};

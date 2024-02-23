@@ -9,6 +9,6 @@ namespace Logic
     {
     public:
         /// @brief 
-        Remote_status status{Remote_status::not_connected};
+        Remote_status status{Remote_status::Not_connected};
     }; 
 }

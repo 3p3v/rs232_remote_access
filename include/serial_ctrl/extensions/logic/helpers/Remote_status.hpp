@@ -5,12 +5,12 @@ namespace Logic
     enum class Remote_status
     {
         /// @brief Not tried to connect yet
-        not_connected,
+        Not_connected,
         /// @brief Choosing port parameters
-        establishing_parameters,
+        Establishing_parameters,
         /// @brief Ready to exchange data
-        data_exchange,
+        Data_exchange,
         /// @brief Got disconnected 
-        disconnected
+        Disconnected
     };
 }

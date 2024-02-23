@@ -19,7 +19,7 @@ namespace Logic
           public std::shared_from_this<Setter>
     {
     public:
-        static constexpr params_count{4};
+        static constexpr auto params_count{4};
 
         /////////////////
         /* Definitions */

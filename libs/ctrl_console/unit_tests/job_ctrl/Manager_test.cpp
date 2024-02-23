@@ -73,7 +73,7 @@ public:
 TEST(cmd_ctrl, manager)
 {
     auto counter = std::shared_ptr<Counter>(std::make_shared<Counter>(observed_val));
-    Manager man{};
+    Manager<std::shared_ptr<Counter>> man{};
     man.add_worker(counter);
 
     // Job should fire immediately

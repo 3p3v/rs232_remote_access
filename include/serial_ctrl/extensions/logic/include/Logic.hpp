@@ -5,12 +5,12 @@
 #include <Authed_ext.hpp>
 #include <Mqtt_settings.hpp>
 #include <Remote_status_record.hpp>
+#include <Timer_cont.hpp>
 /* Definitions */
 #include <Hi_defs.hpp>
 /* Jobs */
 #include <Restart_job.hpp>
 #include <Start_job.hpp>
-#include <Change_param_job.hpp>
 #include <Param_change_notify_job.hpp>
 #include <Param_ready_notify_job.hpp>
 #include <Get_set_param_job.hpp>
@@ -23,7 +23,7 @@ namespace Logic
     class Logic final
         : public Authed_ext,
           protected Hi_defs,
-          public std::enable_shared_from_this<Logic>
+          public std::enable_shared_from_this<Logic<Timer_t, Remote_sett_impl>>
     {
         /////////////////
         /* Definitions */
@@ -34,7 +34,7 @@ namespace Logic
 
     private:
         /// @brief For setting action timeouts
-        using Timers = Timer_cont<Timer_t>;
+        using Timers = Timer_cont;
 
         ////////////////////////////////
         /* Data handled inside object */
@@ -118,7 +118,7 @@ namespace Logic
         template <
             typename Manager_ptr_t,
             typename Remote_settings_ptr_t,
-            template Remote_record_ptr_t,
+            typename Remote_record_ptr_t,
             typename = std::enable_if_t<
                 std::is_base_of_v<
                     Manager_ptr,
@@ -143,11 +143,11 @@ namespace Logic
     template <
         typename Manager_ptr_t,
         typename Remote_settings_ptr_t,
-        template Remote_record_ptr_t,
+        typename Remote_record_ptr_t,
         typename,
         typename,
         typename>
-    inline Logic::Logic(
+    inline Logic<Timer_t, Remote_sett_impl>::Logic(
         Manager_ptr_t &&manager,
         Remote_settings_ptr_t &&remote_s,
         Remote_record_ptr_t &&remote_rec)
@@ -160,9 +160,9 @@ namespace Logic
         add_param_ready_notify_job();
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
+    template <typename Timer_t, typename Remote_sett_impl>
     template <typename Str>
-    inline auto Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::def_t_ec_callb(Str &&cmd_name)
+    inline auto Logic<Timer_t, Remote_sett_impl>::def_t_ec_callb(Str &&cmd_name)
     {
         return [cmd_name = std::forward<Str>(cmd_name)]() mutable
         {
@@ -170,8 +170,8 @@ namespace Logic
         };
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::add_restart_job()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::add_restart_job()
     {
         // Add job for resetting all timers (used when there was error in communication with device)
         add_handler(
@@ -187,22 +187,26 @@ namespace Logic
                 }));
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::add_start_job()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::add_start_job()
     {
         add_handler(
             Job_type::Urgent,
             Job_policies<>::make_job_handler<Start_job>(
                 [this](Start_job &&job)
                 {
-                    if (remote_rec->status == Remote_status_record::not_connected ||
-                        remote_rec->status == Remote_status_record::disconnected)
+                    if (remote_rec->status == Remote_status_record::Not_connected ||
+                        remote_rec->status == Remote_status_record::Disconnected)
                     {
                         /* Set params */
                         remote_rec->port_settings = std::move(job.port_settings);
 
                         /* Say hi */
                         say_hi_();
+                    }
+                    else
+                    {
+                        throw std::logic_error{"Can not start same serial two times!"};
                     }
                 }));
     }
@@ -215,8 +219,15 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_change_notify_job>(
                 [this](auto &job)
                 {
-                    /* Reestablishing connection parameters */
-                    remote_rec->status = Remote_status::establishing_parameters;
+                    if (remote_rec->status == Remote_status::Data_exchange)
+                    {
+                        /* Reestablishing connection parameters */
+                        remote_rec->status = Remote_status::Establishing_parameters;
+                    }
+                    else
+                    {
+                        throw std::logic_error{"Bad job order!"};
+                    }
                 }));
     }
 
@@ -228,13 +239,20 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_ready_notify_job>(
                 [this](auto &job)
                 {
-                    /* Reestablishing connection parameters */
-                    remote_rec->status = Remote_status::data_exchange;
+                    if (remote_rec->status == Remote_status::Establishing_parameters)
+                    {
+                        /* Starting data exchange */
+                        remote_rec->status = Remote_status::Data_exchange;
+                    }
+                    else
+                    {
+                        throw std::logic_error{"Bad job order!"};
+                    }
                 }));
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::reset_exts_job()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::reset_exts_job()
     {
         forward_job(Restart_job{});
     }
@@ -245,8 +263,8 @@ namespace Logic
         forward_job(Get_set_param_job{});
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi_()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::say_hi_()
     {
         if (remote_rec->conf_port)
         {
@@ -270,15 +288,15 @@ namespace Logic
         }
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi_timeout_()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::say_hi_timeout_()
     {
         reset_exts_job();
         say_hi_();
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline Cmds_pack Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::get_cmds()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline Remote_ext_base::Cmds_pack Logic<Timer_t, Remote_sett_impl>::get_cmds()
     {
         Cmds_pack pack;
 
@@ -292,56 +310,59 @@ namespace Logic
             std::string{slave_hi_s},
             Command::Policies<No_arg>::Dyn_handle(
                 [](const std::string &arg)
-                { 
+                {
                     /* Delete timer */
                     helper.say_hi_compl();
 
                     /* Start establishing parameters */
-                    get_set_param_job() }));
+                    get_set_param_job();
+                }));
 
         return pack;
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::say_hi()
     {
         if (remote_rec->conf_port)
         {
             timers.start_timer(
                 slave_hi_s.data(),
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device again */
-                    say_hi_timeout_();
-                });
+                Timer_t::make_timer(
+                    [serial_ctrl = shared_from_this(), this]()
+                    {
+                        /* Try to say hi to device again */
+                        say_hi_timeout_();
+                    }));
         }
         else
         {
             timers.start_timer(
                 slave_keep_alive_s.data(),
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device again */
-                    say_hi_timeout_();
-                });
+                Timer_t::make_timer(
+                    [serial_ctrl = shared_from_this(), this]()
+                    {
+                        /* Try to say hi to device again */
+                        say_hi_timeout_();
+                    }));
         }
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::clear_timers()
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::clear_timers()
     {
         timers.clear();
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::say_hi_compl()
+    {
+        timers.stop_timer(master_hi_s.data());
     }
 
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::keep_alive_compl()
     {
         timers.stop_timer(master_keep_alive_s.data());
-    }
-
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl, Serial_sett_impl>::say_hi_timeout_compl()
-    {
-        timers.stop_timer(master_hi_s.data());
     }
 }
