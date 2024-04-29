@@ -34,7 +34,7 @@ namespace Job_ctrl
             ids.cend(),
             [&, this](const auto &id)
             {
-                workers.emplace(id, std::forward<Worker_ptr_t>(worker));
+                workers.emplace(id, worker);
             });
     }
 }

@@ -64,6 +64,22 @@ namespace Job_ctrl
                     std::decay_t<Job_handler_t>>>>
         void add_handler(Job_type mandatority, Job_excluded excluded, Job_handler_t &&handler);
 
+        template <
+            typename Job_handler_t,
+            typename = std::enable_if_t<
+                std::is_base_of_v<
+                    Job_handler_intf,
+                    std::decay_t<Job_handler_t>>>>
+        void override_handler(Job_type mandatority, Job_handler_t &&handler);
+
+        template <
+            typename Job_handler_t,
+            typename = std::enable_if_t<
+                std::is_base_of_v<
+                    Job_handler_intf,
+                    std::decay_t<Job_handler_t>>>>
+        void override_handler(Job_type mandatority, Job_excluded excluded, Job_handler_t &&handler);
+
         size_t check_for_jobs();
 
         template <typename Job_t>
@@ -126,14 +142,51 @@ namespace Job_ctrl
     template <typename Job_handler_t, typename>
     inline void Worker::add_handler(Job_type run_type, Job_excluded excluded, Job_handler_t &&handler)
     {
-        job_handlers.emplace(
-            Job_handler_t::s_get_id(),
-            std::make_tuple(
+        auto id = Job_handler_t::s_get_id();
+
+        if (job_handlers.find(id) == job_handlers.end())
+        {
+            job_handlers.emplace(
+                id,
+                std::make_tuple(
+                    run_type,
+                    std::make_unique<Job_handler_t>(
+                        std::forward<Job_handler_t>(handler)),
+                    Job_queue{},
+                    excluded));
+        }
+        else
+        {
+            throw std::logic_error{"Handler with key: " + std::to_string(id) + " already exists!"};
+        }
+    }
+
+    template <typename Job_handler_t, typename>
+    inline void Worker::override_handler(Job_type run_type, Job_handler_t &&handler)
+    {
+        override_handler(run_type, Job_excluded::Main_queue, std::forward<Job_handler_t>(handler));
+    }
+
+    template <typename Job_handler_t, typename>
+    inline void Worker::override_handler(Job_type run_type, Job_excluded excluded, Job_handler_t &&handler)
+    {
+        auto id = Job_handler_t::s_get_id();
+
+        auto job_k = job_handlers.find(id);
+
+        if (job_k != job_handlers.end())
+        {
+            job_k->second = std::make_tuple(
                 run_type,
                 std::make_unique<Job_handler_t>(
                     std::forward<Job_handler_t>(handler)),
                 Job_queue{},
-                excluded));
+                excluded);
+        }
+        else
+        {
+            throw std::logic_error{"Cannot override handler with key: " + std::to_string(id) + " becaurse it does not exist!"};
+        }
     }
 
     template <typename Job_t, typename, typename>
@@ -150,12 +203,14 @@ namespace Job_ctrl
             else
             {
                 get_queue(job_h->second).emplace(std::make_unique<std::decay_t<Job_t>>(std::forward<Job_t>(job)));
-                jobs.push(job_h);
+
+                if (get_excluded(job_h->second) == Job_excluded::Main_queue)
+                    jobs.push(job_h);
             }
         }
         else
         {
-            throw std::logic_error{"Wrong job number!"};
+            throw std::logic_error{"No job: " + std::string{typeid(Job_t).name()} + " registered!"};
         }
     }
 
@@ -170,18 +225,18 @@ namespace Job_ctrl
 
         if (job_h != job_handlers.end())
         {
-            if (get_excluded(job_h->second))
+            if (get_excluded(job_h->second) == Job_excluded::Only_private_queue)
             {
                 return get_queue(job_h->second).size();
             }
             else
             {
-                throw std::logic_error{"Job was not excluded from queue!"};
+                throw std::logic_error{"Job: " + std::string{typeid(Job_t).name()} + " was not excluded from the main queue!"};
             }
         }
         else
         {
-            throw std::logic_error{"Wrong job number!"};
+            throw std::logic_error{"No job: " + std::string{typeid(Job_t).name()} + " registered!"};
         }
     }
 
@@ -196,12 +251,12 @@ namespace Job_ctrl
 
         if (job_h != job_handlers.end())
         {
-            if (get_excluded(job_h->second))
+            if (get_excluded(job_h->second) == Job_excluded::Only_private_queue)
             {
                 if (get_queue(job_h->second).size())
                 {
                     /* Do job */
-                    get_handler(job_h->second)->exec(get_queue(job_h->second).front());
+                    get_handler(job_h->second)->exec(*get_queue(job_h->second).front());
                     /* Delete job from queue */
                     get_queue(job_h->second).pop();
 
@@ -214,12 +269,12 @@ namespace Job_ctrl
             }
             else
             {
-                throw std::logic_error{"Job was not excluded from queue!"};
+                throw std::logic_error{"Job: " + std::string{typeid(Job_t).name()} + " was not excluded from the main queue!"};
             }
         }
         else
         {
-            throw std::logic_error{"Wrong job number!"};
+            throw std::logic_error{"No job: " + std::string{typeid(Job_t).name()} + " registered!"};
         }
     }
 

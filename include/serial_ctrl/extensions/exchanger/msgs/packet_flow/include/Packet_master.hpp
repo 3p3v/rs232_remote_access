@@ -16,7 +16,8 @@ class Packet_master
 public:
     Val_t num_up();
     Val_t num_down();
-};
+    void reload() noexcept;
+}; 
 
 template <
     typename Val_t,
@@ -40,4 +41,16 @@ inline Val_t Packet_master<
     max_msg_num>::num_down()
 {
     return num_down_();
+}
+
+template <
+    typename Val_t,
+    Val_t min_msg_num,
+    Val_t max_msg_num>
+inline void Packet_master<
+    Val_t,
+    min_msg_num,
+    max_msg_num>::reload() noexcept
+{
+    // next_num = min_msg_num; // TODO 
 }

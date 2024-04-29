@@ -14,5 +14,6 @@ namespace Logic
         bool settings_known{true};
         Port_settings_storage port_settings{};
         unsigned char params_established{};
+        bool record_active{false};
     }; 
 }

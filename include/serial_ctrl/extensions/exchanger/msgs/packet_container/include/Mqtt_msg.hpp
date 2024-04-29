@@ -24,12 +24,15 @@ public:
     std::atomic_bool freed{true};
     /* If data is being changed now */
     std::atomic_bool used{false};
+    /// @brief If contains information that is not garbage
+    std::atomic_bool inited{false};
 
 public:
     typename Cont_t::iterator begin();
     typename Cont_t::iterator end();
     void len(size_t len);
-    void unused();
+    void unused() noexcept;
+    void uninit() noexcept;
     Val_t id() const;
     bool operator==(const Mqtt_msg<Val_t>& msg) const;
     bool operator==(const Val_t& id) const;
@@ -54,9 +57,15 @@ void Mqtt_msg<Val_t>::len(size_t len)
 }
 
 template <typename Val_t>
-void Mqtt_msg<Val_t>::unused()
+void Mqtt_msg<Val_t>::unused() noexcept
 {
     used = false;
+}
+
+template <typename Val_t>
+inline void Mqtt_msg<Val_t>::uninit() noexcept
+{
+    inited = false;
 }
 
 template <typename Val_t>

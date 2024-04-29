@@ -14,7 +14,7 @@ namespace Job_ctrl
         using Worker_ptr = Worker_ptr_t;
 
     protected:
-        std::map<Worker::Job_info, Worker_ptr> workers;
+        std::multimap<Worker::Job_info, Worker_ptr> workers;
 
         template <typename T>
         struct is_shared_ptr : std::false_type

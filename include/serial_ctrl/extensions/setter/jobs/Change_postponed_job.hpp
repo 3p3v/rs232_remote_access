@@ -11,9 +11,11 @@ namespace Logic
     public:
         Port_settings_storage port_settings{};
 
-        Change_postponed_job(Change_param_job &job);
+        Change_postponed_job(const Change_param_job &job);
     }; 
 
     Change_postponed_job::Change_postponed_job(const Change_param_job &job)
-        : port_settings{std::move(job.port_settings)}
+        : port_settings{job.port_settings}
+    {
+    }
 }

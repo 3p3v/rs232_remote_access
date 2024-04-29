@@ -19,17 +19,28 @@ public:
         typename = std::enable_if_t<
             std::is_base_of_v<
                 Basic_timer,
-                Timer_t>>>
+                std::decay_t<Timer_t>>>>
     void start_timer(Str &&cmd_name, Args_t &&...args);
 
     template <
         typename Timer_t,
         typename Str,
-        typename = std::enable_if_t<
+        std::enable_if_t<
             std::is_base_of_v<
                 Basic_timer,
-                Timer_t>>>
+                std::decay_t<Timer_t>>,
+            bool> = true>
     void start_timer(Str &&cmd_name, Timer_t &&timer);
+
+    template <
+        typename Str,
+        typename Timer_ptr_t,
+        std::enable_if_t<
+            std::is_base_of_v<
+                Basic_timer,
+                typename Timer_ptr_t::element_type>,
+            bool> = true>
+    void start_timer(Str &&cmd_name, Timer_ptr_t &&timer);
 
     template <typename Str>
     void stop_timer(const Str &cmd_name);
@@ -53,12 +64,32 @@ void Timer_cont::start_timer(Str &&cmd_name, Args_t &&...args)
 template <
     typename Timer_t,
     typename Str,
-    typename>
+    std::enable_if_t<
+        std::is_base_of_v<
+            Basic_timer,
+            std::decay_t<Timer_t>>,
+        bool>>
 void Timer_cont::start_timer(Str &&cmd_name, Timer_t &&timer)
 {
     timers.emplace(
               std::forward<Str>(cmd_name),
               std::make_unique<Timer_t>(std::forward<Timer_t>(timer)))
+        .first->second->start();
+}
+
+template <
+    typename Str,
+    typename Timer_ptr_t,
+    std::enable_if_t<
+        std::is_base_of_v<
+            Basic_timer,
+            typename Timer_ptr_t::element_type>,
+        bool>>
+void Timer_cont::start_timer(Str &&cmd_name, Timer_ptr_t &&timer)
+{
+    timers.emplace(
+              std::forward<Str>(cmd_name),
+              std::forward<Timer_ptr_t>(timer))
         .first->second->start();
 }
 

@@ -4,32 +4,34 @@ set(PACKET_CTRL_TESTS packet_ctrl_tests)
 
 # Main code
 add_library(${PROJECT_NAME} STATIC
-    # Definitions
-    "./logic/definitions/Packet_defs.cpp"
     # Messages store
-    "./msgs/packet_container/Mqtt_msg_cont_base.cpp"
-    "./msgs/packet_container/Mqtt_msg.cpp"
-    "./msgs/packet_container/Mqtt_msg_cont.cpp"
+    "./packet_container/src/Mqtt_msg_cont_base.cpp"
+    "./packet_container/src/Mqtt_msg.cpp"
+    "./packet_container/src/Mqtt_msg_cont.cpp"
     # Packet counter
-    "./msgs/packet_flow/Packet_flow.cpp"
-    "./msgs/packet_flow/Packet_master.cpp"
-    "./msgs/packet_flow/Packet_slave.cpp"
+    "./packet_flow/src/Packet_flow.cpp"
+    "./packet_flow/src/Packet_master.cpp"
+    "./packet_flow/src/Packet_slave.cpp"
     # Master packet complete container
-    "./msgs/packet_controller/Packet_controller.cpp"
+    "./packet_controller/src/Packet_controller.cpp"
 )
 
 # Header files
 set(PACKET_CTRL_INCLUDE_DIR 
-    # Definitions
-    "./logic/definitions/include"
     # Messages store
-    "./msgs/packet_container/include/"
+    "./packet_container/include/"
     # Packet counter
-    "./msgs/packet_flow/include"
+    "./packet_flow/include"
     # Master packet complete container
-    "./msgs/packet_controller/include"
+    "./packet_controller/include"
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${PACKET_CTRL_INCLUDE_DIR})
+
+# Add defs lib
+target_include_directories(${PROJECT_NAME} PUBLIC ${DEFS_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    defs
+)
 
 if(${BUILD_TESTING} true)
     message("PROTOCOL LOGIC UNIT TESTS FOUND")
@@ -37,11 +39,11 @@ if(${BUILD_TESTING} true)
     # Test code
     add_executable(${PACKET_CTRL_TESTS} 
         # Messages store
-        "./msgs/packet_container/unit_tests/Mqtt_msg_test.cpp"
+        "./packet_container/unit_tests/Mqtt_msg_test.cpp"
         # Packet counter
-        "./msgs/packet_flow/unit_tests/Packet_flow_test.cpp"
+        "./packet_flow/unit_tests/Packet_flow_test.cpp"
         # Master packet complete container
-        "./msgs/packet_controller/unit_tests/Packet_controller_test.cpp")
+        "./packet_controller/unit_tests/Packet_controller_test.cpp")
 
     # Link test library with others
     target_link_libraries(
@@ -58,7 +60,7 @@ endif()
 
 # Commands interpreter console
 target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}  ctrl_console)
+target_link_libraries(${PROJECT_NAME} PUBLIC ctrl_console)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 

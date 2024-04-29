@@ -11,6 +11,9 @@ namespace Logic
     class Authed_ext : public Remote_ext<Process_manager>
     {
     public:
+        /// @brief Reset all extensions
+        void reset_exts_job();
+
         template <typename Manager_ptr_t>
         Authed_ext(Manager_ptr_t &&manager);
         Authed_ext(const Authed_ext &) = delete;
@@ -19,6 +22,11 @@ namespace Logic
         Authed_ext &operator=(Authed_ext &&) = default;
         ~Authed_ext() = 0;
     };
+
+    inline void Authed_ext::Authed_ext::reset_exts_job()
+    {
+        forward_job(Restart_job{});
+    }
 
     template <typename Manager_ptr_t>
     inline Authed_ext::Authed_ext(Manager_ptr_t &&manager)

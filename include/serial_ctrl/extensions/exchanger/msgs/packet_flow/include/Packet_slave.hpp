@@ -7,7 +7,7 @@ template <
     typename Val_t,
     Val_t min_msg_num,
     Val_t max_msg_num>
-class Ip_slave
+class Packet_slave
     : public Packet_flow<
           Val_t,
           min_msg_num,
@@ -22,14 +22,14 @@ public:
     Val_t num_up(Val_t num);
 
     /// @brief Allow for any number in next turn
-    void reload();
+    void reload() noexcept;
 };
 
 template <
     typename Val_t,
     Val_t min_msg_num,
     Val_t max_msg_num>
-Val_t Ip_slave<
+Val_t Packet_slave<
     Val_t,
     min_msg_num,
     max_msg_num>::num_up(Val_t num)
@@ -45,7 +45,7 @@ Val_t Ip_slave<
         if (next_num != num)
             throw std::logic_error{"Not expected packet number!"};
 
-        return Ip_packet_flow::num_up_();
+        return Packet_flow::num_up_();
     }
 }
 
@@ -53,10 +53,10 @@ template <
     typename Val_t,
     Val_t min_msg_num,
     Val_t max_msg_num>
-void Ip_slave<
+void Packet_slave<
     Val_t,
-    min_msg_num,
-    max_msg_num>::reload()
+    min_msg_num, 
+    max_msg_num>::reload() noexcept
 {
     s_reload = true;
 }

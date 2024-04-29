@@ -11,8 +11,8 @@ namespace Logic
         Impl impl;
 
     public:
-        template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-        void write(const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
+        template <typename Iter_t, typename Ok_callb, typename Ec_callb>
+        void write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
 
         Serial_side(Impl &&impl);
     };
@@ -21,10 +21,10 @@ namespace Logic
     Serial_side(Impl &&) -> Serial_side<Impl>;
 
     template <typename Impl>
-    template <typename Cont_t, typename Ok_callb, typename Ec_callb>
-    inline void Serial_side<Impl>::write(const typename Cont_t::const_iterator begin, const typename Cont_t::const_iterator end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+    template <typename Iter_t, typename Ok_callb, typename Ec_callb>
+    inline void Serial_side<Impl>::write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {
-        impl.write<Cont_t>(
+        impl.write(
             begin,
             end,
             std::forward<Ok_callb>(ok_callb),

@@ -4,13 +4,54 @@
 #include <string>
 #include <Unauthed_ext.hpp>
 #include <Basic_timer.hpp>
+// #include <Serial_base.hpp>
 
 namespace Logic
 {
-class Remote_sett_impl
+    class Serial_sett_impl
     {
-        static std::string last_msg_s;
-        static std::string last_msg_i;
+    public:
+        static unsigned int baud_rate;
+        static Port_settings::Parity parity;
+        static unsigned int char_size;
+        static Port_settings::Stop_bits stop_bits;
+
+    public:
+        void set_baud_rate(unsigned int baud_rate)
+        {
+            this->baud_rate = baud_rate;
+        }
+
+        void set_parity(const Port_settings::Parity parity)
+        {
+            this->parity = parity;
+        }
+
+        void set_char_size(unsigned int char_size)
+        {
+            this->char_size = char_size;
+        }
+
+        void set_stop_bits(const Port_settings::Stop_bits stop_bits)
+        {
+            this->stop_bits = stop_bits;
+        }
+
+        Serial_sett_impl()
+        {
+
+        }
+    };
+
+    unsigned int Serial_sett_impl::baud_rate = 0;
+    Port_settings::Parity Serial_sett_impl::parity = Port_settings::Parity::odd;
+    unsigned int Serial_sett_impl::char_size = 0;
+    Port_settings::Stop_bits Serial_sett_impl::stop_bits = Port_settings::Stop_bits::two;
+    
+    class Remote_sett_impl
+    {
+        static std::vector<std::string> last_msg_s;
+        static std::vector<std::string> last_msg_i;
 
     public:
         static auto get_last_msg_s()
@@ -30,30 +71,30 @@ class Remote_sett_impl
         template <typename Cont_t, typename Arg_cont_t, typename Ok_callb, typename Ec_callb>
         inline void write_i(Cont_t &&msg, Arg_cont_t &&arg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            last_msg_i = msg + ' ' + arg;
+            last_msg_i.push_back(msg + ' ' + arg);
         }
 
         template <typename Cont_t, typename Ok_callb, typename Ec_callb>
         inline void write_i(Cont_t &&msg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            last_msg_i = msg;
+            last_msg_i.push_back(msg);
         }
 
         template <typename Cont_t, typename Arg_cont_t, typename Ok_callb, typename Ec_callb>
         inline void write_s(Cont_t &&msg, Arg_cont_t &&arg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            last_msg_s = msg + ' ' + arg;
+            last_msg_s.push_back(msg + ' ' + arg);
         }
 
         template <typename Cont_t, typename Ok_callb, typename Ec_callb>
         inline void write_s(Cont_t &&msg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
-            last_msg_s = msg;
+            last_msg_s.push_back(msg);
         }
     };
 
-    std::string Remote_sett_impl::last_msg_s{};
-    std::string Remote_sett_impl::last_msg_i{};
+    std::vector<std::string> Remote_sett_impl::last_msg_s = std::vector<std::string>();
+    std::vector<std::string> Remote_sett_impl::last_msg_i = std::vector<std::string>();
 
     template <typename Callb>
     class Custom_timer_impl : public Basic_timer
@@ -103,18 +144,28 @@ class Remote_sett_impl
         }
     };
 
-    class Observer : public Unauthed_ext
+    class Observer 
+        : public Unauthed_ext
     {
     private:
         static Observer* active;
 
         bool if_get_set_param_fired_{false};
+        bool if_param_ready_fired_{false};
 
     public:
         static bool if_get_set_param_fired()
         {
             auto temp = active->if_get_set_param_fired_;
             active->if_get_set_param_fired_ = false;
+
+            return temp;
+        }
+
+        static bool if_param_ready_fired()
+        {
+            auto temp = active->if_param_ready_fired_;
+            active->if_param_ready_fired_ = false;
 
             return temp;
         }
@@ -132,6 +183,17 @@ class Remote_sett_impl
                     }));
         }
 
+        void add_param_ready_notify_job()
+        {
+            add_handler(
+                Job_type::Urgent,
+                Job_policies<>::make_job_handler<Param_ready_notify_job>(
+                    [this](auto &job)
+                    {
+                        if_param_ready_fired_ = true;
+                    }));
+        }
+
     protected:
         /// @brief Observe if restart_job was triggered
         void add_restart_job() override
@@ -142,18 +204,6 @@ class Remote_sett_impl
         static void restart_job_()
         {
             active->restart_job();
-        }
-
-        /// @brief Inform that parameters are ready
-        static void param_ready_notify_job()
-        {
-            active->forward_job(Param_ready_notify_job{});
-        }
-
-        /// @brief Inform that parameters were changed
-        static void param_change_notify_job()
-        {
-            active->forward_job(Param_change_notify_job{});
         }
 
         Cmds_pack get_cmds() override
@@ -168,6 +218,7 @@ class Remote_sett_impl
             active = this;
 
             add_get_set_param_job();
+            add_param_ready_notify_job();
         }
 
         ~Observer()

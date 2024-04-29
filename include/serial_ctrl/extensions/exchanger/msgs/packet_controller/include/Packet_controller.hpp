@@ -49,11 +49,13 @@ namespace Logic
         template <typename Ec_callb>
         Mqtt_msg<Val_t> &create(Ec_callb &&ec_callb);
 
-        decltype(auto) create();
+        auto create();
 
         /// @brief Free all messages that have id < argument
         /// @param id
         void ack(Val_t id) noexcept;
+
+        void reload() noexcept;
     };
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
@@ -75,9 +77,9 @@ namespace Logic
     }
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
-    inline decltype(auto) Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::create()
+    inline auto Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::create()
     {
-        return create([]() {});
+        return create([](auto) {});
     }
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
@@ -85,6 +87,13 @@ namespace Logic
     {
         flow.ack(id);
         cont.free_untill(id);
+    }
+
+    template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>
+    inline void Packet_controller<Val_t, min_msg_num, max_msg_num, max_saved>::reload() noexcept
+    {
+        flow.reload();
+        cont.reload();
     }
 
     template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num, std::make_unsigned_t<Val_t> max_saved>

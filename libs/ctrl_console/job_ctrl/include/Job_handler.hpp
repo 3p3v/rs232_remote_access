@@ -37,9 +37,18 @@ namespace Job_ctrl
             {
             }
 
+            /// @brief Use when job type is not known
+            /// @param arg 
             void exec(Job &arg) const override
             {
                 handler(dynamic_cast<Job_t &>(arg));
+            }
+
+            /// @brief Use when job type is known to avoid dynamic casting
+            /// @param arg 
+            void exec(Job_t &arg)
+            {
+                handler(arg);
             }
 
             Job::Job_id get_id()

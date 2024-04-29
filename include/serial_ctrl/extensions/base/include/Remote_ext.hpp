@@ -11,12 +11,17 @@ namespace Logic
 {
     class Remote_ext_base
     {
+    protected:
+        template <typename Str_t, typename Cmd_t>
+        auto make_pack_elem(Str_t &&name, Cmd_t &&cmd);
+
     public:
         /// @brief Type of parameter used by all commands
         using Cmd_param = const std::string &;
         /// @brief Type of command used by extensions
         using Cmd = Exec<>::Param<Cmd_param>::Base_handle_intf;
-        using Cmds_pack = std::vector<Cmd>;
+        using Command = Exec<>::Param<Cmd_param>;
+        using Cmds_pack = std::vector<std::pair<std::string, std::unique_ptr<Cmd>>>;
 
         /// @brief Get all commands that extension uses to communicate with remote
         /// @return
@@ -65,9 +70,6 @@ namespace Logic
                     std::decay_t<Job_t>>>>
         void forward_job(Job_t &&job);
 
-        /// @brief Restart module procedure
-        virtual void add_restart_job() = 0;
-
         /// @brief Send signal to restart all modules
         void restart_job();
 
@@ -75,14 +77,16 @@ namespace Logic
         /// @return
         auto def_ec_callb();
 
+        /// @brief Restart module procedure
+        virtual void add_restart_job() = 0;
+
     public:
         template <
-            typename Manager_ptr_t,
-            typename = std::enable_if_t<
-                is_shared_ptr<Manager_ptr_t> ||
-                is_weak_ptr<Manager_ptr_t>>>
+            typename Manager_ptr_t>//,
+            // typename = std::enable_if_t<
+            //     is_shared_ptr<Manager_ptr_t> ||
+            //     is_weak_ptr<Manager_ptr_t>>>
         Remote_ext(Manager_ptr_t &&manager);
-        ;
         Remote_ext(const Remote_ext &) = delete;
         Remote_ext &operator=(const Remote_ext &) = delete;
         Remote_ext(Remote_ext &&) = default;
@@ -116,10 +120,16 @@ namespace Logic
     }
 
     template <typename Manager_t>
-    template <typename Manager_ptr_t, typename>
+    template <typename Manager_ptr_t>//, typename>
     inline Remote_ext<Manager_t>::Remote_ext(Manager_ptr_t &&manager)
         : manager{std::forward<Manager_ptr_t>(manager)}
     {
-        add_restart_job();
     }
+
+    template <typename Str_t, typename Cmd_t>
+    inline auto Remote_ext_base::make_pack_elem(Str_t &&name, Cmd_t &&cmd)
+    {
+        return std::make_pair(std::forward<Str_t>(name), std::make_unique<Cmd_t>(std::forward<Cmd_t>(cmd)));
+    }
+
 }

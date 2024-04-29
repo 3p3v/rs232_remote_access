@@ -4,6 +4,8 @@
 #include <Packet_slave.hpp>
 #include <Packet_defs.hpp>
 
+using namespace Logic;
+
 namespace Defs
 {
   static constexpr auto min_num{Packet_defs::min_msg_num};

@@ -4,6 +4,8 @@
 #include <Mqtt_msg_cont.hpp>
 #include <Packet_defs.hpp>
 
+using namespace Logic;
+
 using Id_t = std::decay_t<decltype(Packet_defs::max_msg_num)>;
 
 static constexpr Id_t max_saved{30};

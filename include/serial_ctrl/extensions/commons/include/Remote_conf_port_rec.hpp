@@ -12,9 +12,10 @@ namespace Logic
     {
     public:
         /// @brief Configurable device?
-        const Remote_conf_port conf_port{true};
+        const Remote_conf_port conf_port{Remote_conf_port::Configurable};
 
         Remote_conf_port_rec(Remote_conf_port conf_port);
+        Remote_conf_port_rec() = default;
         Remote_conf_port_rec(Remote_conf_port_rec &&) = default;
         Remote_conf_port_rec &operator=(Remote_conf_port_rec &&) = default;
         Remote_conf_port_rec(const Remote_conf_port_rec &) = default;

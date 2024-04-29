@@ -11,11 +11,8 @@ namespace Cmd_ctrl
         template <typename Str, typename Handle_t>
         void add_cmd(Str &&cmd_name, Handle_t &&handle);
 
-        template <
-            template <class, class> typename Cmd_pair_t,
-            typename Str_t,
-            typename Cmd_ptr_t>
-        void add_cmd(Cmd_pair_t<Str_t, Cmd_ptr_t> &&cmd);
+        template <typename Cmd_pair_t>
+        void add_cmd(Cmd_pair_t &&cmd);
     };
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
@@ -34,16 +31,12 @@ namespace Cmd_ctrl
     }
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_, char space_>
-    template <
-        template <class, class> typename Cmd_pair_t,
-        typename Str_t,
-        typename Cmd_ptr_t>
-    inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::add_cmd(Cmd_pair_t<Str_t, Cmd_ptr_t> &&cmd)
+    template <typename Cmd_pair_t>
+    inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::add_cmd(Cmd_pair_t &&cmd)
     {
         if (cmds.find(cmd.first) == cmds.end())
         {
-            cmds.emplace(std::forward<Str_t>(cmd.first),
-                         std::forward<Cmd_ptr_t>(cmd.second));
+            cmds.insert(std::forward<Cmd_pair_t>(cmd));
         }
         else
         {

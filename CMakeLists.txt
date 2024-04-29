@@ -88,7 +88,7 @@ add_executable(${PROJECT_NAME} "./temp/main.cpp")
 
 # Find message saving
 add_subdirectory("include/serial_ctrl/")
-target_include_directories(${PROJECT_NAME} PUBLIC ${TEMP_NAME_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC "./temp/")
 
 # # 
 # target_include_directories(${PROJECT_NAME} PUBLIC $${PAHO_MQTT_C_INCLUDE_DIRS})

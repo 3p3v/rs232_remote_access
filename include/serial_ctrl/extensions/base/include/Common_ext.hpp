@@ -18,13 +18,13 @@ namespace Logic
     class Common_ext : public Unauthed_ext
     {
     protected:
+        /// @brief 
+        void add_restart_job() override;
+
         using Timers = Timer_cont;
 
         /// @brief For setting action timeouts
         Timers timers;
-
-        /// @brief 
-        void add_restart_job() override;
 
         /// @brief
         void clear_timers();
@@ -44,6 +44,7 @@ namespace Logic
     inline Common_ext<Timer_t>::Common_ext(Forwarder_ptr_t &&manager)
         : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
     {
+        add_restart_job();
     }
 
     template <typename Timer_t>
@@ -53,7 +54,7 @@ namespace Logic
         add_handler(
             Job_type::Urgent,
             Job_policies<>::make_job_handler<Restart_job>(
-                [this]()
+                [this](auto &job)
                 {
                     timers.clear();
                 }));

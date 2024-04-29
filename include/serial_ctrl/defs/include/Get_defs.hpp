@@ -4,7 +4,7 @@
 
 namespace Logic
 {
-    class Hi_defs
+    class Get_defs
     {
     public:
         static constexpr std::string_view get_info_s{"G_I"};
@@ -19,7 +19,7 @@ namespace Logic
         static constexpr std::string_view rts_set_s{"R_S"};
         static constexpr std::string_view rts_reset_s{"R_R"};
 
-        Hi_defs() = delete;
+        Get_defs() = delete;
         // Hi_defs(Hi_defs &&) = default;
         // Hi_defs &operator=(Hi_defs &&) = default;
         // Hi_defs(const Hi_defs &) = default;
