@@ -46,10 +46,14 @@ if(${BUILD_TESTING} true)
     # target_include_directories(${EXCHANGER_EXT_TESTS} PUBLIC ${TIMERSE_INCLUDE_DIR})
     # target_link_libraries(${EXCHANGER_EXT_TESTS}  timers) 
 
+    # extension management
+    target_include_directories(${PROJECT_NAME} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
+
     # Link test library with others
     target_link_libraries(
         ${EXCHANGER_EXT_TESTS} 
         ${PROJECT_NAME}
+        ext_management
         GTest::gtest_main
     )
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <map>
-#include <memory>
+// #include <map>
+// #include <memory>
 #include <Worker_storage.hpp>
 
 namespace Job_ctrl
@@ -19,7 +19,23 @@ namespace Job_ctrl
                 std::is_base_of_v<
                     Job,
                     std::decay_t<Job_t>>>>
-        void forward_job(Job_t &&job);
+        void forward_job(Job_t &&job); // TODO change from template to normal, add forward_job<Job_t>(args...)
+
+        template <
+            typename Job_t,
+            typename ...Args_t,
+            typename = std::enable_if_t<
+                std::is_base_of_v<
+                    Job,
+                    std::decay_t<Job_t>>>>
+        void forward_job(Args_t &&...args);
+
+        Forwarder() = default;
+        Forwarder(Forwarder&&) = default;
+        Forwarder& operator=(Forwarder&&) = default;
+        Forwarder(const Forwarder&) = default;
+        Forwarder& operator=(const Forwarder&) = default;
+        ~Forwarder() = 0;
     };
 
     template <
@@ -56,4 +72,14 @@ namespace Job_ctrl
                 }
             });
     }
+
+    template <typename Worker_ptr_t>
+    template <typename Job_t, typename ...Args_t, typename>
+    inline void Forwarder<Worker_ptr_t>::forward_job(Args_t &&...args)
+    {
+        forward_job(Job_t{std::forward<Args_t>(args)...})
+    }
+
+    template <typename Worker_ptr_t>
+    Forwarder<Worker_ptr_t>::~Forwarder() = default;
 }

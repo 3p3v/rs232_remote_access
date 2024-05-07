@@ -3,6 +3,8 @@
 #include <Job.hpp>
 #include <Port_settings_storage.hpp>
 
+using namespace Job_ctrl;
+
 namespace Logic
 {
     class Change_param_job : public Job_identity<Change_param_job>

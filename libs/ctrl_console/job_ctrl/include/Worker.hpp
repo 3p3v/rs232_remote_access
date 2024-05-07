@@ -91,7 +91,7 @@ namespace Job_ctrl
         size_t take_job();
 
     public:
-        std::vector<Job_info> get_ids();
+        std::vector<Job_info> get_ids() const;
 
         template <
             typename Job_t,

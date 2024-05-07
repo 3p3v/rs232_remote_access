@@ -396,6 +396,11 @@ namespace Logic
             add_param_ready_notify_job();
         }
 
+        Observer(Observer&&) = default;
+        Observer& operator=(Observer&&) = default;
+        Observer(const Observer&) = delete;
+        Observer& operator=(const Observer&) = delete;
+
         ~Observer()
         {
             if (active == this)

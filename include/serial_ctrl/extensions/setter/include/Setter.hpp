@@ -738,7 +738,7 @@ namespace Logic
           serial_s{std::forward<Serial_settings_ptr_t>(serial_s)},
           remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
     {
-        assert("Parameter count not match", params_count == remote_rec->all_established);
+        assert(params_count == remote_rec->all_established && "Parameter count not match");
 
         add_restart_job();
         add_get_set_param_job();

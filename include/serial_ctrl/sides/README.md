@@ -1,0 +1,1 @@
+Module specyfies interfaces used by extensions that are used to communicate through MQTT and serial port.

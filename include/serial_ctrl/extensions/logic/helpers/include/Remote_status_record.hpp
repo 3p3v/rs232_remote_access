@@ -11,6 +11,7 @@ namespace Logic
         /// @brief 
         Remote_status status{Remote_status::Not_connected};
 
-        Remote_status_record(Remote_conf_port conf_port = Remote_conf_port::Configurable);
+        Remote_status_record() = default;
+        Remote_status_record(Remote_conf_port conf_port);
     }; 
 }

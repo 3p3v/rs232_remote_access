@@ -10,8 +10,8 @@ add_library(${PROJECT_NAME} STATIC
             # Job_ctrl
             job_ctrl/src/Job.cpp
             job_ctrl/src/Worker.cpp
-            job_ctrl/src/Storage.cpp
-            job_ctrl/src/Forwarder.cpp
+            # job_ctrl/src/Storage.cpp
+            # job_ctrl/src/Forwarder.cpp
             # Policies
             policies/src/Numbers_only.cpp
             policies/src/Alpha_only.cpp
@@ -20,6 +20,12 @@ add_library(${PROJECT_NAME} STATIC
             policies/src/Is_cmd.cpp
             policies/src/No_arg.cpp)
 
+# include dirs
+set(CTRL_CONSOLE_INCLUDE_DIR "ctrl_console/include"
+"job_ctrl/include"
+"policies/include")
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
 
 if(${BUILD_TESTING} true)
     message("CTRL CONSOLE UNIT TESTS FOUND")
@@ -60,12 +66,6 @@ if(${BUILD_TESTING} true)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
-# include dirs
-set(CTRL_CONSOLE_INCLUDE_DIR "ctrl_console/include"
-                             "job_ctrl/include"
-                             "policies/include")
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${CTRL_CONSOLE_INCLUDE_DIR})
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

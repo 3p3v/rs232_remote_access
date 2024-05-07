@@ -7,8 +7,13 @@ add_subdirectory("./extensions/")
 add_subdirectory("./timers/")
 add_subdirectory("./sides/")
 add_subdirectory("./defs/")
-add_subdirectory("./general_interface/")
+add_subdirectory("./ext_management/")
+add_subdirectory("./worker_management/")
+add_subdirectory("./dev_record/")
+add_subdirectory("./user_controller/")
 add_subdirectory("./serial/")
+add_subdirectory("./device/")
+add_subdirectory("./device_impl/")
 
 # Link all modules
 target_link_libraries(${PROJECT_NAME} INTERFACE
@@ -16,8 +21,11 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
     timers
     sides
     defs
-    general_interface
+    ext_management
+    dev_record
     common_context
+    device
+    device_impl
 )
 
 set(TEMP_MAIN_INCLUDE_DIR 
@@ -25,6 +33,8 @@ set(TEMP_MAIN_INCLUDE_DIR
     ${TIMERS_INCLUDE_DIR}
     ${SIDES_INCLUDE_DIR}
     ${DEFS_INCLUDE_DIR}
-    ${GENERAL_INTERFACE_INCLUDE_DIR}
+    ${EXT_MANAGEMENT_INCLUDE_DIR}
     ${COMMON_CONTEXT_INCLUDE_DIR}
+    ${DEVICE_INCLUDE_DIR}
+    ${DEVICE_IMPL_INCLUDE_DIR}
 )

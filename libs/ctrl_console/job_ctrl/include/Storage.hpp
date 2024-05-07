@@ -12,6 +12,17 @@ namespace Job_ctrl
         /// @param worker
         template <typename Worker_ptr_t>
         void add_worker(Worker_ptr_t &&worker);
+
+        /// @brief Remove worker 
+        /// @param worker 
+        void remove_worker(const Worker_ptr_type& worker);
+
+        Storage() = default;
+        Storage(Storage&&) = default;
+        Storage& operator=(Storage&&) = default;
+        Storage(const Storage&) = default;
+        Storage& operator=(const Storage&) = default;
+        ~Storage() = 0;
     };
 
     template <typename Worker_ptr_type>
@@ -37,4 +48,27 @@ namespace Job_ctrl
                 workers.emplace(id, worker);
             });
     }
+
+    template <typename Worker_ptr_type>
+    inline void Storage<Worker_ptr_type>::remove_worker(const Worker_ptr_type &worker)
+    {
+        auto w_beg = workers.find(worker);
+        
+        auto w_end = std::find_if_not(
+            w_beg,
+            workers.end(),
+            [worker = &worker](const auto& r)
+            {
+                if (r.second == worker)
+                    return true;
+                else 
+                    return false;
+            }
+        );
+
+        workers.remove(w_beg, w_end);
+    }
+
+    template <typename Worker_ptr_type>
+    Storage<Worker_ptr_type>::~Storage() = default;
 }

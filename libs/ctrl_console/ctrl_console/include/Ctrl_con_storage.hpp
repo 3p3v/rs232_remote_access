@@ -13,6 +13,19 @@ namespace Cmd_ctrl
 
         template <typename Cmd_pair_t>
         void add_cmd(Cmd_pair_t &&cmd);
+
+        /// @brief Remove cmd with given name
+        /// @tparam Str
+        /// @param cmd_name
+        template <typename Str>
+        void remove_cmd(const Str &cmd_name);
+
+        /// @brief Remove many cmds with given names
+        /// @tparam Iter_t
+        /// @param begin
+        /// @param end
+        template <typename Iter_t>
+        void remove_cmd(Iter_t begin, Iter_t end);
     };
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
@@ -42,5 +55,43 @@ namespace Cmd_ctrl
         {
             throw std::logic_error{"The comand with specyfied name already exists!"};
         }
+    }
+
+    template <typename Base_handle_t, Endl_opt endl_opt, char endl_, char space_>
+    template <typename Str>
+    inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::remove_cmd(const Str &cmd_name)
+    {
+        auto cmd_idx = cmds.find(cmd_name);
+
+        if (cmd_idx != cmds.end())
+        {
+            cmds.erase(cmd_idx);
+        }
+        else
+        {
+            throw std::logic_error{"The comand with specyfied name does not exists!"};
+        }
+    }
+
+    template <typename Base_handle_t, Endl_opt endl_opt, char endl_, char space_>
+    template <typename Iter_t>
+    inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::remove_cmd(Iter_t begin, Iter_t end)
+    {
+        std::for_each(
+            begin,
+            end,
+            [this](const auto &cmd_name)
+            {
+                auto cmd_idx = cmds.find(cmd_name);
+
+                if (cmd_idx != cmds.end())
+                {
+                    cmds.erase(cmd_idx);
+                }
+                else
+                {
+                    throw std::logic_error{"The comand with specyfied name does not exists!"};
+                }
+            });
     }
 }

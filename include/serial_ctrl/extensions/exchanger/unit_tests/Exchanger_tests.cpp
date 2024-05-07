@@ -4,6 +4,7 @@
 #include <Remote_record.hpp>
 #include <Helpers.hpp>
 #include <Get_defs.hpp>
+#include <Restart_job.hpp>
 
 namespace Logic
 {

@@ -3,25 +3,28 @@ project(setter_ext VERSION 0.1.0 LANGUAGES CXX)
 set(SETTER_EXT_TESTS setter_ext_tests)
 
 # Main code
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} STATIC
+    "./helpers/src/Remote_record.cpp"
+    "./helpers/src/Port_settings_storage.cpp"
+)
 
 # Header files
 set(SETTER_EXT_INCLUDE_DIR 
     "./include/"
-    "./helpers/"
+    "./helpers/include/"
     "./jobs/"
 )
-target_include_directories(${PROJECT_NAME} INTERFACE ${SETTER_EXT_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${SETTER_EXT_INCLUDE_DIR})
 
 # Base extensions
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXTENSIONS_BASE_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} INTERFACE extensions_base)
+target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_BASE_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC extensions_base)
 # Base extensions
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXTENSIONS_COMMONS_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} INTERFACE extensions_commons)
+target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_COMMONS_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC extensions_commons)
 # Additional definitions
-target_include_directories(${PROJECT_NAME} INTERFACE ${DEFS_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} INTERFACE defs)
+target_include_directories(${PROJECT_NAME} PUBLIC ${DEFS_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC defs)
 
 # Tests
 if(${BUILD_TESTING} true)
@@ -36,13 +39,14 @@ if(${BUILD_TESTING} true)
         "./unit_tests/include/"
     )
 
-    # target_include_directories(${SETTER_EXT_TESTS} PUBLIC ${TIMERSE_INCLUDE_DIR})
-    # target_link_libraries(${SETTER_EXT_TESTS}  timers) 
+    # extension management
+    target_include_directories(${SETTER_EXT_TESTS} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
 
     # Link test library with others
     target_link_libraries(
         ${SETTER_EXT_TESTS} 
         ${PROJECT_NAME}
+        ext_management
         GTest::gtest_main
     )
 

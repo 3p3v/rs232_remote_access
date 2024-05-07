@@ -4,7 +4,7 @@
 
 namespace Job_ctrl
 {
-    std::vector<Worker::Job_info> Worker::get_ids()
+    std::vector<Worker::Job_info> Worker::get_ids() const
     {
         auto ids = std::vector<Job_info>(job_handlers.size());
         std::for_each(

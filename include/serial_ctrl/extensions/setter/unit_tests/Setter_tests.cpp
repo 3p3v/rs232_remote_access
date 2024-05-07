@@ -4,6 +4,7 @@
 // #include <Hi_defs.hpp>
 #include <Helpers.hpp>
 #include <Get_defs.hpp>
+#include <Restart_job.hpp>
 
 namespace Logic
 {

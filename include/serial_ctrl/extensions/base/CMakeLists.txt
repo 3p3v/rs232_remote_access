@@ -16,9 +16,9 @@ set(EXTENSIONS_BASE_INCLUDE_DIR
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_BASE_INCLUDE_DIR})
 
-# 
-target_include_directories(${PROJECT_NAME} PUBLIC ${GENERAL_INTERFACE_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}  general_interface)
+# managing workers
+target_include_directories(${PROJECT_NAME} PUBLIC ${WORKER_MANAGEMENT_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} worker_management)
 # Universal settings and data objects
 target_include_directories(${PROJECT_NAME} PUBLIC ${SIDES_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}  sides)

@@ -294,7 +294,7 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline auto Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::get_remote_args()
     {
-        auto ok_callb = [ptr = shared_from_this(), this](int num, auto begin, auto end, auto callb)
+        auto ok_callb = [ptr = shared_from_this(), this](auto num, auto begin, auto end, auto callb)
         {
             if (remote_to_serial())
             {

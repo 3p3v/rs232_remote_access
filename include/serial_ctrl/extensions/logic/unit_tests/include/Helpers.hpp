@@ -170,6 +170,11 @@ class Remote_sett_impl
             add_get_set_param_job();
         }
 
+        Observer(Observer&&) = default;
+        Observer& operator=(Observer&&) = default;
+        Observer(const Observer&) = delete;
+        Observer& operator=(const Observer&) = delete;
+
         ~Observer()
         {
             if (active == this)

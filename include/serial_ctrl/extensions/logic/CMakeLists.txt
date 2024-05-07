@@ -39,13 +39,14 @@ if(${BUILD_TESTING} true)
         "./unit_tests/include/"
     )
 
-    # target_include_directories(${LOGIC_EXT_TESTS} PUBLIC ${TIMERSE_INCLUDE_DIR})
-    # target_link_libraries(${LOGIC_EXT_TESTS}  timers) 
+    # extension management
+    target_include_directories(${PROJECT_NAME} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
 
     # Link test library with others
     target_link_libraries(
         ${LOGIC_EXT_TESTS} 
         ${PROJECT_NAME}
+        ext_management
         GTest::gtest_main
     )
 
