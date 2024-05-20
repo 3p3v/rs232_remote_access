@@ -41,27 +41,27 @@ namespace Serial_port
         void set_stop_bits() override final;
 
         /* Communication */
-        template <typename Cont, typename Ok_callb>
-        void write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb);
+        template <typename Iter_t, typename Ok_callb>
+        void write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb);
 
         /* Start */
-        template <typename Iter>
-        void run(typename Iter::iterator iter, size_t len);
+        template <typename Iter_t>
+        void run(Iter_t iter, size_t len);
 
-        template <typename Iter>
-        void listen(typename Iter::iterator iter, size_t len);
+        template <typename Iter_t>
+        void listen(Iter_t iter, size_t len);
     };
 
-    template <typename Iter>
-    void Serial::run(typename Iter::iterator iter, size_t len)
+    template <typename Iter_t>
+    void Serial::run(Iter_t iter, size_t len)
     {
         open();
-        listen<Iter>(iter, len);
+        listen<Iter_t>(iter, len);
     }
 
     
-    template <typename Iter>
-    void Serial::listen(typename Iter::iterator iter, size_t len)
+    template <typename Iter_t>
+    void Serial::listen(Iter_t iter, size_t len)
     {
         serial.async_read_some(boost::asio::buffer(&(*iter), len), [this, &iter](const boost::system::error_code &err, std::size_t read_len)
                                 {
@@ -84,8 +84,8 @@ namespace Serial_port
     }
 
     
-    template <typename Cont, typename Ok_callb>
-    void Serial::write(const typename Cont::const_iterator begin, const typename Cont::const_iterator end, Ok_callb &&ok_callb)
+    template <typename Iter_t, typename Ok_callb>
+    void Serial::write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb)
     {
         static constexpr auto size_ = sizeof(typename std::iterator_traits<typename Cont::const_iterator>::value_type);
 

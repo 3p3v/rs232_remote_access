@@ -6,29 +6,24 @@ set(EXCHANGER_EXT_TESTS exchanger_ext_tests)
 add_library(${PROJECT_NAME} INTERFACE)
 
 # Header files
-set(EXCHANGER_EXT_INCLUDE_DIR 
+target_include_directories(${PROJECT_NAME} INTERFACE 
     "./include/"
-    "./helpers/"
     "./jobs/"
 )
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXCHANGER_EXT_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} INTERFACE 
+    "./helpers/"
+)
 
 # Base extensions
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXTENSIONS_BASE_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} INTERFACE extensions_base)
-# Base extensions
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXTENSIONS_COMMONS_INCLUDE_DIR})
+# Common definitions
 target_link_libraries(${PROJECT_NAME} INTERFACE extensions_commons)
 # Additional definitions
-target_include_directories(${PROJECT_NAME} INTERFACE ${DEFS_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} INTERFACE defs)
 
 # Add message control
 add_subdirectory("./msgs/")
-target_link_libraries(${PROJECT_NAME} INTERFACE
-    packet_ctrl
-)
-target_include_directories(${PROJECT_NAME} INTERFACE ${PACKET_CTRL_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} INTERFACE packet_ctrl)
 
 # Tests
 if(${BUILD_TESTING} true)
@@ -39,21 +34,20 @@ if(${BUILD_TESTING} true)
         "./unit_tests/Exchanger_tests.cpp"
     )
 
-    target_include_directories(${EXCHANGER_EXT_TESTS} PUBLIC
+    target_include_directories(${EXCHANGER_EXT_TESTS} PRIVATE
         "./unit_tests/include/"
     )
 
-    # target_include_directories(${EXCHANGER_EXT_TESTS} PUBLIC ${TIMERSE_INCLUDE_DIR})
-    # target_link_libraries(${EXCHANGER_EXT_TESTS}  timers) 
-
     # extension management
-    target_include_directories(${PROJECT_NAME} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${EXT_MANAGEMENT_INCLUDE_DIR})
 
     # Link test library with others
     target_link_libraries(
         ${EXCHANGER_EXT_TESTS} 
         ${PROJECT_NAME}
+        extension_base_test_hepers
         ext_management
+        setter_ext
         GTest::gtest_main
     )
 

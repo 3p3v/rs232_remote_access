@@ -12,12 +12,7 @@ Logic::Remote_ext &Logic::Shared_ext::operator*() const noexcept
     return *ext;
 }
 
-bool Logic::Shared_ext::operator==(const Shared_ext& ext) const
+bool Logic::Shared_ext::operator==(const Shared_ext &ext) const noexcept
 {
-    return typeid(*(this->ext)) == typeid(*ext);
-}
-
-Logic::Shared_ext::Ext_ptr_t &Logic::Shared_ext::get_ptr()
-{
-    return ext;
+    return this->id == ext.id;
 }

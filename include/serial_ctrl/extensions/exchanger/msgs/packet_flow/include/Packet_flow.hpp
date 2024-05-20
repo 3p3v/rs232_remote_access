@@ -38,10 +38,10 @@ public:
     Val_t exp();
 
     Packet_flow() = default;
-    Packet_flow(Packet_flow &&) = default;
-    Packet_flow &operator=(Packet_flow &&) = default;
-    Packet_flow(const Packet_flow &) = default;
-    Packet_flow &operator=(const Packet_flow &) = default;
+    Packet_flow(Packet_flow &&) noexcept;
+    Packet_flow &operator=(Packet_flow &&) noexcept;
+    Packet_flow(const Packet_flow &) = delete;
+    Packet_flow &operator=(const Packet_flow &) = delete;
     virtual ~Packet_flow() = default;
 };
 
@@ -87,7 +87,7 @@ inline Val_t Packet_flow<
 {
     if (--next_num < min_msg_num)
         next_num = max_msg_num;
-    
+
     return next_num;
 }
 
@@ -137,4 +137,43 @@ Val_t Packet_flow<
     T2>::exp()
 {
     return next_num;
+}
+
+template <
+    typename Val_t,
+    Val_t min_msg_num,
+    Val_t max_msg_num,
+    typename T1,
+    typename T2>
+inline Packet_flow<
+    Val_t,
+    min_msg_num,
+    max_msg_num,
+    T1,
+    T2>::Packet_flow(Packet_flow &&pf) noexcept
+    : next_num{pf.next_num.load()}, not_acked{pf.not_acked.load()}
+{
+}
+
+template <
+    typename Val_t,
+    Val_t min_msg_num,
+    Val_t max_msg_num,
+    typename T1,
+    typename T2>
+inline Packet_flow<
+    Val_t,
+    min_msg_num,
+    max_msg_num,
+    T1,
+    T2> &
+Packet_flow<
+    Val_t,
+    min_msg_num,
+    max_msg_num,
+    T1,
+    T2>::operator=(Packet_flow &&pf) noexcept
+    : Packet_flow{std::move(pf)}
+{
+    return *this;
 }

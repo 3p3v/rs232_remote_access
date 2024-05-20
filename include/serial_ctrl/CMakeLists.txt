@@ -8,10 +8,10 @@ add_subdirectory("./timers/")
 add_subdirectory("./sides/")
 add_subdirectory("./defs/")
 add_subdirectory("./ext_management/")
-add_subdirectory("./worker_management/")
 add_subdirectory("./dev_record/")
 add_subdirectory("./user_controller/")
 add_subdirectory("./serial/")
+add_subdirectory("./impl/")
 add_subdirectory("./device/")
 add_subdirectory("./device_impl/")
 
@@ -26,6 +26,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
     common_context
     device
     device_impl
+    impl
 )
 
 set(TEMP_MAIN_INCLUDE_DIR 
@@ -37,4 +38,5 @@ set(TEMP_MAIN_INCLUDE_DIR
     ${COMMON_CONTEXT_INCLUDE_DIR}
     ${DEVICE_INCLUDE_DIR}
     ${DEVICE_IMPL_INCLUDE_DIR}
+    ${IMPL_INCLUDE_DIR}
 )

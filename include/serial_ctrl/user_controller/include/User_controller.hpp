@@ -2,19 +2,18 @@
 
 #include <memory>
 #include <Port_settings_storage.hpp>
+#include <Forwarder.hpp>
+
+using namespace Job_ctrl;
 
 namespace Logic
 {
     class Remote_record;
-    class Ext_forwarder;
 
     class User_controller final
     {
-    public:
-        using Ext_forwarder_ptr = std::shared_ptr<Ext_forwarder>;
-    private:
         /// @brief
-        Ext_forwarder_ptr manager;
+        Forwarder manager;
 
     public:
         // /// @brief
@@ -45,18 +44,19 @@ namespace Logic
             typename... Params_t>
         void set_params(Params_t... params);
 
-        User_controller(Ext_forwarder_ptr &&manager);
-        User_controller(const Ext_forwarder_ptr &manager);
+        /// @brief 
+        void run();
 
-        User_controller(const User_controller &) = delete;
-        User_controller &operator=(const User_controller &) = delete;
-        User_controller(User_controller &&) = default;
-        User_controller &operator=(User_controller &&) = default;
+        /// @brief 
+        void restart();
+
+        User_controller(Forwarder &&manager);
+        User_controller(const Forwarder &manager);
     };
 
     template <typename... Params_t>
     inline void User_controller::set_params(Params_t... params)
     {
-        manager->forward_job(Change_param_job{Port_settings_storage{params...}});
+        manager.forward_job(Change_param_job{Port_settings_storage{params...}});
     }
 }

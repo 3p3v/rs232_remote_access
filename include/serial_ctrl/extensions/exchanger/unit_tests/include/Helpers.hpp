@@ -9,6 +9,10 @@
 
 namespace Logic
 {
+    class Device : public Device_base
+    {
+    };
+
     /// @brief Used by tested object to send data to serial
     class Serial_side_impl
     {
@@ -35,6 +39,13 @@ namespace Logic
             last_msg.emplace_back(begin, end);
             ok_callb(5);
         }
+
+        Serial_side_impl() = default;
+        Serial_side_impl(Serial_side_impl&&) = default;
+        Serial_side_impl& operator=(Serial_side_impl&&) = default;
+        Serial_side_impl(const Serial_side_impl &) = default;
+        Serial_side_impl& operator=(const Serial_side_impl &) = default;
+        ~Serial_side_impl() = default;
     };
 
     std::vector<std::string> Serial_side_impl::last_msg = std::vector<std::string>();
@@ -43,7 +54,7 @@ namespace Logic
     class Remote_side_impl
     {
         using Id_t = std::decay_t<decltype(Packet_defs::min_msg_num)>;
-        
+
         static std::vector<std::string> last_msg;
         static Id_t last_id;
 
@@ -75,6 +86,13 @@ namespace Logic
             last_msg.emplace_back(begin, end);
             ok_callb(5, 5);
         }
+
+        Remote_side_impl() = default;
+        Remote_side_impl(Remote_side_impl&&) = default;
+        Remote_side_impl& operator=(Remote_side_impl&&) = default;
+        Remote_side_impl(const Remote_side_impl &) = default;
+        Remote_side_impl& operator=(const Remote_side_impl &) = default;
+        ~Remote_side_impl() = default;
     };
 
     Remote_side_impl::Id_t Remote_side_impl::last_id{0};
@@ -100,7 +118,7 @@ namespace Logic
         std::function<void(
             Cont_t::iterator,
             Cont_t::iterator,
-            std::function<void(Cont_t::iterator, Cont_t::iterator)>&)>
+            std::function<void(Cont_t::iterator, Cont_t::iterator)> &)>
             callb;
 
     public:
@@ -108,17 +126,17 @@ namespace Logic
         void send(Str &&msg)
         {
             size_t msg_len;
-            
+
             if constexpr (std::is_same_v<std::string, std::decay_t<Str>>)
                 msg_len = std::size(msg);
             else
                 msg_len = std::size(msg) - 1;
-            
+
             if (msg_len > (end - begin))
                 throw std::logic_error{""};
-            
+
             auto b = std::begin(msg);
-            
+
             std::copy(
                 b,
                 b + msg_len,
@@ -129,11 +147,11 @@ namespace Logic
                 begin + msg_len,
                 /* Callback to run after sending message */
                 std::function<void(Cont_t::iterator, Cont_t::iterator)>{[this](Cont_t::iterator begin, Cont_t::iterator end)
-                {
-                    this->begin = begin;
-                    this->end = end;
-                    callb_run_ = true;
-                }});
+                                                                        {
+                                                                            this->begin = begin;
+                                                                            this->end = end;
+                                                                            callb_run_ = true;
+                                                                        }});
         }
 
         auto if_callb_run()
@@ -157,6 +175,13 @@ namespace Logic
             this->end = end;
             callb = std::forward<Ok_callb>(ok_callb);
         }
+
+        Serial_side_conn_impl() = default;
+        Serial_side_conn_impl(Serial_side_conn_impl&&) = default;
+        Serial_side_conn_impl& operator=(Serial_side_conn_impl&&) = default;
+        Serial_side_conn_impl(const Serial_side_conn_impl &) = default;
+        Serial_side_conn_impl& operator=(const Serial_side_conn_impl &) = default;
+        ~Serial_side_conn_impl() = default;
     };
 
     /// @brief Used by remote to send data to tested object
@@ -196,7 +221,7 @@ namespace Logic
 
             callb(
                 get_msg_num(),
-                b, 
+                b,
                 e,
                 /* Callback to run after sending message */
                 [msg_ptr = std::move(msg_ptr), this]()
@@ -221,6 +246,13 @@ namespace Logic
         {
             callb = std::forward<Ok_callb>(ok_callb);
         }
+
+        Remote_side_conn_impl() = default;
+        Remote_side_conn_impl(Remote_side_conn_impl&&) = default;
+        Remote_side_conn_impl& operator=(Remote_side_conn_impl&&) = default;
+        Remote_side_conn_impl(const Remote_side_conn_impl &) = default;
+        Remote_side_conn_impl& operator=(const Remote_side_conn_impl &) = default;
+        ~Remote_side_conn_impl() = default;
     };
 
     class Remote_sett_impl
@@ -266,6 +298,13 @@ namespace Logic
         {
             last_msg_s.push_back(msg);
         }
+
+        Remote_sett_impl() = default;
+        Remote_sett_impl(Remote_sett_impl&&) = default;
+        Remote_sett_impl& operator=(Remote_sett_impl&&) = default;
+        Remote_sett_impl(const Remote_sett_impl &) = default;
+        Remote_sett_impl& operator=(const Remote_sett_impl &) = default;
+        ~Remote_sett_impl() = default;
     };
 
     std::vector<std::string> Remote_sett_impl::last_msg_s = std::vector<std::string>();
@@ -298,6 +337,9 @@ namespace Logic
         {
             active = this;
         }
+
+        Custom_timer_impl(Custom_timer_impl&&) = default;
+        Custom_timer_impl& operator=(Custom_timer_impl&&) = default;
 
         ~Custom_timer_impl()
         {
@@ -386,9 +428,9 @@ namespace Logic
             return Cmds_pack{};
         }
 
-        template <typename Forwarder_ptr_t>
-        Observer(Forwarder_ptr_t &&manager)
-            : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
+        template <typename Dev_ptr_t>
+        Observer(Forwarder &&manager, Notyfier &&n, Dev_ptr_t &&dev)
+            : Unauthed_ext{std::move(manager), std::move(n), std::forward<Dev_ptr_t>(dev)}
         {
             active = this;
 
@@ -396,10 +438,10 @@ namespace Logic
             add_param_ready_notify_job();
         }
 
-        Observer(Observer&&) = default;
-        Observer& operator=(Observer&&) = default;
-        Observer(const Observer&) = delete;
-        Observer& operator=(const Observer&) = delete;
+        Observer(Observer &&) = default;
+        Observer &operator=(Observer &&) = default;
+        Observer(const Observer &) = delete;
+        Observer &operator=(const Observer &) = delete;
 
         ~Observer()
         {

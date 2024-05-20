@@ -9,21 +9,20 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 # Header files
-set(SETTER_EXT_INCLUDE_DIR 
+target_include_directories(${PROJECT_NAME} PUBLIC 
     "./include/"
-    "./helpers/include/"
     "./jobs/"
+    "./helpers/include/"
 )
-target_include_directories(${PROJECT_NAME} PUBLIC ${SETTER_EXT_INCLUDE_DIR})
 
 # Base extensions
-target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_BASE_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${EXTENSIONS_BASE_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC extensions_base)
 # Base extensions
-target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_COMMONS_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${EXTENSIONS_COMMONS_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC extensions_commons)
 # Additional definitions
-target_include_directories(${PROJECT_NAME} PUBLIC ${DEFS_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${DEFS_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC defs)
 
 # Tests
@@ -35,18 +34,19 @@ if(${BUILD_TESTING} true)
         "./unit_tests/Setter_tests.cpp"
     )
 
-    target_include_directories(${SETTER_EXT_TESTS} PUBLIC
+    target_include_directories(${SETTER_EXT_TESTS} PRIVATE
         "./unit_tests/include/"
     )
 
     # extension management
-    target_include_directories(${SETTER_EXT_TESTS} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
+    target_include_directories(${SETTER_EXT_TESTS} PRIVATE ${EXT_MANAGEMENT_INCLUDE_DIR})
 
     # Link test library with others
     target_link_libraries(
         ${SETTER_EXT_TESTS} 
         ${PROJECT_NAME}
         ext_management
+        extension_base_test_hepers
         GTest::gtest_main
     )
 

@@ -3,9 +3,7 @@ project(device_impl VERSION 0.1.0 LANGUAGES CXX)
 set(DEVICE_IMPL_TESTS device_impl_tests)
 
 # Main code
-add_library(${PROJECT_NAME} STATIC
-    ./src/Device_impl.cpp
-)
+add_library(${PROJECT_NAME} INTERFACE)
 
 # Header files
 set(DEVICE_IMPL_INCLUDE_DIR 

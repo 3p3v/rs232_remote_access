@@ -25,8 +25,7 @@ namespace Logic
         typename Remote_sett_impl,
         typename Serial_sett_impl>
     class Setter
-        : public Common_ext<Timer_t>,
-          public std::enable_shared_from_this<Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>>
+        : public Common_ext<Timer_t>
     {
     public:
         static constexpr auto params_count{4};
@@ -37,7 +36,6 @@ namespace Logic
     public:
         using Remote_settings_ptr = Mqtt_settings<Remote_sett_impl>;
         using Serial_settings_ptr = Serial_settings<Serial_sett_impl>;
-        using Remote_record_ptr = std::shared_ptr<Remote_record>;
 
         ////////////////////////////////
         /* Data handled inside object */
@@ -49,7 +47,7 @@ namespace Logic
         Serial_settings_ptr serial_s;
 
         /// @brief Port settings, remote state
-        Remote_record_ptr remote_rec;
+        Remote_record &remote_rec;
 
         /// @brief
         void reset_established_params();
@@ -152,45 +150,34 @@ namespace Logic
         Cmds_pack get_cmds() override;
 
         template <
-            typename Manager_ptr_t,
+            typename Device_weak_ptr_t,
             typename Remote_settings_ptr_t,
-            typename Serial_settings_ptr_t,
-            typename Remote_record_ptr_t> //,
-        // typename = std::enable_if_t<
-        //     std::is_base_of_v<
-        //         Remote_settings_ptr,
-        //         std::decay_t<Remote_settings_ptr_t>>>,
-        // typename = std::enable_if_t<
-        //     std::is_same_v<
-        //         Serial_settings_ptr,
-        //         std::decay_t<Serial_settings_ptr_t>>>,
-        // typename = std::enable_if_t<
-        //     std::is_same_v<
-        //         Remote_record_ptr,
-        //         std::decay_t<Remote_record_ptr_t>>>>
+            typename Serial_settings_ptr_t>
         Setter(
-            Manager_ptr_t &&manager,
+            Forwarder &&manager,
+            Notyfier &&notyfier,
+            Device_weak_ptr_t &&device_ptr,
             Remote_settings_ptr_t &&remote_s,
             Serial_settings_ptr_t &&serial_s,
-            Remote_record_ptr_t &&remote_rec);
+            Remote_record &remote_rec);
     };
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::reset_established_params()
     {
-        remote_rec->params_established = 0;
+        remote_rec.params_established = 0;
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::add_established_param()
     {
-        remote_rec->params_established++;
+        remote_rec.params_established++;
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::if_all_params_established()
     {
-        if (remote_rec->params_established == remote_rec->all_established)
+        if (remote_rec.params_established == remote_rec.all_established)
         {
             /* All parameters established, ready to exchange data */
             param_ready_notify_job();
@@ -200,25 +187,25 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline bool Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::check_if_all_params_established()
     {
-        return remote_rec->params_established == remote_rec->all_established;
+        return remote_rec.params_established == remote_rec.all_established;
     }
 
-    template<typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
+    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::activate_record()
     {
-        remote_rec->record_active = true;
+        remote_rec.record_active = true;
     }
 
-    template<typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
+    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline void Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::deactivate_record()
     {
-        remote_rec->record_active = false;
+        remote_rec.record_active = false;
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
     inline bool Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::if_record_active()
     {
-        return remote_rec->record_active;
+        return remote_rec.record_active;
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
@@ -250,7 +237,7 @@ namespace Logic
                     reset_established_params();
 
                     /* Get settings if unknown or not configurable */
-                    if (!remote_rec->settings_known || remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                    if (!remote_rec.settings_known || remote_rec.conf_port == Remote_conf_port::Non_configurable)
                     {
                         get_settings_();
                     }
@@ -261,10 +248,10 @@ namespace Logic
                         if (!check_for_jobs<Change_postponed_job>())
                         {
                             /* Send commands to change parameters if user did not sent them in the meantime */
-                            set_baud_rate_(remote_rec->port_settings.baud_rate);
-                            set_parity_(remote_rec->port_settings.parity);
-                            set_char_size_(remote_rec->port_settings.char_size);
-                            set_stop_bits_(remote_rec->port_settings.stop_bits);
+                            set_baud_rate_(remote_rec.port_settings.baud_rate);
+                            set_parity_(remote_rec.port_settings.parity);
+                            set_char_size_(remote_rec.port_settings.char_size);
+                            set_stop_bits_(remote_rec.port_settings.stop_bits);
                         }
                         else
                         {
@@ -282,7 +269,7 @@ namespace Logic
             Job_policies<>::make_job_handler<Change_param_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                    if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                     {
                         // TODO tell monitor it is impossible
                     }
@@ -320,7 +307,7 @@ namespace Logic
             Job_policies<>::make_job_handler<Change_postponed_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                    if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                     {
                         // TODO tell monitor it is impossible
                     }
@@ -534,7 +521,7 @@ namespace Logic
     {
         timers.stop_timer(std::string{Get_defs::get_baud_rate_s});
         auto arg_ = Set_defs::baud_rate_trans(arg);
-        remote_rec->port_settings.baud_rate = arg_;
+        remote_rec.port_settings.baud_rate = arg_;
         serial_s.set_baud_rate(arg_);
     }
 
@@ -543,7 +530,7 @@ namespace Logic
     {
         timers.stop_timer(std::string{Get_defs::get_parity_s});
         auto arg_ = Set_defs::parity_trans(arg);
-        remote_rec->port_settings.parity = arg_;
+        remote_rec.port_settings.parity = arg_;
         serial_s.set_parity(arg_);
     }
 
@@ -552,7 +539,7 @@ namespace Logic
     {
         timers.stop_timer(std::string{Get_defs::get_char_size_s});
         auto arg_ = Set_defs::char_size_trans(arg);
-        remote_rec->port_settings.char_size = arg_;
+        remote_rec.port_settings.char_size = arg_;
         serial_s.set_char_size(arg_);
     }
 
@@ -561,7 +548,7 @@ namespace Logic
     {
         timers.stop_timer(std::string{Get_defs::get_stop_bits_s});
         auto arg_ = Set_defs::stop_bits_trans(arg);
-        remote_rec->port_settings.stop_bits = arg_;
+        remote_rec.port_settings.stop_bits = arg_;
         serial_s.set_stop_bits(arg_);
     }
 
@@ -576,7 +563,7 @@ namespace Logic
                 Command::Policies<Numbers_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                         {
                             set_baud_rate();
                         }
@@ -592,7 +579,7 @@ namespace Logic
                 Command::Policies<Numbers_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
                         {
                             set_baud_rate_compl(arg);
                         }
@@ -615,7 +602,7 @@ namespace Logic
                 Command::Policies<Alpha_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                         {
                             set_parity();
                         }
@@ -630,7 +617,7 @@ namespace Logic
                 Command::Policies<Alpha_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
                         {
                             set_parity_compl(arg);
                         }
@@ -653,7 +640,7 @@ namespace Logic
                 Command::Policies<Numbers_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                         {
                             set_char_size();
                         }
@@ -668,7 +655,7 @@ namespace Logic
                 Command::Policies<Numbers_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
                         {
                             set_char_size_compl(arg);
                         }
@@ -691,7 +678,7 @@ namespace Logic
                 Command::Policies<Alpha_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable)
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable)
                         {
                             set_stop_bits();
                         }
@@ -706,7 +693,7 @@ namespace Logic
                 Command::Policies<Alpha_only>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        if (remote_rec->conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
+                        if (remote_rec.conf_port == Remote_conf_port::Non_configurable || (!check_if_all_params_established() && if_record_active()))
                         {
                             set_stop_bits_compl(arg);
                         }
@@ -726,19 +713,30 @@ namespace Logic
         return pack;
     }
 
-    template <typename Timer_t, typename Remote_sett_impl, typename Serial_sett_impl>
-    template <typename Manager_ptr_t, typename Remote_settings_ptr_t, typename Serial_settings_ptr_t, typename Remote_record_ptr_t>
+    template <
+        typename Timer_t, 
+        typename Remote_sett_impl, 
+        typename Serial_sett_impl>
+    template <
+        typename Device_weak_ptr_t, 
+        typename Remote_settings_ptr_t, 
+        typename Serial_settings_ptr_t>
     inline Setter<Timer_t, Remote_sett_impl, Serial_sett_impl>::Setter(
-        Manager_ptr_t &&manager,
+        Forwarder &&manager,
+        Notyfier &&notyfier,
+        Device_weak_ptr_t &&device_ptr,
         Remote_settings_ptr_t &&remote_s,
         Serial_settings_ptr_t &&serial_s,
-        Remote_record_ptr_t &&remote_rec)
-        : Common_ext(std::forward<Manager_ptr_t>(manager)),
+        Remote_record &remote_rec)
+        : Common_ext{
+            std::move(forwarder), 
+            std::move(notyfier), 
+            std::forward<Device_weak_ptr_t>(device_ptr)},
           remote_s{std::forward<Remote_settings_ptr_t>(remote_s)},
           serial_s{std::forward<Serial_settings_ptr_t>(serial_s)},
-          remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
+          remote_rec{remote_rec}
     {
-        assert(params_count == remote_rec->all_established && "Parameter count not match");
+        assert(params_count == remote_rec.all_established && "Parameter count not match");
 
         add_restart_job();
         add_get_set_param_job();

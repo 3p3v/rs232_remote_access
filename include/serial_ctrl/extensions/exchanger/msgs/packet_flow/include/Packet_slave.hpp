@@ -23,6 +23,13 @@ public:
 
     /// @brief Allow for any number in next turn
     void reload() noexcept;
+
+    Packet_slave() = default;
+    Packet_slave(Packet_slave&&) noexcept;
+    Packet_slave& operator=(Packet_slave&&) noexcept;
+    Packet_slave(const Packet_slave &) = delete;
+    Packet_slave& operator=(const Packet_slave &) = delete;
+    ~Packet_slave() = default;
 };
 
 template <
@@ -59,4 +66,17 @@ void Packet_slave<
     max_msg_num>::reload() noexcept
 {
     s_reload = true;
+}
+
+template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num>
+inline Packet_slave<Val_t, min_msg_num, max_msg_num>::Packet_slave(Packet_slave &&ps) noexcept
+    : Packet_flow{std::move(ps)}, s_reload{ps.s_reload.load()}
+{
+}
+
+template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num>
+inline Packet_slave<Val_t, min_msg_num, max_msg_num> &Packet_slave<Val_t, min_msg_num, max_msg_num>::operator=(Packet_slave &&ps) noexcept
+    : Packet_slave{std::move(ps)}
+{
+    return *this
 }

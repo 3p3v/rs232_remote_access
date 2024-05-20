@@ -1,38 +1,38 @@
 // #include <gtest/gtest.h>
-#include <Logic.hpp>
-#include <Process_full.hpp>
-#include <Hi_defs.hpp>
-#include <./Helpers.hpp>
+// #include <Logic.hpp>
+// #include <Process_full.hpp>
+// #include <Hi_defs.hpp>
+// #include <./Helpers.hpp>
 #include <iostream>
 
-namespace Logic
-{
-    using Logic_under_test = Logic::Logic<Custom_timer_impl_maker, Remote_sett_impl>;
-}
+// namespace Logic
+// {
+//     using Logic_under_test = Logic::Logic<Custom_timer_impl_maker, Remote_sett_impl>;
+// }
 
-using namespace Logic;
+// using namespace Logic;
 
-auto get_stat_name(const Remote_status &stat)
-{
-    switch (stat)
-    {
-    case Remote_status::Not_connected:
-        return "Remote_status::Not_connected";
-        break;
-    case Remote_status::Establishing_parameters:
-        return "Remote_status::Establishing_parameters";
-        break;
-    case Remote_status::Data_exchange:
-        return "Remote_status::Data_exchange";
-        break;
-    case Remote_status::Disconnected:
-        return "Remote_status::Disconnected";
-        break;
-    default:
-        return "???";
-        break;
-    }
-}
+// auto get_stat_name(const Remote_status &stat)
+// {
+//     switch (stat)
+//     {
+//     case Remote_status::Not_connected:
+//         return "Remote_status::Not_connected";
+//         break;
+//     case Remote_status::Establishing_parameters:
+//         return "Remote_status::Establishing_parameters";
+//         break;
+//     case Remote_status::Data_exchange:
+//         return "Remote_status::Data_exchange";
+//         break;
+//     case Remote_status::Disconnected:
+//         return "Remote_status::Disconnected";
+//         break;
+//     default:
+//         return "???";
+//         break;
+//     }
+// }
 
 int main()
 {

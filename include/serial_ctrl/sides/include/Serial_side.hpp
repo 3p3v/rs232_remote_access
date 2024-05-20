@@ -1,38 +1,34 @@
 #pragma once
 
+#include <Serial_base.hpp>
+
 namespace Logic
 {
     /// @brief Serial data interface.
     ///        Declares all methods needed by the functional class to be suted for communication.
-    /// @tparam Impl Class implementing functions.
-    template <typename Impl>
-    class Serial_side
+    /// @tparam Impl_t Class implementing functions.
+    template <typename Impl_t>
+    class Serial_side : public Serial_base<Impl_t>
     {
-        Impl impl;
+        using Serial_base_t::Serial_base;
 
     public:
         template <typename Iter_t, typename Ok_callb, typename Ec_callb>
         void write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb);
-
-        Serial_side(Impl &&impl);
     };
 
-    template <typename Impl>
-    Serial_side(Impl &&) -> Serial_side<Impl>;
+    // template <typename Impl_t>
+    // Serial_side(Impl_t &&) -> Serial_side<Impl_t>;
 
-    template <typename Impl>
+    template <typename Impl_t>
     template <typename Iter_t, typename Ok_callb, typename Ec_callb>
-    inline void Serial_side<Impl>::write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
+    inline void Serial_side<Impl_t>::write(Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {
-        impl.write(
+        if (auto i = get_impl())
+            i->write(
             begin,
             end,
             std::forward<Ok_callb>(ok_callb),
             std::forward<Ec_callb>(ec_callb));
-    }
-
-    template <typename Impl>
-    inline Serial_side<Impl>::Serial_side(Impl &&impl)
-    {
     }
 }

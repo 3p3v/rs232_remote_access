@@ -4,9 +4,10 @@ set(EXT_MANAGEMENT_TESTS ext_management_tests)
 
 # Main code
 add_library(${PROJECT_NAME} STATIC
-    "./src/Process_manager.cpp"
+    "./src/Process_full.cpp"
     "./src/Shared_ext.cpp"
     "./src/Ext_id.cpp"
+    "./src/Ws_holder.cpp"
 )
 
 # Header files
@@ -16,11 +17,9 @@ set(EXT_MANAGEMENT_INCLUDE_DIR
 target_include_directories(${PROJECT_NAME} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
 
 # Worker management
-target_include_directories(${PROJECT_NAME} PUBLIC ${WORKER_MANAGEMENT_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} worker_management)
+target_link_libraries(${PROJECT_NAME} PRIVATE ctrl_console)
 # Extensions
-target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} extensions_base)
+target_link_libraries(${PROJECT_NAME} PRIVATE extensions_base)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 

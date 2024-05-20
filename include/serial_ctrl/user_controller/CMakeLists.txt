@@ -14,11 +14,9 @@ set(USER_CONTROLLER_INCLUDE_DIR
 target_include_directories(${PROJECT_NAME} PUBLIC ${USER_CONTROLLER_INCLUDE_DIR})
 
 # Commands interpreter console and jobs
-target_include_directories(${PROJECT_NAME} PUBLIC ${WORKER_MANAGEMENT_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} worker_management)
+target_link_libraries(${PROJECT_NAME} PUBLIC ext_management)
 # Extensions
-target_include_directories(${PROJECT_NAME} PUBLIC ${EXTENSIONS_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} extensions)
+target_link_libraries(${PROJECT_NAME} PRIVATE extensions)
 
 # Tests
 if(${BUILD_TESTING} true)
@@ -33,18 +31,13 @@ if(${BUILD_TESTING} true)
         "./unit_tests/include/"
     )
 
-    # Commands interpreter console and jobs
-    target_include_directories(${PROJECT_NAME} PUBLIC ${EXT_MANAGEMENT_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} ext_management)
-
-    # Commands interpreter console and jobs
-    target_include_directories(${PROJECT_NAME} PUBLIC ${DEV_RECORD_INCLUDE_DIR})
-    target_link_libraries(${PROJECT_NAME} dev_record)
-
     # Link test library with others
     target_link_libraries(
         ${USER_CONTROLLER_TESTS} 
         ${PROJECT_NAME}
+        ext_management
+        extensions
+        dev_record
         GTest::gtest_main
     )
 

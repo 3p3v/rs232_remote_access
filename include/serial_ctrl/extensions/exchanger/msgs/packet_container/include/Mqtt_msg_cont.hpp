@@ -33,7 +33,7 @@ public:
     /// @brief Get all message indexes that are >= id
     /// @param id
     /// @return
-    auto get(Val_t id);
+    auto get(Val_t id) noexcept;
 
     /// @brief Find first free message, if not found throws exception
     /// @param id
@@ -105,7 +105,7 @@ inline auto Mqtt_msg_cont<
     max_saved,
     T1,
     T2,
-    T3>::get(Val_t id)
+    T3>::get(Val_t id) noexcept
 {
     std::vector<Val_t> msg_idx{};
 

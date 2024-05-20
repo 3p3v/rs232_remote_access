@@ -5,8 +5,8 @@ set(DEV_RECORD_TESTS dev_record_tests)
 # Main code
 add_library(${PROJECT_NAME} STATIC
     "./src/Remote_dev.cpp"
-    "./src/Remote_port_record.cpp"
-    "./src/Serial_port_record.cpp"
+    "./src/Remote_info.cpp"
+    "./src/Serial_info.cpp"
 )
 
 # Header files
@@ -16,9 +16,12 @@ set(DEV_RECORD_INCLUDE_DIR
 target_include_directories(${PROJECT_NAME} PUBLIC ${DEV_RECORD_INCLUDE_DIR})
 
 # Extensions
-target_link_libraries(${PROJECT_NAME} extensions)
+target_link_libraries(${PROJECT_NAME} PRIVATE extensions)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC setter_ext)
+target_link_libraries(${PROJECT_NAME} PUBLIC logic_ext)
 # Defs
-target_link_libraries(${PROJECT_NAME} defs)
+target_link_libraries(${PROJECT_NAME} PRIVATE defs)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 

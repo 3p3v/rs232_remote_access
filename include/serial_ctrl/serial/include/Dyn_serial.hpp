@@ -49,4 +49,14 @@ namespace Phy_serial
     {
         ec(code, err);
     }
+
+    template <typename Str_t, typename Rc_t, typename Ec_t>
+    auto make_unique_dyn_serial(Str_t &&port, Rc_t &&rc, Ec_t &&ec)
+    {
+        return std::make_unique<Dyn_serial<Rc_t, Ec_t>>(
+            std::forward<Str_t>(port),
+            std::forward<Rc_t>(rc),
+            std::forward<Ec_t>(ec)
+        );
+    }
 }

@@ -5,6 +5,8 @@
 #include <Helpers.hpp>
 #include <Get_defs.hpp>
 #include <Restart_job.hpp>
+#include <Notyfier.hpp>
+#include <Notyfication_manager.hpp>
 
 namespace Logic
 {
@@ -17,17 +19,18 @@ namespace Logic
     class Cont
     {
     public:
+        Remote_sett_impl r_sett = {};
+        Remote_side_impl r_side = {};
+        Serial_side_impl s_side = {};
+
+        Notyfication_manager nm{};
+
         /// @brief Extension manager
-        std::shared_ptr<Process_full> manager = std::make_shared<Process_full>();
+        Process_full manager{};
+        /// @brief
+        std::shared_ptr<Device> dev{std::make_shared<Device>()};
         /// @brief Record describing state of the device
-        std::shared_ptr<Remote_record> remote_rec = std::make_shared<Remote_record>();
-        /// @brief Data exchanger
-        std::shared_ptr<Logic_under_test> exchanger = std::make_shared<Logic_under_test>(
-            manager,
-            Remote_sett_impl{},
-            Remote_side_impl{},
-            Serial_side_impl{},
-            remote_rec);
+        Remote_record remote_rec{};
         /// @brief Forwarding data from remote to ext
         Remote_side_conn_impl remote_c{};
         /// @brief Forwarding data from serial to ext
@@ -35,21 +38,32 @@ namespace Logic
 
         Cont()
         {
+            Logic_under_test exchanger{
+                Forwarder{manager.ext_forwarder},
+                Notyfier{0, nm},
+                dev,
+                r_sett,
+                r_side,
+                s_side,
+                remote_rec};
+
             /* Bind inputs to ext */
             std::apply(
                 [this](auto &&...args)
                 {
                     remote_c.connect(std::forward<decltype(args)>(args)...);
                 },
-                exchanger->get_remote_args());
+                exchanger.get_remote_args());
             std::apply(
                 [this](auto &&...args)
                 {
                     serial_c.connect(std::forward<decltype(args)>(args)...);
                 },
-                exchanger->get_serial_args());
+                exchanger.get_serial_args());
             /* Add previously constructed ext to manager */
-            manager->add_ext(std::move(exchanger));
+            Logic_under_test exchanger1{std::move(exchanger)};
+            Shared_ext x{std::move(exchanger1)};
+            manager.add_ext(std::move(x));
         }
     };
 
@@ -60,9 +74,14 @@ namespace Logic
         auto &rec = cont.remote_rec;
         auto &remote_c = cont.remote_c;
         auto &serial_c = cont.serial_c;
+        auto &nm = cont.nm;
+        auto &dev = cont.dev;
 
         /* Add observer */
-        manager->add_ext<Observer>(manager);
+        manager.add_ext<Observer>(
+            Forwarder{manager.ext_forwarder},
+            Notyfier{0, nm},
+            dev);
 
         /* Check if ext forwards data when parameters weren't set yet */
         remote_c.send("foo1");
@@ -71,7 +90,7 @@ namespace Logic
         EXPECT_EQ(Remote_side_impl::get_last_msg(), std::vector<std::string>());
 
         /* Tell ext to start data exchange */
-        manager->forward_job(Param_ready_notify_job{});
+        manager.ext_forwarder.forward_job(Param_ready_notify_job{});
 
         /* Check if ext forwards data */
         remote_c.send("foo1");
@@ -81,7 +100,7 @@ namespace Logic
         EXPECT_EQ(Remote_side_impl::get_last_id(), Packet_defs::min_msg_num);
 
         /* Reset all extensions */
-        manager->forward_job(Restart_job{});
+        manager.ext_forwarder.forward_job(Restart_job{});
 
         /* Check if ext forwards data when parameters weren't set yet */
         remote_c.send("foo1");
@@ -90,7 +109,7 @@ namespace Logic
         EXPECT_EQ(Remote_side_impl::get_last_msg(), std::vector<std::string>());
 
         /* Tell ext to start data exchange */
-        manager->forward_job(Param_ready_notify_job{});
+        manager.ext_forwarder.forward_job(Param_ready_notify_job{});
 
         /* Check if ext forwards data */
         remote_c.send("foo3");

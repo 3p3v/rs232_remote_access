@@ -5,9 +5,7 @@
 #include <cassert>
 
 namespace Logic
-{
-    class Remote_ext;
-    
+{   
     class Ext_id_base
     {
     public:
@@ -19,8 +17,7 @@ namespace Logic
     /// @brief Generate unique id for given extension
     /// @tparam Ext_t
     template <
-        typename Ext_t,
-        typename = std::enable_if_t<std::is_base_of_v<Remote_ext, Ext_t>>>
+        typename Ext_t>
     class Ext_id
     {
         /// @brief Check if given type is enough to contain all exts types
@@ -31,8 +28,8 @@ namespace Logic
         static Ext_id_base::Id_t id;
     };
 
-    template <typename Ext_t, typename T>
-    inline Ext_id_base::Id_t Ext_id<Ext_t, T>::check_overflow()
+    template <typename Ext_t>
+    inline Ext_id_base::Id_t Ext_id<Ext_t>::check_overflow()
     {
         auto t = Ext_id_base::id;
 
@@ -41,6 +38,6 @@ namespace Logic
         return t;
     }
 
-    template <typename Ext_t, typename T>
-    Ext_id_base::Id_t Ext_id<Ext_t, T>::id{check_overflow()};
+    template <typename Ext_t>
+    Ext_id_base::Id_t Ext_id<Ext_t>::id{check_overflow()};
 }

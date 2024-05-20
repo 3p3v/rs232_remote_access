@@ -1,7 +1,10 @@
 #include <User_controller.hpp>
+/* Jobs */
 #include <Change_param_job.hpp>
-#include <Ext_forwarder.hpp>
-#include <Remote_record.hpp>
+#include <Start_job.hpp>
+#include <Restart_job.hpp>
+/* Message forwarding */
+#include <Forwarder.hpp>
 
 using namespace Logic::Port_settings;
 
@@ -41,20 +44,30 @@ namespace Logic
 
     void User_controller::set_params(Port_settings_storage &&port_settings)
     {
-        manager->forward_job(Change_param_job{std::move(port_settings)});
+        manager.forward_job(Change_param_job{std::move(port_settings)});
     }
 
     void User_controller::set_params(const Port_settings_storage &port_settings)
     {
-        manager->forward_job(Change_param_job{port_settings});
+        manager.forward_job(Change_param_job{port_settings});
     }
 
-    User_controller::User_controller(Ext_forwarder_ptr &&manager)
+    void User_controller::run()
+    {
+        manager.forward_job(Start_job{});
+    }
+
+    void User_controller::restart()
+    {
+        manager.forward_job(Restart_job{});
+    }
+
+    User_controller::User_controller(Forwarder &&manager)
         : manager{std::move(manager)}
     {
     }
 
-    User_controller::User_controller(const Ext_forwarder_ptr &manager)
+    User_controller::User_controller(const Forwarder &manager)
         : manager{manager}
     {
     }

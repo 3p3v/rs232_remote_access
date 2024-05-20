@@ -1,17 +1,27 @@
 #pragma once
 
-// #include <map>
-// #include <memory>
-#include <Worker_storage.hpp>
+#include <Ws_ext.hpp>
 
 namespace Job_ctrl
 {
-    template <typename Worker_ptr_t>
-    class Forwarder : virtual public Worker_storage<Worker_ptr_t>
+    class Forwarder : public Ws_ext
     {
     public:
-        /// @brief Forward job to Workers taking some kind of Job
+        /// @brief
         /// @tparam Job_t
+        /// @tparam ...Args_t
+        /// @tparam
+        /// @param ...args
+        template <
+            typename Job_t,
+            typename... Args_t,
+            typename = std::enable_if_t<
+                std::is_base_of_v<
+                    Job,
+                    std::decay_t<Job_t>>>>
+        void forward_job(Args_t &&...args);
+
+        /// @brief
         /// @param job
         template <
             typename Job_t,
@@ -19,67 +29,23 @@ namespace Job_ctrl
                 std::is_base_of_v<
                     Job,
                     std::decay_t<Job_t>>>>
-        void forward_job(Job_t &&job); // TODO change from template to normal, add forward_job<Job_t>(args...)
+        void forward_job(Job_t &&job);
 
-        template <
-            typename Job_t,
-            typename ...Args_t,
-            typename = std::enable_if_t<
-                std::is_base_of_v<
-                    Job,
-                    std::decay_t<Job_t>>>>
-        void forward_job(Args_t &&...args);
-
-        Forwarder() = default;
-        Forwarder(Forwarder&&) = default;
-        Forwarder& operator=(Forwarder&&) = default;
-        Forwarder(const Forwarder&) = default;
-        Forwarder& operator=(const Forwarder&) = default;
-        ~Forwarder() = 0;
+        using Ws_ext::Ws_ext;
     };
 
-    template <
-        typename Worker_ptr_t>
+    template <typename Job_t, typename>
+    void Forwarder::forward_job(Job_t &&job)
+    {
+        ws.forward_job(std::forward<Job_t>(job));
+    }
+
     template <
         typename Job_t,
+        typename... Args_t,
         typename>
-    inline void Forwarder<Worker_ptr_t>::forward_job(Job_t &&job)
+    inline void Forwarder::forward_job(Args_t &&...args)
     {
-        auto job_id = job.get_id();
-        auto man_iter = workers.find(job_id);
-
-        std::all_of(
-            man_iter,
-            workers.end(),
-            [&job, job_id](auto &man)
-            {
-                if (man.first == job_id)
-                {
-                    if constexpr (std::is_pointer_v<Worker_ptr_t> || is_shared_ptr<Worker_ptr_t>::value || is_unique_ptr<Worker_ptr_t>::value)
-                    {
-                        man.second->give_job(std::forward<Job_t>(job));
-                    }
-                    else
-                    {
-                        man.second.give_job(std::forward<Job_t>(job));
-                    }
-
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            });
+        ws.forward_job<Job_t>(std::forward<Args_t>(args)...);
     }
-
-    template <typename Worker_ptr_t>
-    template <typename Job_t, typename ...Args_t, typename>
-    inline void Forwarder<Worker_ptr_t>::forward_job(Args_t &&...args)
-    {
-        forward_job(Job_t{std::forward<Args_t>(args)...})
-    }
-
-    template <typename Worker_ptr_t>
-    Forwarder<Worker_ptr_t>::~Forwarder() = default;
 }

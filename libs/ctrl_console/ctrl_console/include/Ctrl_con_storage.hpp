@@ -4,9 +4,18 @@
 
 namespace Cmd_ctrl
 {
-    template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
-    class Ctrl_con_storage : virtual protected Base_ctrl_console<Base_handle_t, endl_opt, endl_, space_>
+    template <
+        typename Base_handle_t, 
+        Endl_opt endl_opt, 
+        char endl_ = '\n', 
+        char space_ = ' '>
+    class Ctrl_con_storage
     {
+        using Base_ctrl_console_t= Base_ctrl_console<Base_handle_t, endl_opt, endl_, space_>;
+        using Ctrl_handle = typename Base_ctrl_console_t::Ctrl_handle;
+
+        Base_ctrl_console_t &cc;
+
     public:
         template <typename Str, typename Handle_t>
         void add_cmd(Str &&cmd_name, Handle_t &&handle);
@@ -26,15 +35,17 @@ namespace Cmd_ctrl
         /// @param end
         template <typename Iter_t>
         void remove_cmd(Iter_t begin, Iter_t end);
+
+        Ctrl_con_storage(Base_ctrl_console_t &cc);
     };
 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
     template <typename Str, typename Handle_t>
     void Ctrl_con_storage<Base_handle_t, endl_opt, endl, space>::add_cmd(Str &&cmd_name, Handle_t &&handle)
     {
-        if (cmds.find(cmd_name) == cmds.end())
+        if (cc.cmds.find(cmd_name) == cc.cmds.end())
         {
-            cmds.emplace(std::forward<Str>(cmd_name),
+            cc.cmds.emplace(std::forward<Str>(cmd_name),
                          Ctrl_handle(std::make_unique<Handle_t>(std::forward<Handle_t>(handle))));
         }
         else
@@ -47,9 +58,9 @@ namespace Cmd_ctrl
     template <typename Cmd_pair_t>
     inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::add_cmd(Cmd_pair_t &&cmd)
     {
-        if (cmds.find(cmd.first) == cmds.end())
+        if (cc.cmds.find(cmd.first) == cc.cmds.end())
         {
-            cmds.insert(std::forward<Cmd_pair_t>(cmd));
+            cc.cmds.insert(std::forward<Cmd_pair_t>(cmd));
         }
         else
         {
@@ -61,11 +72,11 @@ namespace Cmd_ctrl
     template <typename Str>
     inline void Ctrl_con_storage<Base_handle_t, endl_opt, endl_, space_>::remove_cmd(const Str &cmd_name)
     {
-        auto cmd_idx = cmds.find(cmd_name);
+        auto cmd_idx = cc.cmds.find(cmd_name);
 
-        if (cmd_idx != cmds.end())
+        if (cmd_idx != cc.cmds.end())
         {
-            cmds.erase(cmd_idx);
+            cc.cmds.erase(cmd_idx);
         }
         else
         {
@@ -82,16 +93,22 @@ namespace Cmd_ctrl
             end,
             [this](const auto &cmd_name)
             {
-                auto cmd_idx = cmds.find(cmd_name);
+                auto cmd_idx = cc.cmds.find(cmd_name);
 
-                if (cmd_idx != cmds.end())
+                if (cmd_idx != cc.cmds.end())
                 {
-                    cmds.erase(cmd_idx);
+                    cc.cmds.erase(cmd_idx);
                 }
                 else
                 {
                     throw std::logic_error{"The comand with specyfied name does not exists!"};
                 }
             });
+    }
+
+    template <typename Base_handle_t, Endl_opt endl_opt, char endl, char space>
+    Ctrl_con_storage<Base_handle_t, endl_opt, endl, space>::Ctrl_con_storage(Base_ctrl_console_t &cc)
+        : cc{cc}
+    {
     }
 }

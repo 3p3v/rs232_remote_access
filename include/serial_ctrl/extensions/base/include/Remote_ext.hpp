@@ -3,12 +3,9 @@
 #include <stdexcept>
 #include <memory>
 #include <Worker.hpp>
-#include <Ext_forwarder.hpp>
-
-// namespace Logic
-// {
-//     class Ext_forwarder;
-// }
+#include <Forwarder.hpp>
+#include <Notyfier.hpp>
+#include <Device_base.hpp>
 
 using namespace Job_ctrl;
 using namespace Cmd_ctrl;
@@ -19,22 +16,28 @@ namespace Logic
     class Remote_ext : public Worker
     {
     protected:
-        template <typename T>
-        struct is_shared_ptr : std::false_type
-        {
-        };
-        template <typename T>
-        struct is_shared_ptr<std::shared_ptr<T>> : std::true_type
-        {
-        };
-        template <typename T>
-        struct is_weak_ptr : std::false_type
-        {
-        };
-        template <typename T>
-        struct is_weak_ptr<std::weak_ptr<T>> : std::true_type
-        {
-        };
+        using Device_weak_ptr = std::weak_ptr<Device_base>;
+        using Device_shared_ptr = std::shared_ptr<Device_base>;
+
+    private:
+        Device_weak_ptr device_ptr;
+
+        // template <typename T>
+        // struct is_shared_ptr : std::false_type
+        // {
+        // };
+        // template <typename T>
+        // struct is_shared_ptr<std::shared_ptr<T>> : std::true_type
+        // {
+        // };
+        // template <typename T>
+        // struct is_weak_ptr : std::false_type
+        // {
+        // };
+        // template <typename T>
+        // struct is_weak_ptr<std::weak_ptr<T>> : std::true_type
+        // {
+        // };
 
     protected:
         template <typename Str_t, typename Cmd_t>
@@ -52,11 +55,12 @@ namespace Logic
         /// @return
         virtual Cmds_pack get_cmds() = 0;
 
-    public:
-        using Forwarder_ptr = std::weak_ptr<Ext_forwarder>;
-
     protected:
-        Forwarder_ptr forwarder;
+        /// @brief Job forwarding
+        Forwarder forwarder;
+
+        /// @brief Error/debug notyfications for user
+        Notyfier notyfier;
 
         template <
             typename Job_t,
@@ -76,9 +80,12 @@ namespace Logic
         /// @brief Restart module procedure
         virtual void add_restart_job() = 0;
 
+        Device_shared_ptr shared_from_this();
+        Device_weak_ptr weak_from_this() noexcept;
+
     public:
-        template <typename Forwarder_ptr_t>
-        Remote_ext(Forwarder_ptr_t &&forwarder);
+        template <typename Device_weak_ptr_t>
+        Remote_ext(Forwarder &&forwarder, Notyfier &&notyfier, Device_weak_ptr_t &&device_ptr);
         Remote_ext(const Remote_ext &) = delete;
         Remote_ext &operator=(const Remote_ext &) = delete;
         Remote_ext(Remote_ext &&) = default;
@@ -91,15 +98,12 @@ namespace Logic
     template <typename Job_t, typename>
     void Remote_ext::forward_job(Job_t &&job)
     {
-        if (auto forwarder_ = forwarder.lock())
-        {
-            forwarder_->forward_job(std::forward<Job_t>(job));
-        }
+        forwarder.forward_job(std::forward<Job_t>(job));
     }
 
-    template <typename Forwarder_ptr_t>
-    Remote_ext::Remote_ext(Forwarder_ptr_t &&forwarder)
-        : forwarder{std::forward<Forwarder_ptr_t>(forwarder)}
+    template <typename Device_weak_ptr_t>
+    Remote_ext::Remote_ext(Forwarder &&forwarder, Notyfier &&notyfier, Device_weak_ptr_t &&device_ptr)
+        : forwarder{std::move(forwarder)}, notyfier{std::move(notyfier)}, device_ptr{std::forward<Device_weak_ptr_t>(device_ptr)}
     {
     }
 

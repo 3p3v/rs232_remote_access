@@ -5,9 +5,18 @@
 #include <Unauthed_ext.hpp>
 #include <Basic_timer.hpp>
 #include <Change_param_job.hpp>
+#include <Device_base.hpp>
 
 namespace Logic
 {
+    class Device : public Device_base
+    {
+    public: 
+        Process_full manager{};
+        Notyfication_manager nm{};
+        Remote_dev rec{Remote_conf_port::Configurable};
+    };
+
     class Observer : public Unauthed_ext
     {
     private:
@@ -54,9 +63,9 @@ namespace Logic
             return Cmds_pack{};
         }
 
-        template <typename Forwarder_ptr_t>
-        Observer(Forwarder_ptr_t &&manager)
-            : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
+        template <typename Dev_ptr_t>
+        Observer(Forwarder &&manager, Notyfier &&n, Dev_ptr_t &&dev)
+            : Unauthed_ext{std::move(manager), std::move(n), std::forward<Dev_ptr_t>(dev)}
         {
             active = this;
 

@@ -31,7 +31,8 @@ void Custom_timer<Callb>::start()
         if (!ec)
             callb();
         else if (ec != boost::asio::error::operation_aborted)
-            Monitor::get().error(Exception::Serial_except{ec.what()});
+            throw std::runtime_error{"Timer error!"};
+            // Monitor::get().error(Exception::Serial_except{ec.what()});
     });        
 }
 

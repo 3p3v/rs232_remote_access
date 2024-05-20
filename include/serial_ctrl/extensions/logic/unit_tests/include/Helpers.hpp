@@ -7,7 +7,11 @@
 
 namespace Logic
 {
-class Remote_sett_impl
+    class Device : public Device_base
+    {
+    };
+
+    class Remote_sett_impl
     {
         static std::string last_msg_s;
         static std::string last_msg_i;
@@ -61,7 +65,7 @@ class Remote_sett_impl
         /* Callback */
         Callb callb;
 
-        static Basic_timer* active;
+        static Basic_timer *active;
 
     public:
         static void force_timeout()
@@ -91,7 +95,7 @@ class Remote_sett_impl
     };
 
     template <typename Callb>
-    Basic_timer* Custom_timer_impl<Callb>::active{nullptr};
+    Basic_timer *Custom_timer_impl<Callb>::active{nullptr};
 
     class Custom_timer_impl_maker
     {
@@ -106,7 +110,7 @@ class Remote_sett_impl
     class Observer : public Unauthed_ext
     {
     private:
-        static Observer* active;
+        static Observer *active;
 
         bool if_get_set_param_fired_{false};
 
@@ -161,19 +165,19 @@ class Remote_sett_impl
             return Cmds_pack{};
         }
 
-        template <typename Forwarder_ptr_t>
-        Observer(Forwarder_ptr_t &&manager)
-            : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
+        template <typename Dev_ptr_t>
+        Observer(Forwarder &&manager, Notyfier &&n, Dev_ptr_t &&dev)
+            : Unauthed_ext{std::move(manager), std::move(n), std::forward<Dev_ptr_t>(dev)}
         {
             active = this;
 
             add_get_set_param_job();
         }
 
-        Observer(Observer&&) = default;
-        Observer& operator=(Observer&&) = default;
-        Observer(const Observer&) = delete;
-        Observer& operator=(const Observer&) = delete;
+        Observer(Observer &&) = default;
+        Observer &operator=(Observer &&) = default;
+        Observer(const Observer &) = delete;
+        Observer &operator=(const Observer &) = delete;
 
         ~Observer()
         {
@@ -182,5 +186,5 @@ class Remote_sett_impl
         }
     };
 
-    Observer* Observer::active{nullptr};
+    Observer *Observer::active{nullptr};
 }

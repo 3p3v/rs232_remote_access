@@ -8,6 +8,11 @@
 
 namespace Logic
 {
+    class Device : public Device_base
+    {
+
+    };
+
     class Serial_sett_impl
     {
     public:
@@ -211,9 +216,9 @@ namespace Logic
             return Cmds_pack{};
         }
 
-        template <typename Forwarder_ptr_t>
-        Observer(Forwarder_ptr_t &&manager)
-            : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
+        template <typename Dev_ptr_t>
+        Observer(Forwarder &&manager, Notyfier &&n, Dev_ptr_t &&dev)
+            : Unauthed_ext{std::move(manager), std::move(n), std::forward<Dev_ptr_t>(dev)}
         {
             active = this;
 

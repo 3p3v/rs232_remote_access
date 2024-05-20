@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <atomic>
-#include <Authed_ext.hpp>
+#include <Common_ext.hpp>
 #include <Mqtt_settings.hpp>
 #include <Remote_status_record.hpp>
 #include <Timer_cont.hpp>
@@ -23,36 +23,34 @@ namespace Logic
         typename Timer_t,
         typename Remote_sett_impl>
     class Logic final
-        : public Authed_ext,
-          public std::enable_shared_from_this<Logic<Timer_t, Remote_sett_impl>>
+        : public Common_ext<Timer_t>
     {
         /////////////////
         /* Definitions */
         /////////////////
     public:
-        using Remote_settings_ptr = Mqtt_settings<Remote_sett_impl>;
-        using Remote_record_ptr = std::shared_ptr<Remote_status_record>;
+        using Remote_settings = Mqtt_settings<Remote_sett_impl>;
 
     private:
-        /// @brief For setting action timeouts
-        using Timers = Timer_cont;
+        // /// @brief For setting action timeouts
+        // using Timers = Timer_cont;
 
         ////////////////////////////////
         /* Data handled inside object */
         ////////////////////////////////
     private:
-        /// @brief Default error callback
-        /// @return
-        template <typename Str>
-        auto def_t_ec_callb(Str &&cmd_name);
+        // /// @brief Default error callback
+        // /// @return
+        // template <typename Str>
+        // auto def_t_ec_callb(Str &&cmd_name);
 
-        Remote_settings_ptr remote_s;
+        Remote_settings remote_s;
 
         /// @brief Remote state
-        Remote_record_ptr remote_rec;
+        Remote_status_record &remote_rec;
 
-        /// @brief For setting action timeouts
-        Timers timers;
+        // /// @brief For setting action timeouts
+        // Timers timers;
 
         /////////////////
         /* Jobs to add */
@@ -72,6 +70,9 @@ namespace Logic
     private:
         /// @brief
         void get_set_param_job();
+
+        /// @brief Reset all extensions
+        void reset_exts_job();
 
         ////////////////////////////////////////////
         /* Commands sent to info and set channels */
@@ -95,8 +96,8 @@ namespace Logic
         /* Timer resets */
         //////////////////
     private:
-        /// @brief
-        void clear_timers();
+        // /// @brief
+        // void clear_timers();
         /// @brief
         void say_hi_compl();
         /// @brief
@@ -108,47 +109,34 @@ namespace Logic
     public:
         /// @brief Get all commands that the extension is handling
         /// @return
-        Cmds_pack get_cmds() override;
+        Remote_ext_base::Cmds_pack get_cmds() override;
 
         template <
-            typename Manager_ptr_t,
-            typename Remote_settings_ptr_t,
-            typename Remote_record_ptr_t>//,
-            // typename = std::enable_if_t<
-            //     std::is_base_of_v<
-            //         Manager_ptr,
-            //         std::decay_t<Manager_ptr_t>>>,
-            // typename = std::enable_if_t<
-            //     std::is_base_of_v<
-            //         Remote_settings_ptr,
-            //         std::decay_t<Remote_settings_ptr_t>>>,
-            // typename = std::enable_if_t<
-            //     std::is_base_of_v<
-            //         Remote_record_ptr,
-            //         std::decay_t<Remote_record_ptr_t>>>>
+            typename Device_weak_ptr_t,
+            typename Remote_settings_t>
         Logic(
-            Manager_ptr_t &&manager,
-            Remote_settings_ptr_t &&remote_s,
-            Remote_record_ptr_t &&remote_rec);
+            Forwarder &&manager,
+            Notyfier &&notyfier,
+            Device_weak_ptr_t &&device_ptr,
+            Remote_settings_t &&remote_s,
+            Remote_status_record &remote_rec);
     };
 
     template <
         typename Timer_t,
         typename Remote_sett_impl>
     template <
-        typename Manager_ptr_t,
-        typename Remote_settings_ptr_t,
-        typename Remote_record_ptr_t>//,
-        // typename,
-        // typename,
-        // typename>
+        typename Device_weak_ptr_t,
+        typename Remote_settings_t>
     inline Logic<Timer_t, Remote_sett_impl>::Logic(
-        Manager_ptr_t &&manager,
-        Remote_settings_ptr_t &&remote_s,
-        Remote_record_ptr_t &&remote_rec)
-        : Authed_ext{std::forward<Manager_ptr_t>(manager)},
-          remote_s{std::forward<Remote_settings_ptr_t>(remote_s)},
-          remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
+        Forwarder &&manager,
+        Notyfier &&notyfier,
+        Device_weak_ptr_t &&device_ptr,
+        Remote_settings_t &&remote_s,
+        Remote_status_record &remote_rec)
+        : Common_ext{std::move(manager), std::move(notyfier), std::forward<Device_weak_ptr_t>(device_ptr)},
+          remote_s{std::forward<Remote_settings_t>(remote_s)},
+          remote_rec{remote_rec}
     {
         add_restart_job();
         add_start_job();
@@ -156,21 +144,21 @@ namespace Logic
         add_param_ready_notify_job();
     }
 
-    template <typename Timer_t, typename Remote_sett_impl>
-    template <typename Str>
-    inline auto Logic<Timer_t, Remote_sett_impl>::def_t_ec_callb(Str &&cmd_name)
-    {
-        return [cmd_name = std::forward<Str>(cmd_name)]() mutable
-        {
-            /* Tell monitor about timeout */
-        };
-    }
+    // template <typename Timer_t, typename Remote_sett_impl>
+    // template <typename Str>
+    // inline auto Logic<Timer_t, Remote_sett_impl>::def_t_ec_callb(Str &&cmd_name)
+    // {
+    //     return [cmd_name = std::forward<Str>(cmd_name)]() mutable
+    //     {
+    //         /* Tell monitor about timeout */
+    //     };
+    // }
 
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::add_restart_job()
     {
         // Add job for resetting all timers (used when there was error in communication with device)
-        add_handler(
+        override_handler(
             Job_type::Urgent,
             Job_policies<>::make_job_handler<Restart_job>(
                 [this](auto &job)
@@ -178,7 +166,7 @@ namespace Logic
                     /* Clear all timers */
                     timers.clear();
 
-                    remote_rec->status = Remote_status::Disconnected;
+                    remote_rec.status = Remote_status::Disconnected;
 
                     /* Say hi */
                     say_hi_();
@@ -193,8 +181,8 @@ namespace Logic
             Job_policies<>::make_job_handler<Start_job>(
                 [this](auto &&job)
                 {
-                    if (remote_rec->status == Remote_status::Not_connected ||
-                        remote_rec->status == Remote_status::Disconnected)
+                    if (remote_rec.status == Remote_status::Not_connected ||
+                        remote_rec.status == Remote_status::Disconnected)
                     {
                         /* Say hi */
                         say_hi_();
@@ -214,11 +202,11 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_change_notify_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec->status == Remote_status::Data_exchange ||
-                        remote_rec->status == Remote_status::Establishing_parameters)
+                    if (remote_rec.status == Remote_status::Data_exchange ||
+                        remote_rec.status == Remote_status::Establishing_parameters)
                     {
                         /* Reestablishing connection parameters */
-                        remote_rec->status = Remote_status::Establishing_parameters;
+                        remote_rec.status = Remote_status::Establishing_parameters;
                     }
                 }));
     }
@@ -231,10 +219,10 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_ready_notify_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec->status == Remote_status::Establishing_parameters)
+                    if (remote_rec.status == Remote_status::Establishing_parameters)
                     {
                         /* Starting data exchange */
-                        remote_rec->status = Remote_status::Data_exchange;
+                        remote_rec.status = Remote_status::Data_exchange;
                     }
                     else
                     {
@@ -250,9 +238,15 @@ namespace Logic
     }
 
     template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::reset_exts_job()
+    {
+        forward_job(Restart_job{});
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_()
     {
-        if (remote_rec->conf_port == Remote_conf_port::Configurable)
+        if (remote_rec.conf_port == Remote_conf_port::Configurable)
         {
             remote_s.write_s(
                 Hi_defs::master_hi_s.data(),
@@ -278,7 +272,7 @@ namespace Logic
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_timeout_()
     {
         reset_exts_job();
-        remote_rec->status = Remote_status::Disconnected;
+        remote_rec.status = Remote_status::Disconnected;
         say_hi_();
     }
 
@@ -306,7 +300,7 @@ namespace Logic
                         say_hi_compl();
 
                         /* Change status */
-                        remote_rec->status = Remote_status::Establishing_parameters;
+                        remote_rec.status = Remote_status::Establishing_parameters;
 
                         /* Start establishing parameters */
                         get_set_param_job();
@@ -331,7 +325,7 @@ namespace Logic
                         say_hi_compl();
 
                         /* Change status */
-                        remote_rec->status = Remote_status::Establishing_parameters;
+                        remote_rec.status = Remote_status::Establishing_parameters;
 
                         /* Start establishing parameters */
                         get_set_param_job();
@@ -343,7 +337,7 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi()
     {
-        if (remote_rec->conf_port == Remote_conf_port::Configurable)
+        if (remote_rec.conf_port == Remote_conf_port::Configurable)
         {
             timers.start_timer(
                 Hi_defs::slave_hi_s.data(),
@@ -367,16 +361,16 @@ namespace Logic
         }
     }
 
-    template <typename Timer_t, typename Remote_sett_impl>
-    inline void Logic<Timer_t, Remote_sett_impl>::clear_timers()
-    {
-        timers.clear();
-    }
+    // template <typename Timer_t, typename Remote_sett_impl>
+    // inline void Logic<Timer_t, Remote_sett_impl>::clear_timers()
+    // {
+    //     timers.clear();
+    // }
 
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_compl()
     {
-        if (remote_rec->conf_port == Remote_conf_port::Configurable)
+        if (remote_rec.conf_port == Remote_conf_port::Configurable)
         {
             timers.stop_timer(Hi_defs::master_hi_s.data());
         }
@@ -384,5 +378,10 @@ namespace Logic
         {
             timers.stop_timer(Hi_defs::slave_keep_alive_s.data());
         }
+    }
+    template <typename Timer_t, typename Remote_sett_impl>
+    inline void Logic<Timer_t, Remote_sett_impl>::reboot()
+    {
+        forward_job(Restart_job{});
     }
 }

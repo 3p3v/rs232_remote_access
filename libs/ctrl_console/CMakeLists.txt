@@ -4,12 +4,14 @@ set(CTRL_CONSOLE_TESTS ctrl_console_tests)
 
 add_library(${PROJECT_NAME} STATIC
             # Ctrl_console
-            ctrl_console/src/Ctrl_console.cpp
             ctrl_console/src/Common_defs.cpp
             ctrl_console/src/Ctrl_con_defs.cpp
             # Job_ctrl
             job_ctrl/src/Job.cpp
             job_ctrl/src/Worker.cpp
+            job_ctrl/src/Worker_storage.cpp
+            job_ctrl/src/Storage.cpp
+            job_ctrl/src/Ws_ext.cpp
             # job_ctrl/src/Storage.cpp
             # job_ctrl/src/Forwarder.cpp
             # Policies

@@ -30,8 +30,8 @@ namespace Logic
         void clear_timers();
 
     public:
-        template <typename Forwarder_ptr_t>
-        Common_ext(Forwarder_ptr_t&& manager);
+        template <typename Device_weak_ptr_t>
+        Common_ext(Forwarder &&forwarder, Notyfier &&notyfier, Device_weak_ptr_t &&device_ptr);
         Common_ext(const Common_ext&) = delete;
         Common_ext& operator=(const Common_ext&) = delete;
         Common_ext(Common_ext&&) = default;
@@ -40,9 +40,9 @@ namespace Logic
     };
 
     template <typename Timer_t>
-    template <typename Forwarder_ptr_t>
-    inline Common_ext<Timer_t>::Common_ext(Forwarder_ptr_t &&manager)
-        : Unauthed_ext{std::forward<Forwarder_ptr_t>(manager)}
+    template <typename Device_weak_ptr_t>
+    inline Common_ext<Timer_t>::Common_ext(Forwarder &&forwarder, Notyfier &&notyfier, Device_weak_ptr_t &&device_ptr)
+        : Unauthed_ext{std::move(forwarder), std::move(notyfier), std::forward<Device_weak_ptr_t>(device_ptr)}
     {
         add_restart_job();
     }

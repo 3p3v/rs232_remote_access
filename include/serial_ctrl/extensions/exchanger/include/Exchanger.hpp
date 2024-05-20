@@ -17,6 +17,8 @@
 #include <No_arg.hpp>
 /**/
 #include <Remote_conf_port_rec.hpp>
+/**/
+#include <atomic>
 
 namespace Logic
 {
@@ -26,13 +28,7 @@ namespace Logic
         typename Remote_side_impl,
         typename Serial_side_impl>
     class Exchanger
-        : public Common_ext<Timer_t>,
-          public std::enable_shared_from_this<
-              Exchanger<
-                  Timer_t,
-                  Remote_sett_impl,
-                  Remote_side_impl,
-                  Serial_side_impl>>
+        : public Common_ext<Timer_t>
     {
         /////////////////
         /* Definitions */
@@ -41,7 +37,6 @@ namespace Logic
         using Remote_settings_ptr = Mqtt_settings<Remote_sett_impl>;
         using Remote_side_ptr = Mqtt_side<Remote_side_impl>;
         using Serial_side_ptr = Serial_side<Serial_side_impl>;
-        using Remote_record_ptr = std::shared_ptr<Remote_conf_port_rec>;
 
     private:
         using Msg_num_type = std::decay_t<decltype(Packet_defs::max_msg_num)>;
@@ -60,14 +55,14 @@ namespace Logic
         Serial_side_ptr serial_d;
 
         /// @brief Port settings, remote state
-        Remote_record_ptr remote_rec;
+        Remote_conf_port_rec &remote_rec;
 
         /// @brief Message counter for master
         Packet_m count_m{};
         /// @brief
         Packet_s count_s{};
 
-        bool comm_unlock{false};
+        std::atomic_bool comm_unlock{false};
 
         /// @brief Is communication to serial allowed?
         /// @return
@@ -121,41 +116,35 @@ namespace Logic
         auto get_serial_args();
 
         template <
-            typename Manager_ptr_t,
+            typename Device_weak_ptr_t,
             typename Remote_settings_ptr_t,
             typename Remote_side_ptr_t,
-            typename Serial_side_ptr_t,
-            typename Remote_record_ptr_t> //,
-        // typename = std::enable_if_t<
-        //     std::is_base_of_v<
-        //         Remote_settings_ptr,
-        //         std::decay_t<Remote_settings_ptr_t>>>,
-        // typename = std::enable_if_t<
-        //     std::is_same_v<
-        //         Serial_settings_ptr,
-        //         std::decay_t<Serial_settings_ptr_t>>>,
-        // typename = std::enable_if_t<
-        //     std::is_same_v<
-        //         Remote_record_ptr,
-        //         std::decay_t<Remote_record_ptr_t>>>>
+            typename Serial_side_ptr_t>
         Exchanger(
-            Manager_ptr_t &&manager,
+            Forwarder &&manager,
+            Notyfier &&notyfier,
+            Device_weak_ptr_t &&device_ptr,
             Remote_settings_ptr_t &&remote_s,
             Remote_side_ptr_t &&remote_d,
             Serial_side_ptr_t &&serial_d,
-            Remote_record_ptr_t &&remote_rec);
+            Remote_conf_port_rec &remote_rec);
+        Exchanger(Exchanger &&) noexcept;
+        Exchanger &operator=(Exchanger &&) noexcept;
+        Exchanger(const Exchanger &) = delete;
+        Exchanger &operator=(const Exchanger &) = delete;
+        ~Exchanger() = default;
     };
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline bool Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::remote_to_serial()
     {
-        return comm_unlock;
+        return comm_unlock.load();
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline bool Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::serial_to_remote()
     {
-        return remote_rec->conf_port == Remote_conf_port::Configurable && comm_unlock;
+        return remote_rec.conf_port == Remote_conf_port::Configurable && comm_unlock.load();
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
@@ -215,13 +204,15 @@ namespace Logic
     inline void Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::send_ack(Msg_num_type id)
     {
         count_s.ack(id);
-        remote_s.write_i(Packet_defs::packet_ack_s.data(), id, [](){}, [](){});
+        remote_s.write_i(
+            Packet_defs::packet_ack_s.data(), id, []() {}, []() {});
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline void Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::ask_to_resend(Msg_num_type id)
     {
-        remote_s.write_i(Packet_defs::invalid_number_s.data(), id, [](){}, [](){});
+        remote_s.write_i(
+            Packet_defs::invalid_number_s.data(), id, []() {}, []() {});
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
@@ -235,7 +226,7 @@ namespace Logic
             [this](auto &id)
             {
                 auto &msg = count_m[id];
-                
+
                 /* Send MQTT message */
                 remote_d.write(
                     id,
@@ -294,9 +285,9 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline auto Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::get_remote_args()
     {
-        auto ok_callb = [ptr = shared_from_this(), this](auto num, auto begin, auto end, auto callb)
+        auto ok_callb = [ptr = weak_from_this(), this](auto num, auto begin, auto end, auto callb)
         {
-            if (remote_to_serial())
+            if (auto p = ptr.lock() && remote_to_serial())
             {
                 try
                 {
@@ -336,8 +327,12 @@ namespace Logic
             }
         };
 
-        auto ec_callb = [](const std::exception &e) {
-
+        auto ec_callb = [ptr = weak_from_this()](const std::exception &e)
+        {
+            if (auto p = ptr.lock())
+            {
+                // TODO notify
+            }
         };
 
         return std::make_tuple(std::move(ok_callb), std::move(ec_callb));
@@ -355,9 +350,9 @@ namespace Logic
         auto msg_id = msg.id();
 
         // auto ok_callb = [ptr = shared_from_this(), this, id = msg_id](auto begin, auto end, auto callb) mutable
-        auto ok_callb = [ptr = shared_from_this(), this, id = msg_id](auto msg_begin, auto msg_end, auto &callb) mutable
+        auto ok_callb = [ptr = weak_from_this(), this, id = msg_id](auto msg_begin, auto msg_end, auto &&callb) mutable
         {
-            if (serial_to_remote())
+            if (auto p = ptr.lock() && serial_to_remote())
             {
                 try
                 {
@@ -406,15 +401,40 @@ namespace Logic
                 }
                 catch (const std::logic_error &e)
                 {
+                    if (auto p = ptr.lock())
+                    {
+                        // TODO notify
+                    }
                 }
             }
         };
 
-        auto ec_callb = [](const std::exception &e) {
+        auto ec_callb = [ptr = weak_from_this()](const std::exception &e) {
 
         };
 
         return std::make_tuple(msg_begin, msg_end, std::move(ok_callb), std::move(ec_callb));
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
+    inline Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::Exchanger(Exchanger &&e) noexcept
+        : Common_ext{std::move(e)},
+          remote_s{std::move(e.remote_s)},
+          remote_d{std::move(e.remote_d)},
+          serial_d{std::move(e.serial_d)},
+          remote_rec{e.remote_rec},
+          count_m{std::move(e.count_m)},
+          count_s{std::move(e.count_s)},
+          comm_unlock{e.comm_unlock.load()}
+    {
+    }
+
+    template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
+    inline Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl> &
+    Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::operator=(Exchanger &&e) noexcept
+        : Exchanger{std::move(e)}
+    {
+        // TODO: insert return statement here
     }
 
     template <
@@ -423,22 +443,23 @@ namespace Logic
         typename Remote_side_impl,
         typename Serial_side_impl>
     template <
-        typename Manager_ptr_t,
+        typename Device_weak_ptr_t,
         typename Remote_settings_ptr_t,
         typename Remote_side_ptr_t,
-        typename Serial_side_ptr_t,
-        typename Remote_record_ptr_t>
+        typename Serial_side_ptr_t>
     inline Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::Exchanger(
-        Manager_ptr_t &&manager,
+        Forwarder &&manager,
+        Notyfier &&notyfier,
+        Device_weak_ptr_t &&device_ptr,
         Remote_settings_ptr_t &&remote_s,
         Remote_side_ptr_t &&remote_d,
         Serial_side_ptr_t &&serial_d,
-        Remote_record_ptr_t &&remote_rec)
-        : Common_ext(std::forward<Manager_ptr_t>(manager)),
+        Remote_conf_port_rec &remote_rec)
+        : Common_ext{std::move(manager), std::move(notyfier), std::forward<Device_weak_ptr_t>(device_ptr)},
           remote_s{std::forward<Remote_settings_ptr_t>(remote_s)},
           remote_d{std::forward<Remote_side_ptr_t>(remote_d)},
           serial_d{std::forward<Serial_side_ptr_t>(serial_d)},
-          remote_rec{std::forward<Remote_record_ptr_t>(remote_rec)}
+          remote_rec{remote_rec}
     {
         add_restart_job();
         add_param_change_notify_job();

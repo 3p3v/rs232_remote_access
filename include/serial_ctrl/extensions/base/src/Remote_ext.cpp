@@ -1,6 +1,6 @@
 #include <Remote_ext.hpp>
 #include <Restart_job.hpp>
-#include <Ext_forwarder.hpp>
+#include <Forwarder.hpp>
 
 using namespace Logic;
 
@@ -11,12 +11,12 @@ void Remote_ext::restart_job()
     forward_job(Restart_job{});
 }
 
-// Remote_ext::Remote_ext(Forwarder_ptr &&forwarder)
-//     : forwarder{std::move(forwarder)}
-// {
-// }
+Remote_ext::Device_shared_ptr Remote_ext::shared_from_this()
+{
+    return device_ptr.lock();
+}
 
-// Remote_ext::Remote_ext(const Forwarder_ptr &forwarder)
-//     : forwarder{forwarder}
-// {
-// }
+Remote_ext::Device_weak_ptr Logic::Remote_ext::weak_from_this() noexcept
+{
+    return device_ptr;
+}

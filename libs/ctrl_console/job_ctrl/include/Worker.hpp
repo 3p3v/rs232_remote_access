@@ -7,6 +7,7 @@
 #include <queue>
 #include <tuple>
 #include <memory>
+#include <string>
 #include <stdexcept>
 #include <Exec.hpp>
 #include <Job_handler.hpp>
@@ -98,10 +99,6 @@ namespace Job_ctrl
             typename = std::enable_if_t<
                 std::is_base_of_v<
                     Job,
-                    std::decay_t<Job_t>>>,
-            typename = std::enable_if_t<
-                !std::is_same_v<
-                    Job,
                     std::decay_t<Job_t>>>>
         void give_job(Job_t &&job);
 
@@ -189,7 +186,7 @@ namespace Job_ctrl
         }
     }
 
-    template <typename Job_t, typename, typename>
+    template <typename Job_t, typename>
     inline void Worker::give_job(Job_t &&job)
     {
         auto job_h = job_handlers.find(job.get_id());

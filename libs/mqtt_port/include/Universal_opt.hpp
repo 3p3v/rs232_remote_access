@@ -20,10 +20,10 @@ namespace Mqtt_port
     {
         std::for_each(options.begin(), options.end(), [&option](auto &opt)
                       {
-                                                        if (std::get<0>(opt) == option)
-                                                        {
-                                                            throw std::logic_error{"Seme parameter was used twice!"};
-                                                        } });
+                        if (std::get<0>(opt) == option)
+                        {
+                            throw std::logic_error{"Seme parameter was used twice!"};
+                        } });
     }
 
     template <typename Option, typename Val_type>

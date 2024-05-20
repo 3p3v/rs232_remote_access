@@ -1,0 +1,1 @@
+Main functionality of creating/deleting devices and informing user about errors.
