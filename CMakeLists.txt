@@ -15,29 +15,11 @@ include(GoogleTest)
 enable_testing()
 find_package(GTest REQUIRED)
 
-add_executable(${PROJECT_NAME} "./temp/main.cpp")
-
-add_subdirectory("./libs/ctrl_console/")
-add_subdirectory("./libs/serial_port/")
-add_subdirectory("./libs/mqtt_port/")
-add_subdirectory("./include/main/")
-add_subdirectory("./include/serial_ctrl/")
-
-# # language standard
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+# Paths to other CMakeLists
+add_subdirectory("./libs/")
+add_subdirectory("./app/")
+add_subdirectory("./app_debug/")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
-
-
-
-# set(wxWidgets_ROOT_DIR "C:/Program Files (x86)/wxWidgets")
-# set(wxWidgets_LIB_DIR  "C:/Program Files (x86)/wxWidgets/lib/vc_x64_lib")
-#find GUI library
-# cmake_policy(SET CMP0054 NEW)
-# find_package(wxWidgets REQUIRED)
-# include(${wxWidgets_USE_FILE})
-# target_include_directories(${PROJECT_NAME} PUBLIC ${wxWidgets_INCLUDE_DIRS})
-# message(${wxWidgets_LIBRARIES})
-# target_link_libraries(${PROJECT_NAME} PUBLIC ${wxWidgets_LIBRARIES})

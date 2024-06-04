@@ -1,3 +1,3 @@
-/build
-/resources/doxygen/
+/build/
+/app_debug/
 .vscode
