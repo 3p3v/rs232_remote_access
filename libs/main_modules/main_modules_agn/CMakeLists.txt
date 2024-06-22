@@ -9,7 +9,6 @@ add_library(${PROJECT_NAME} STATIC
     ./src/Dev_adder.cpp
     ./src/Dev_remover.cpp
     ./src/Exception_handler.cpp
-    ./src/Debug_monitor.cpp
 )
 
 # Header files

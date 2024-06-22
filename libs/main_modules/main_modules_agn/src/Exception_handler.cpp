@@ -3,12 +3,13 @@
 #include <Ext_except.hpp>
 #include <Timeout_except.hpp>
 #include <Data_loss_except.hpp>
+#include <Disconnect_except.hpp>
 #include <iostream>
 
 using namespace Logic;
 
 void Logic::Exception_handler::handle_exception(Dev_num num, const std::exception &e)
-{
+{   
     try
     {
         throw e;
@@ -23,36 +24,6 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
             e.what());
 
         throw;
-    }
-    catch (const Ext_except &e)
-    {
-        forwarder.debug(
-            num,
-            "Protocol error!\n");
-
-        if (close_on_protocol_error)
-        {
-            forwarder.debug(
-                num,
-                "Shutting down connection!\n");
-            forwarder.debug(
-                num,
-                e.what());
-
-            remover.remove(num);
-        }
-        else
-        {
-            forwarder.debug(
-                num,
-                "Resetting connection!\n");
-            forwarder.debug(
-                num,
-                e.what());
-
-            auto dev_and_lock = getter.get_and_lock(num);
-            dev_and_lock.first.cont.restart();
-        }
     }
     catch (const Timeout_except &e)
     {
@@ -106,6 +77,66 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
             forwarder.debug(
                 num,
                 "Restarting connection!\n");
+            forwarder.debug(
+                num,
+                e.what());
+
+            auto dev_and_lock = getter.get_and_lock(num);
+            dev_and_lock.first.cont.restart();
+        }
+    }
+    catch (const Disconnect_except &e)
+    {
+        forwarder.debug(
+            num,
+            "Device was disconnected from broker!\n");
+
+        if (close_on_data_loss)
+        {
+            forwarder.debug(
+                num,
+                "Shutting down connection!\n");
+            forwarder.debug(
+                num,
+                e.what());
+
+            remover.remove(num);
+        }
+        else
+        {
+            forwarder.debug(
+                num,
+                "Restarting connection!\n");
+            forwarder.debug(
+                num,
+                e.what());
+
+            auto dev_and_lock = getter.get_and_lock(num);
+            dev_and_lock.first.cont.restart();
+        }
+    }
+    catch (const Ext_except &e)
+    {
+        forwarder.debug(
+            num,
+            "Protocol error!\n");
+
+        if (close_on_protocol_error)
+        {
+            forwarder.debug(
+                num,
+                "Shutting down connection!\n");
+            forwarder.debug(
+                num,
+                e.what());
+
+            remover.remove(num);
+        }
+        else
+        {
+            forwarder.debug(
+                num,
+                "Resetting connection!\n");
             forwarder.debug(
                 num,
                 e.what());

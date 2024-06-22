@@ -8,6 +8,7 @@
 #include <Timer_cont.hpp>
 /* Definitions */
 #include <Hi_defs.hpp>
+#include <Disconnect_defs.hpp>
 /* Policies */
 #include <No_arg.hpp>
 /* Jobs */
@@ -19,6 +20,7 @@
 /* Except */
 #include <Logic_except.hpp>
 #include <Timeout_except.hpp>
+#include <Disconnect_except.hpp>
 
 namespace Logic
 {
@@ -360,6 +362,18 @@ namespace Logic
                     {
                         /* Delete timer */
                         say_hi_keep_alive_compl();
+                    })));
+
+        pack.push_back(
+            make_pack_elem(
+                std::string{Disconnect_defs::disconne_detect_s},
+                Command::Policies<No_arg>::Dyn_handle(
+                    [this](const std::string &arg)
+                    {
+                        notyfier.error(Disconnect_except{"Server sent device disconnected!"});
+                        
+                        /* Reset */
+                        reset_exts_job();
                     })));
 
         return pack;

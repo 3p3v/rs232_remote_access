@@ -5,11 +5,12 @@
 #include <Dev_remover.hpp>
 #include <Dev_getter.hpp>
 #include <Notyfication_forwarder.hpp>
+#include <mutex>
 
 namespace Logic
 {
     class Exception_handler : public Error_observer
-    {
+    {   
         Dev_remover remover;
         Dev_getter getter;
         Notyfication_forwarder forwarder;

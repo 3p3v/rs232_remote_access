@@ -23,7 +23,7 @@ namespace Logic
         /// @brief 
         Dev_num num{0};
 
-        /// @brief Protect from access to devices  from multiple threads
+        /// @brief Protect access to devices from multiple threads
         mutable std::mutex dev_mutex{};
 
         Dev_cont() = default;
