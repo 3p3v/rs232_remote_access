@@ -13,9 +13,9 @@ Communication between the device and the application is implemented via server, 
 ### Project structure
 
 The repository consists of three branches, one for each project component:
-- "client_application",
-- "remote_device",
-- "server".
+- ["client_application"](https://github.com/3p3v/rs232_remote_access/tree/client_application),
+- ["remote_device"](https://github.com/3p3v/rs232_remote_access/tree/remote_device),
+- ["server"](https://github.com/3p3v/rs232_remote_access/tree/server).
 
 ## Client application
 
