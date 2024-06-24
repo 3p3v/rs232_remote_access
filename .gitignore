@@ -1,1 +1,8 @@
-/build
+.vscode
+.devcontainer
+debug.log
+esp-idf-vscode-generated.gdb
+sdkconfig.old
+build/
+*.code-workspace
+*.gdb
