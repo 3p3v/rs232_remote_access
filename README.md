@@ -9,6 +9,7 @@ The system consists of three main components:
 - a server. 
 
 Communication between the device and the application is implemented via server, using the MQTTv5 standard, encrypted using TLSv1.3.
+![Components communication diagram](./resources/components_comm.png)
 
 ### Project structure
 
