@@ -18,6 +18,8 @@ The repository consists of three branches, one for each project component:
 - ["remote_device"](https://github.com/3p3v/rs232_remote_access/tree/remote_device),
 - ["server"](https://github.com/3p3v/rs232_remote_access/tree/server).
 
+
+
 ## Client application
 
 The application is the main interface through which users can connect to and use the devices.
@@ -63,6 +65,6 @@ The server uses three applications: reverse proxy, MQTT broker and database.
 The whole system is based on Docker technology, so deploying the server can be done simply and quickly.
 OpenResty, an NGINX-based server that allows LUA scripts, was used as a reverse proxy. 
 The MQTT broker used is MOSQUITTO with the mosquitto-go-auth plugin. 
-Both previously mentioned components use a MySQL database to store information on system users and devices.
+Both previously mentioned components use a MySQL database to store information authorization and authentication on system users and devices.
 
 
