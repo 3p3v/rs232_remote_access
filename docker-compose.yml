@@ -15,6 +15,7 @@ services:
       - 3306:3306
     volumes:
       - /praca_inzynierska/server/db/db/:/var/lib/mysql
+      - /praca_inzynierska/server/db/log/mysql.log:/var/log/mysql/mysql.log
 
   adminer:
     image: adminer
