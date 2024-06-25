@@ -35,6 +35,7 @@ Libraries discussed above can be found in [components folder](./components/):
 - [mbedtls_sim800](./components/mbedtls_sim800/) - implements data encryption with Mbed TLS library instead of using build-in SIM800 encryption (no TLSv1.3 support),
 - [MQTT-Packet](./components/MQTTPacket/) - low-level part of Paho MQTT C/C++ Embedded, containing only simplest definitions and functions needed to use MQTT protocol,
 - [sim800l](./components/sim800l/) - library for SIM800 module.
+
 Libraries were adopted to format required by ESP-IDF - i.e. proper "CMakeLists.txt" files were added.
 
 Main loop and threads' definitions are located in [main folder](./main/).
@@ -54,4 +55,4 @@ The device consists of the following components:
 - MP1584- module with step-down voltage converter MP1584en.
 
 The connection diagram of the device modules can be seen below:
-![Device schema](./readme_resources/dev_schema.pdf)
+![Device schema](./readme_resources/dev_schema.jpg)
