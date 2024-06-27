@@ -8,9 +8,9 @@ When the application is launched, it connects to a user-selected console port av
 ## Libraries
 The application was written using C++17 and utilizes the following libraries:
 - STL,
-- [Boost](https://www.boost.org/),
-- [Boost.Asio](https://www.boost.org/doc/libs/1_85_0/doc/html/boost_asio.html) - used for asynchronous serial port operations,
-- [Eclipse Paho MQTT C++ Client Library](https://github.com/3p3v/paho.mqtt.cpp.unique) - fork of MQTT library, which uses smart pointers instead of raw pointers.
+- [Boost](https://www.boost.org/) - version 1.83 was used,
+- [Boost.Asio](https://www.boost.org/doc/libs/1_83_0/doc/html/boost_asio.html) - used for asynchronous serial port operations (version 1.83 was used),
+- [Eclipse Paho MQTT C++ Client Library](https://github.com/3p3v/paho.mqtt.cpp.unique) - fork of Paho MQTT C++ library (1.20), which uses smart pointers instead of raw pointers. [Eclipse Paho MQTT C Client Library](https://github.com/eclipse/paho.mqtt.c) is needed to run the library. Version 1.3.13 was used.
 
 Tests were written using GTest framework.
 
