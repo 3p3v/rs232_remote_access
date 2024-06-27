@@ -11,7 +11,7 @@ namespace Impl
         /* Connection settings */
         console.add_cmd(
             "username",
-            Mandatority::Mandatory,
+            Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle(
                 [this](std::string &&str)
                 {
@@ -26,18 +26,18 @@ namespace Impl
                     data_pack.user.emplace(Mqtt_port::User::Option::password, std::move(str));
                 }));
 
-        console.add_cmd(
-            "user_id",
-            Command::Policies<>::Dyn_handle(
-                [this](std::string &&str)
-                {
-                    data_pack.user.emplace(Mqtt_port::User::Option::id, std::move(str));
-                    data_pack.user.emplace(Mqtt_port::User::Option::no_clean, "");
-                }));
+        // console.add_cmd(
+        //     "user_id",
+        //     Command::Policies<>::Dyn_handle(
+        //         [this](std::string &&str)
+        //         {
+        //             data_pack.user.emplace(Mqtt_port::User::Option::id, std::move(str));
+        //             data_pack.user.emplace(Mqtt_port::User::Option::no_clean, "");
+        //         }));
 
         console.add_cmd(
             "ip",
-            Mandatority::Mandatory,
+            Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle{
                 [this](std::string &&str)
                 {
@@ -46,7 +46,7 @@ namespace Impl
 
         console.add_cmd(
             "port",
-            Mandatority::Mandatory,
+            Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle{
                 [this](std::string &&str)
                 {
@@ -55,7 +55,7 @@ namespace Impl
 
         console.add_cmd(
             "pem",
-            // Mandatority::Mandatory,
+            // Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle{
                 [this](std::string &&str)
                 {
@@ -64,7 +64,7 @@ namespace Impl
 
         console.add_cmd(
             "cert",
-            // Mandatority::Mandatory,
+            // Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle{
                 [this](std::string &&str)
                 {
@@ -74,7 +74,7 @@ namespace Impl
         /* Device setings */
         console.add_cmd(
             "device",
-            Mandatority::Mandatory,
+            Mandatoriness::Mandatory,
             Command::Policies<>::Dyn_handle{
                 [this](std::string &&str)
                 {
@@ -231,7 +231,7 @@ namespace Impl
         /* Check if every device has a specyfied port */
         if (std::none_of(data_pack.devices.cbegin(),    //TODO delete when specyfying port is unskipable
                          data_pack.devices.cend(),
-                         [](const auto &d)
+                         [](auto &d)
                          {
                              return d.port_set;
                          }))

@@ -33,9 +33,9 @@ namespace Logic
         static constexpr std::string_view rts_reset_s{"R_R"};
 
         // static std::string ok_trans(const std::string_view &opt_name);
-        static std::string baud_rate_trans(Port_settings::Baud_rate baud_rate) noexcept;
+        static std::string baud_rate_trans(Port_settings::Baud_rate baud_rate);
         static std::string parity_trans(Port_settings::Parity parity) noexcept;
-        static std::string char_size_trans(Port_settings::Char_size baud_rate) noexcept;
+        static std::string char_size_trans(Port_settings::Char_size char_size);
         // static std::string flow_ctrl_trans(Port_settings::Flow_ctrl flow_ctrl);
         static std::string stop_bits_trans(Port_settings::Stop_bits stop_bits) noexcept;
         static Port_settings::Baud_rate baud_rate_trans(const std::string &baud_rate);

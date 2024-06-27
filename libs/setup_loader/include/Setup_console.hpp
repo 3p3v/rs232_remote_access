@@ -12,7 +12,7 @@ namespace Impl
     class Setup_console
     {
     public:
-        enum class Mandatority : bool
+        enum class Mandatoriness : bool
         {
             Mandatory = true,
             Optional = false
@@ -32,11 +32,11 @@ namespace Impl
         class Stat
         {
         public:
-            Mandatority mandatority{Mandatority::Optional};
+            Mandatoriness mandatoriness{Mandatoriness::Optional};
             bool executed{false};
 
             Stat() = default;
-            Stat(Mandatority mandatority);
+            Stat(Mandatoriness mandatoriness);
         };
         
         mutable std::unordered_map<std::string, Stat> run_stat;
@@ -48,7 +48,7 @@ namespace Impl
         void add_cmd(Str_t &&cmd_name, Handle_t &&handle);
 
         template <typename Str_t, typename Handle_t>
-        void add_cmd(Str_t &&cmd_name, Mandatority mandatority, Handle_t &&handle);
+        void add_cmd(Str_t &&cmd_name, Mandatoriness mandatoriness, Handle_t &&handle);
 
         template <typename Iter_t>
         void exec(const Iter_t begin, const Iter_t end) const;
@@ -62,13 +62,13 @@ namespace Impl
     template <typename Str_t, typename Handle_t>
     inline void Setup_console::add_cmd(Str_t &&cmd_name, Handle_t &&handle)
     {
-        add_cmd(std::forward<Str_t>(cmd_name), Mandatority::Optional, std::forward<Handle_t>(handle));
+        add_cmd(std::forward<Str_t>(cmd_name), Mandatoriness::Optional, std::forward<Handle_t>(handle));
     }
 
     template <typename Str_t, typename Handle_t>
-    inline void Setup_console::add_cmd(Str_t &&cmd_name, Mandatority mandatority, Handle_t &&handle)
+    inline void Setup_console::add_cmd(Str_t &&cmd_name, Mandatoriness mandatoriness, Handle_t &&handle)
     {
-        run_stat.emplace(cmd_name, mandatority);
+        run_stat.emplace(cmd_name, mandatoriness);
 
         c_storage.add_cmd(std::forward<Str_t>(cmd_name), std::forward<Handle_t>(handle));
     }

@@ -1,5 +1,6 @@
 #include <Set_defs.hpp>
 #include <boost/assign.hpp>
+#include <stdexcept>
 
 namespace Logic
 {
@@ -23,9 +24,14 @@ namespace Logic
     //     return std::string{opt_name} + std::string{ok_str};
     // }
 
-    std::string Set_defs::baud_rate_trans(Port_settings::Baud_rate baud_rate) noexcept
+    std::string Set_defs::baud_rate_trans(Port_settings::Baud_rate baud_rate)
     {
-        return std::to_string(baud_rate);
+        auto baud_rate_s = std::to_string(baud_rate.conv());
+        
+        if (baud_rate >= 9600 && baud_rate <= 115200)
+            return baud_rate_s;
+        else
+            throw std::runtime_error{"Baud rate incorrect: " + baud_rate_s + "!"};
     }
 
     std::string Set_defs::parity_trans(Port_settings::Parity parity) noexcept
@@ -33,9 +39,14 @@ namespace Logic
         return parity_bi.left.find(parity)->get_right();
     }
 
-    std::string Set_defs::char_size_trans(Port_settings::Char_size char_size) noexcept
+    std::string Set_defs::char_size_trans(Port_settings::Char_size char_size)
     {
-        return std::to_string(char_size);
+        auto char_size_s = std::to_string(char_size.conv());
+        
+        if (char_size >= 5 && char_size <= 8)
+            return char_size_s;
+        else
+            throw std::runtime_error{"Char size incorrect: " + char_size_s + "!"};
     }
 
     // std::string Set_defs::flow_ctrl_trans(Port_settings::Flow_ctrl flow_ctrl)
