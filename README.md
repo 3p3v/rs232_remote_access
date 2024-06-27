@@ -23,8 +23,8 @@ The rest of the files are located in [libs](./libs/) directory:
 - [setup_loader](./libs/setup_loader/) implements loading structures from setup file.
 
 Core and main_modules were split into *_agn and *_impl.
-Classes in *_agn are implementation-agnostic and thanks to that unit-tested.
-Classes in *_impl depend on the implementation of the device (i.e. Boost.Asio and Paho).
+Classes in *_agn are implementation-agnostic and thanks to that they have been unit-tested.
+Classes in *_impl depend on the low-level implementation of the device (i.e. Boost.Asio and Paho).
 
 ## Building the project
 To build the project, the libraries specified above are needed.
