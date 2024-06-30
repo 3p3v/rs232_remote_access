@@ -8,10 +8,12 @@ add_library(${PROJECT_NAME} STATIC
     ./src/Info_getter.cpp
     ./src/Impl_getter.cpp
     ./src/Impl_adder.cpp
+    ./src/Impl_adder_ref.cpp
     ./src/Impl_remover.cpp
     ./src/Info_pack_base.cpp
     ./src/Collective_general.cpp
     ./src/Debug_monitor.cpp
+    ./src/Impl_starter.cpp
 )
 
 # Header files
