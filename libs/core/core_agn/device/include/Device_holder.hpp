@@ -4,6 +4,7 @@
 
 namespace Logic
 {
+    /// @brief Wraps Device_initializer to hide that it is a shared_ptr
     class Device_holder
     {
     public:
@@ -17,6 +18,13 @@ namespace Logic
     public:
         Device_prereq &get_dev() & noexcept;
 
+        /// @brief Construct a new device
+        /// @tparam Dev_t Device type
+        /// @tparam ...Args_t 
+        /// @param notyfier User notifier
+        /// @param rec Device record
+        /// @param ...args Rest of arguments for devices constructor
+        /// @return New device
         template <
             typename Dev_t,
             typename... Args_t,

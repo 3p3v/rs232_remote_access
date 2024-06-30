@@ -7,12 +7,13 @@
 
 namespace Impl
 {
+    /// @brief Loading command line arguments
     class Cl_loader final
     {   
         Setup_console sc;
 
         using Command = Setup_console::Command;
-        using Mandatority = Setup_console::Mandatority;
+        using Mandatoriness = Setup_console::Mandatoriness;
 
     public:
         class Data_pack
@@ -31,7 +32,14 @@ namespace Impl
         void exec(const char * const str);
 
     public:
+        /// @brief Load arguments from vector
+        /// @param argv 
+        /// @return 
         Data_pack load(std::vector<std::string> &&argv) &&;
+        /// @brief Load arguments from table of cstrings 
+        /// @param argc Number of arguments
+        /// @param argv Table of arguments
+        /// @return 
         Data_pack load(unsigned int argc, const char * const * const argv) &&;
 
         Cl_loader();
@@ -57,6 +65,8 @@ namespace Impl
                 exec(str);
             }
         );
+
+        sc.check();
         
         return std::move(data_pack);
     }

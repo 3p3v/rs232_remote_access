@@ -50,6 +50,10 @@ namespace Job_ctrl
         decltype(auto) get_excluded(Job_tuple &t);
 
     protected:
+        /// @brief Add handler that will be executed when job arrives
+        /// @tparam Job_handler_t Handler type (corresponding to job)
+        /// @param mandatority If has to be executed right away
+        /// @param handler Handler to be fired
         template <
             typename Job_handler_t,
             typename = std::enable_if_t<
@@ -58,6 +62,11 @@ namespace Job_ctrl
                     std::decay_t<Job_handler_t>>>>
         void add_handler(Job_type mandatority, Job_handler_t &&handler);
 
+        /// @brief Add handler that will be executed when job arrives
+        /// @tparam Job_handler_t Handler type (corresponding to job)
+        /// @param mandatority If has to be executed right away
+        /// @param excluded If included to main queue (queue containing job of many types)
+        /// @param handler Handler to be fired
         template <
             typename Job_handler_t,
             typename = std::enable_if_t<
@@ -66,6 +75,10 @@ namespace Job_ctrl
                     std::decay_t<Job_handler_t>>>>
         void add_handler(Job_type mandatority, Job_excluded excluded, Job_handler_t &&handler);
 
+        /// @brief Override already defined job
+        /// @tparam Job_handler_t Handler type (corresponding to job)
+        /// @param mandatority If has to be executed right away
+        /// @param handler Handler to be fired
         template <
             typename Job_handler_t,
             typename = std::enable_if_t<
@@ -74,6 +87,11 @@ namespace Job_ctrl
                     std::decay_t<Job_handler_t>>>>
         void override_handler(Job_type mandatority, Job_handler_t &&handler);
 
+        /// @brief Override already defined job
+        /// @tparam Job_handler_t Handler type (corresponding to job)
+        /// @param mandatority If has to be executed right away
+        /// @param excluded If included to main queue (queue containing job of many types)
+        /// @param handler Handler to be fired
         template <
             typename Job_handler_t,
             typename = std::enable_if_t<
@@ -82,25 +100,35 @@ namespace Job_ctrl
                     std::decay_t<Job_handler_t>>>>
         void override_handler(Job_type mandatority, Job_excluded excluded, Job_handler_t &&handler);
 
+        /// @brief Check how many jobs are awaiting for execution
+        /// @return 
         size_t check_for_jobs();
 
+        /// @brief Check how many jobs of type Job_t are awaiting for execution
+        /// @tparam Job_t 
+        /// @return 
         template <typename Job_t>
         size_t check_for_jobs();
 
+        /// @brief Take any job
+        /// @return Jobs awaiting
         size_t take_job();
 
+        /// @brief Take job of type Job_t
+        /// @tparam Job_t Type of job to be taken
+        /// @return Jobs of this type awaiting
         template <typename Job_t>
         size_t take_job();
 
         /// @brief Remove all jobs of some kind
-        /// @tparam Job_t 
-        /// @return 
+        /// @tparam Job_t Type of job to be removed
+        /// @return Number of removed jobs
         template <typename Job_t>
         size_t remove_jobs();
 
         /// @brief Take most recent job of some kind, delete rest
-        /// @tparam Job_t 
-        /// @return 
+        /// @tparam Job_t Type of job to be taken
+        /// @return Number of removed jobs
         template <typename Job_t>
         size_t take_most_recent_job_and_clear();
 

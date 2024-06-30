@@ -43,7 +43,7 @@ namespace Mqtt_port
             using Data = std::string;
 
         protected:
-            std::shared_ptr<mqtt::async_client> client;
+            mqtt::async_client client;
             mqtt::connect_options options;
 
             void connected(const std::string & /*cause*/) override;
@@ -57,8 +57,8 @@ namespace Mqtt_port
 
         public:
             Controller(Server::Get_cont &&server, User::Get_cont &&user);
-            Controller(Controller &&) noexcept;
-            Controller &operator=(Controller &&) noexcept;
+            Controller(Controller &&) = delete;
+            Controller &operator=(Controller &&) = delete;
             Controller(Controller &) = delete;
             Controller &operator=(Controller &) = delete;
             ~Controller() = default;
@@ -157,7 +157,7 @@ namespace Mqtt_port
         void Controller::connect(Ok_callb &&ok_callb, Ec_callb &&ec_callb, Conn_ec_callb &&conn_ec_callb)
         {
             /* Connect to broker */
-            client->connect(options, nullptr, make_vanilla_callb([](){}, std::forward<Conn_ec_callb>(conn_ec_callb)));
+            client.connect(options, nullptr, make_vanilla_callb([](){}, std::forward<Conn_ec_callb>(conn_ec_callb)));
             conn_callb = make_conn_callb(std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb));
         }
 
@@ -180,7 +180,7 @@ namespace Mqtt_port
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, 
+                client.subscribe(channel_name, 
                                   qos, 
                                   nullptr, 
                                   make_vanilla_callb(std::forward<Sub_ok_callb>(sub_ok_callb), std::forward<Sub_ec_callb>(sub_ec_callb)),
@@ -202,7 +202,7 @@ namespace Mqtt_port
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, qos, mqtt::subscribe_options{true});
+                client.subscribe(channel_name, qos, mqtt::subscribe_options{true});
             }
         }
 
@@ -210,7 +210,7 @@ namespace Mqtt_port
         void Controller::unsubscribe(const std::string &channel_name, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
         {
             /* Unsubscribe topic */
-            client->unsubscribe(channel_name, nullptr, make_unsub_callb(rec_callb, channel_name, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+            client.unsubscribe(channel_name, nullptr, make_unsub_callb(rec_callb, channel_name, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
         }
 
         template <typename Iter>
@@ -225,7 +225,7 @@ namespace Mqtt_port
             else
             {
                 /* Send message */
-                client->publish(channel_name, &(*begin), end - begin, qos, false);
+                client.publish(channel_name, &(*begin), end - begin, qos, false);
             }
         }
 
@@ -244,7 +244,7 @@ namespace Mqtt_port
         //         mqtt::properties prop{mqtt::property{MQTTPROPERTY_CODE_USER_PROPERTY, std::forward(key), std::forward(val)}};
         //         msg_ptr->set_properties(std::move(prop));
         //         /* Send message */
-        //         client->publish(std::move(msg_ptr));
+        //         client.publish(std::move(msg_ptr));
         //     }
         // }
 
@@ -260,7 +260,7 @@ namespace Mqtt_port
             else
             {
                 /* Send message */
-                client->publish(channel_name, &(*begin), end - begin, qos, false, nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+                client.publish(channel_name, &(*begin), end - begin, qos, false, nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
             }
         }
 
@@ -280,7 +280,7 @@ namespace Mqtt_port
                 mqtt::message_ptr msg_ptr = std::make_shared<mqtt::message>(channel_name, &(*begin), end - begin, qos, false, prop);
                 msg_ptr->set_properties(std::move(prop));
                 /* Send message */
-                client->publish(std::move(msg_ptr), nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
+                client.publish(std::move(msg_ptr), nullptr, make_io_callb(end - begin, std::forward<Ok_callb>(ok_callb), std::forward<Ec_callb>(ec_callb)));
             }
         }
     }

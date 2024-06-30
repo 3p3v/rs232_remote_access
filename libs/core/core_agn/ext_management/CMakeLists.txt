@@ -5,7 +5,7 @@ set(EXT_MANAGEMENT_TESTS ext_management_tests)
 # Main code
 add_library(${PROJECT_NAME} STATIC
     "./src/Process_full.cpp"
-    "./src/Shared_ext.cpp"
+    # "./src/Shared_ext.cpp"
     "./src/Ext_id.cpp"
     "./src/Ws_holder.cpp"
 )

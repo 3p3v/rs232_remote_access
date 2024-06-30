@@ -22,8 +22,8 @@ namespace Impl
         Info_pack_base(Dev_info &&info);
         Info_pack_base(Info_pack_base &&) = default;
         Info_pack_base& operator=(Info_pack_base &&) = default;
-        Info_pack_base(const Info_pack_base &) = delete;
-        Info_pack_base& operator=(const Info_pack_base &) = delete;
+        Info_pack_base(const Info_pack_base &) = default;
+        Info_pack_base& operator=(const Info_pack_base &) = default;
         virtual ~Info_pack_base() = default;
     };
 } // namespace Impl

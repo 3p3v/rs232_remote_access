@@ -6,10 +6,10 @@ using namespace Logic;
 namespace Impl
 {
   Collective_general::Collective_general(Server::Cont server, User::Cont user, bool close_on_timeout, bool close_on_data_loss, bool close_on_protocol_error, bool debug)
-      : debug_monitor{debug},
+      : debug_monitor{Info_getter{devs}, debug},
         exception_handler{
             Notyfication_forwarder{notifyer},
-            Dev_remover{devs},
+            Impl_remover{devs},
             Dev_getter{devs},
             close_on_timeout,
             close_on_data_loss,

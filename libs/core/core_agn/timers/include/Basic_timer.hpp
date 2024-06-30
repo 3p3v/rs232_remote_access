@@ -2,14 +2,16 @@
 
 #include <chrono>
 
-/// @brief Interface for timer class
+/// @brief Interface for timer class (non-implementation)
 class Basic_timer
 {
 protected:
     const std::chrono::milliseconds interval;
 
 public:
+    /// @brief Start the timer
     virtual void start() = 0;
+    /// @brief Stop the timer
     virtual void stop() = 0;
 
     template <typename Time>

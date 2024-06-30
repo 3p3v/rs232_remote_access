@@ -27,16 +27,20 @@ namespace Job_ctrl
         static Job_id shared_id;
     };
 
-    /// @brief Template for
-    /// @tparam Job_D
+    /// @brief Class to derive from when creating job type
+    /// @tparam Job_D new job class name
     template <typename Job_D>
     class Job_identity : public Job, private Id_counter
     {
         static Job_id get_id_();
 
     public:
+        /// @brief Get if of derived job
+        /// @return Job id
         virtual Job_id get_id() const override final;
 
+        /// @brief Get if of derived job
+        /// @return Job id
         static Job_id s_get_id();
     };
 

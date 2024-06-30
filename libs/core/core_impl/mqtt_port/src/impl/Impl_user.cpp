@@ -8,7 +8,7 @@ namespace Mqtt_port
     {
         void Impl_user::set_options(User::Get_cont &&user, mqtt::connect_options &options)
         {
-            options.set_clean_session(true);
+            // options.set_clean_session(true); // FIXME thwors error while connecting
 
             user.for_each([&options](auto &opt_)
                           {
@@ -19,7 +19,7 @@ namespace Mqtt_port
                             {
                             case User::Option::no_clean:
                             {
-                                options.set_clean_session(false); // TODO add option to read if true or false from string
+                                // options.set_clean_session(false); // TODO add option to read if true or false from string
                                 break;
                             }
                             case User::Option::username:

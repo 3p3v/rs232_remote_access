@@ -4,6 +4,7 @@
 
 namespace Job_ctrl
 {
+    /// @brief Interface for adding workers
     class Storage : public Ws_ext
     {
     public:

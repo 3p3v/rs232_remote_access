@@ -40,7 +40,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            remover.remove(num);
+            remover->remove(num);
         }
         else
         {
@@ -51,7 +51,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            auto dev_and_lock = getter.get_and_lock(num);
+            auto dev_and_lock = getter.get_dev_and_lock(num);
             dev_and_lock.first.cont.restart();
         }
     }
@@ -70,7 +70,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            remover.remove(num);
+            remover->remove(num);
         }
         else
         {
@@ -81,7 +81,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            auto dev_and_lock = getter.get_and_lock(num);
+            auto dev_and_lock = getter.get_dev_and_lock(num);
             dev_and_lock.first.cont.restart();
         }
     }
@@ -100,7 +100,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            remover.remove(num);
+            remover->remove(num);
         }
         else
         {
@@ -111,7 +111,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            auto dev_and_lock = getter.get_and_lock(num);
+            auto dev_and_lock = getter.get_dev_and_lock(num);
             dev_and_lock.first.cont.restart();
         }
     }
@@ -130,7 +130,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            remover.remove(num);
+            remover->remove(num);
         }
         else
         {
@@ -141,7 +141,7 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
                 num,
                 e.what());
 
-            auto dev_and_lock = getter.get_and_lock(num);
+            auto dev_and_lock = getter.get_dev_and_lock(num);
             dev_and_lock.first.cont.restart();
         }
     }
@@ -156,20 +156,4 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
 
         throw;
     }
-}
-
-Logic::Exception_handler::Exception_handler(
-    Notyfication_forwarder &&forwarder,
-    Dev_remover &&remover,
-    Dev_getter &&getter,
-    bool close_on_timeout,
-    bool close_on_data_loss,
-    bool close_on_protocol_error)
-    : Error_observer{
-          [this](Error_job &job)
-          {
-              handle_exception(job.num, job.get_exc());
-          }},
-      forwarder{std::move(forwarder)}, remover{std::move(remover)}, getter{std::move(getter)}, close_on_timeout{close_on_timeout}, close_on_data_loss{close_on_data_loss}, close_on_protocol_error{close_on_protocol_error}
-{
 }

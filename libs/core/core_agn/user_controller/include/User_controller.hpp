@@ -10,28 +10,13 @@ namespace Logic
 {
     class Remote_record;
 
+    /// @brief Change settings of the device
     class User_controller final
     {
         /// @brief
         Forwarder manager;
 
     public:
-        // /// @brief
-        // /// @param baud_rate
-        // void set_baud_rate(Port_settings::Baud_rate baud_rate);
-
-        // /// @brief
-        // /// @param parity
-        // void set_parity(Port_settings::Parity parity);
-
-        // /// @brief
-        // /// @param char_size
-        // void set_char_size(Port_settings::Char_size char_size);
-
-        // /// @brief
-        // /// @param stop_bits
-        // void set_stop_bits(Port_settings::Stop_bits stop_bits);
-
         /// @brief Set all params at once
         /// @param port_settings
         void set_params(Port_settings_storage &&port_settings);

@@ -9,6 +9,7 @@ using namespace Cmd_ctrl;
 
 namespace Impl
 {
+    /// @brief Config interpreter
     class Setup_console
     {
     public:
@@ -44,12 +45,27 @@ namespace Impl
         void mark(const std::string &name) const noexcept;
 
     public:
+        /// @brief Add non-mandatory command
+        /// @tparam Str_t 
+        /// @tparam Handle_t 
+        /// @param cmd_name Commad name
+        /// @param handle Functor of type void(Cmd_param)
         template <typename Str_t, typename Handle_t>
         void add_cmd(Str_t &&cmd_name, Handle_t &&handle);
 
+        /// @brief Add command with specyfied mandatoriness
+        /// @tparam Str_t 
+        /// @tparam Handle_t 
+        /// @param cmd_name Commad name
+        /// @param mandatoriness Mandatoriness
+        /// @param handle Functor of type void(Cmd_param)
         template <typename Str_t, typename Handle_t>
         void add_cmd(Str_t &&cmd_name, Mandatoriness mandatoriness, Handle_t &&handle);
 
+        /// @brief Execute commands from some string type
+        /// @tparam Iter_t 
+        /// @param begin 
+        /// @param end 
         template <typename Iter_t>
         void exec(const Iter_t begin, const Iter_t end) const;
 

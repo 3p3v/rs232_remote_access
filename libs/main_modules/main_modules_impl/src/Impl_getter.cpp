@@ -3,25 +3,37 @@
 
 using namespace Logic;
 
-Impl::Impl_getter::Impl_getter(Dev_cont &devs, Impl_cont &infos)
-    : Dev_getter{devs}, infos{infos}
+Impl::Impl_getter::Impl_getter(Impl_cont &devs)
+    : Dev_getter{devs}, Info_getter{devs}
 {
 }
 
-Impl::Impl_getter::Info_prereq_and_lock Impl::Impl_getter::get_infos_and_lock(Dev_num num) const
+Impl::Impl_getter::Info_Dev_prereq_and_lock Impl::Impl_getter::get_and_lock(Dev_num num)
 {
-    auto info = infos.infos.find(num);
+    auto info = Info_getter::devs.infos.find(num);
+    auto dev = Info_getter::devs.devs.find(num);
 
-    if (info != infos.infos.end())
-        return Info_prereq_and_lock{info->second, infos.info_mutex};
+    if (info != Info_getter::devs.infos.end())
+        return Info_Dev_prereq_and_lock{
+            *info->second, 
+            dev->second.get_dev(),
+            Info_getter::devs.dev_mutex
+        };
     else
         throw std::logic_error{"Info with this number does not exist"};
 }
 
-Impl::Impl_getter::Info_iters_and_lock Impl::Impl_getter::get_all_infos_and_lock() const
+Impl::Impl_getter::Const_Info_Dev_prereq_and_lock Impl::Impl_getter::get_and_lock(Dev_num num) const
 {
-    return Info_iters_and_lock{
-        infos.infos.begin(),
-        infos.infos.end(),
-        infos.info_mutex};
+    auto info = Info_getter::devs.infos.find(num);
+    auto dev = Info_getter::devs.devs.find(num);
+
+    if (info != Info_getter::devs.infos.end())
+        return Const_Info_Dev_prereq_and_lock{
+            *info->second, 
+            dev->second.get_dev(),
+            Info_getter::devs.dev_mutex
+        };
+    else
+        throw std::logic_error{"Info with this number does not exist"};
 }

@@ -20,6 +20,7 @@ namespace Job_ctrl
 
     inline Manager_dummy::~Manager_dummy() = default;
 
+    /// @brief Wrapper for all job storage and forwarder functionality
     class Manager
         : Manager_dummy,
           public Storage,

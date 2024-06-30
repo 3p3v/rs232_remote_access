@@ -1,31 +1,30 @@
 #pragma once
 
 #include <Dev_getter.hpp>
-#include <Impl_cont.hpp>
+#include <Info_getter.hpp>
 
 using namespace Logic;
 
 namespace Impl
 {
-    class Impl_getter : public Dev_getter
+    /// @brief Interface for retrieving devices and their informatipon
+    class Impl_getter final : public Info_getter, public Dev_getter
     {
-        /// @brief 
-        Impl_cont &infos;
-
     public:
-        using Info_prereq_and_lock = std::pair<Dev_info &, std::lock_guard<std::mutex>>;
-        using Info_iters_and_lock = std::tuple<
-            Impl_cont::iterator,
-            Impl_cont::iterator,
-            std::lock_guard<std::mutex>>;
+        using Dev_num = Impl_ext::Dev_num;
+        using Info_Dev_prereq_and_lock = std::tuple<Dev_info &, Device_prereq &, std::lock_guard<std::mutex>>;
+        using Const_Info_Dev_prereq_and_lock = std::tuple<const Dev_info &, const Device_prereq &, std::lock_guard<std::mutex>>;
 
-        /// @brief Get device object and lock scope so object can't be destroyed by another thread
-        /// @param num
-        /// @return device and lock guard
-        Info_prereq_and_lock get_infos_and_lock(Dev_num num) const;
+        /// @brief Get device and its info, locks access to all devices from other threads
+        /// @param num Devices number
+        /// @return Reference to information, reference to device and a lock guard
+        Info_Dev_prereq_and_lock get_and_lock(Dev_num num);
 
-        Info_iters_and_lock get_all_infos_and_lock() const;
+        /// @brief Get constant device and its info, locks access to all devices from other threads
+        /// @param num Devices number
+        /// @return Reference to const information, reference to const device and a lock guard
+        Const_Info_Dev_prereq_and_lock get_and_lock(Dev_num num) const;
 
-        Impl_getter(Dev_cont &devs, Impl_cont &infos);
+        Impl_getter(Impl_cont &devs);
     };
 } // namespace Logic

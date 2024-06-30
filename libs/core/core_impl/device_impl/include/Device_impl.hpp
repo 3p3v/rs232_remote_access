@@ -13,6 +13,7 @@ using namespace Logic;
 
 namespace Impl
 {
+    /// @brief Device implementation using MQTT and serial port library
     class Device_impl final
         : public Device<
               Custom_timer_maker,

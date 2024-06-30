@@ -6,7 +6,7 @@
 
 namespace Job_ctrl
 {
-    /// @brief Used for storing Workers
+    /// @brief Used for storing Workers // TODO move forwarding and storage definitions to corresponding classes & create second version that uses shared_ptr workers
     class Worker_storage
     {
         std::multimap<Worker::Job_info, Worker&> workers;

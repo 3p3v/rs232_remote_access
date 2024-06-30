@@ -10,12 +10,14 @@
 
 namespace Logic
 {
+    /// @brief Container for devices
     class Dev_cont
     {
     public:
         using Dev_num = Notyfier_defs::Dev_num;
         using Dev_cont_t = std::unordered_map<Notyfier_defs::Dev_num, Device_holder>;
         using iterator = Dev_cont_t::iterator;
+        using const_iterator = Dev_cont_t::const_iterator;
 
         /// @brief 
         Dev_cont_t devs;
@@ -28,9 +30,9 @@ namespace Logic
 
         Dev_cont() = default;
         Dev_cont(Dev_cont &&);
-        Dev_cont& operator=(Dev_cont &&);
+        Dev_cont& operator=(Dev_cont &&) = delete;
         Dev_cont(const Dev_cont &) = delete;
         Dev_cont& operator=(const Dev_cont &) = delete;
-        ~Dev_cont() = default;
+        virtual ~Dev_cont() = 0;
     };
 }

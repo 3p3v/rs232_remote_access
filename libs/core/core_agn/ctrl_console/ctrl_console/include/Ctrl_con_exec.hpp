@@ -4,6 +4,11 @@
 
 namespace Cmd_ctrl
 {
+    /// @brief Interface for executing commands
+    /// @tparam Base_handle_t Specyfication of Exec<... Args_t>::Param<Args>::Policies<... Policies_t>::Base_handle // TODO delete, this is unused and unnessesary
+    /// @tparam endl_opt Checking endline enabled/disabled
+    /// @tparam endl_ Character between different commands
+    /// @tparam space_ Character between parameter name and argument 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
     class Ctrl_con_exec
     {
@@ -14,9 +19,19 @@ namespace Cmd_ctrl
         Base_ctrl_console_t &cc;
 
     public:
+        /// @brief Find and execute commands
+        /// @tparam Iter_t Iterator
+        /// @param begin std::begin of data
+        /// @param end std::end of data
         template <typename Iter_t>
         void exec(const Iter_t begin, const Iter_t end) const;
 
+        /// @brief Find and execute commands
+        /// @tparam Iter_t Iterator
+        /// @tparam Callb_t Functor, same type as command handler
+        /// @param begin std::begin of data
+        /// @param end std::end of data
+        /// @param callb Callback to be fired after execution of each command
         template <typename Iter_t, typename Callb_t>
         void exec(const Iter_t begin, const Iter_t end, const Callb_t &callb) const;
 

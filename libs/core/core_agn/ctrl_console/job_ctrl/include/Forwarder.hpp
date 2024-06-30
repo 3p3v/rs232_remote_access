@@ -4,14 +4,14 @@
 
 namespace Job_ctrl
 {
+    /// @brief Interface for forwarding jobs
     class Forwarder : public Ws_ext
     {
     public:
-        /// @brief
-        /// @tparam Job_t
-        /// @tparam ...Args_t
-        /// @tparam
-        /// @param ...args
+        /// @brief Construct and forward job to workers that are signed up for the job
+        /// @tparam Job_t Type of job
+        /// @tparam ...Args_t Types of the arguments
+        /// @param ...args Arguments passed to job constructor
         template <
             typename Job_t,
             typename... Args_t,
@@ -21,8 +21,8 @@ namespace Job_ctrl
                     std::decay_t<Job_t>>>>
         void forward_job(Args_t &&...args);
 
-        /// @brief
-        /// @param job
+        /// @brief Forward job to workers that are signed up for the job
+        /// @param job Job forwarded
         template <
             typename Job_t,
             typename = std::enable_if_t<

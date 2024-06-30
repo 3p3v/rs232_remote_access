@@ -5,9 +5,15 @@ using namespace Logic;
 
 namespace Impl
 {
-    Serial_impl::Serial_impl(Serial_info &info)
-        : info{info},
-          serial{info.port}
+    Serial_impl::Serial_impl(std::shared_ptr<Serial_info> &&info)
+        : serial{info->port},
+          info{std::move(info)}
+    {
+    }
+
+    Serial_impl::Serial_impl(const std::shared_ptr<Serial_info> &info)
+        : serial{info->port},
+          info{info}
     {
     }
 

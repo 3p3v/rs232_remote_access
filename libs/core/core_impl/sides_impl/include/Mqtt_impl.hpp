@@ -14,7 +14,7 @@ using namespace Logic;
 
 namespace Impl
 {
-    /// @brief Wraps full remote functionality to few fenctions
+    /// @brief Wraps full remote functionality to few functions
     class Mqtt_impl final
     {
         /// @brief MQTT QOS
@@ -27,17 +27,20 @@ namespace Impl
         using Mqtt_controller = Mqtt_port::Impl::Controller;
 
     private:
-        /// @brief Device MQTT related information
-        Remote_info &info;
-
         /// @brief MQTT client implementaton
         Mqtt_controller &controller;
+
+        /// @brief Device MQTT related information
+        std::shared_ptr<Remote_info> info;
 
         bool moved{false};
 
     public:
         Mqtt_impl(
-            Remote_info &device,
+            std::shared_ptr<Remote_info> &&info,
+            Mqtt_controller &controller);
+        Mqtt_impl(
+            const std::shared_ptr<Remote_info> &info,
             Mqtt_controller &controller);
         Mqtt_impl(Mqtt_impl &&) noexcept;
         Mqtt_impl &operator=(Mqtt_impl &&) = delete;
@@ -133,7 +136,7 @@ namespace Impl
         try
         {
             controller.write(
-                info.info_ch,
+                info->info_ch,
                 qos,
                 beg,
                 end,
@@ -166,7 +169,7 @@ namespace Impl
         try
         {
             controller.write(
-                info.info_ch,
+                info->info_ch,
                 qos,
                 beg,
                 end,
@@ -200,7 +203,7 @@ namespace Impl
         try
         {
             controller.write(
-                info.set_ch,
+                info->set_ch,
                 qos,
                 beg,
                 end,
@@ -233,7 +236,7 @@ namespace Impl
         try
         {
             controller.write(
-                info.set_ch,
+                info->set_ch,
                 qos,
                 beg,
                 end,
@@ -263,13 +266,15 @@ namespace Impl
         try
         {
             controller.subscribe(
-                info.info_ch,
+                info->info_ch,
                 qos,
                 /* Data receive callback */
                 [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)
                 {
                     /* Run callback, pass message so it will not get deallocated */
-                    ok_callb(c->cbegin(), c->cend(), [c = std::forward<decltype(c)>(c)]() {
+                    auto begin = c->cbegin();
+                    auto end = c->cend();
+                    ok_callb(begin, end, [c = std::forward<decltype(c)>(c)]() {
 
                     });
                 },
@@ -301,7 +306,7 @@ namespace Impl
         try
         {
             controller.write(
-                info.data_ch,
+                info->data_ch,
                 qos,
                 std::string{packet_num_s},
                 std::to_string(id),
@@ -329,7 +334,7 @@ namespace Impl
         try
         {
             controller.subscribe(
-                info.data_ch,
+                info->data_ch,
                 qos,
                 /* Data receive callback */
                 [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)

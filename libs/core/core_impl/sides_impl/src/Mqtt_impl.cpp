@@ -2,7 +2,12 @@
 
 namespace Impl
 {
-    Mqtt_impl::Mqtt_impl(Remote_info &info, Mqtt_controller &controller)
+    Mqtt_impl::Mqtt_impl(std::shared_ptr<Remote_info> &&info, Mqtt_controller &controller)
+        : info{std::move(info)}, controller{controller}
+    {
+    }
+
+    Mqtt_impl::Mqtt_impl(const std::shared_ptr<Remote_info> &info, Mqtt_controller &controller)
         : info{info}, controller{controller}
     {
     }
@@ -28,8 +33,8 @@ namespace Impl
     {
         if (!moved)
         {
-            controller.unsubscribe(info.data_ch);
-            controller.unsubscribe(info.info_ch);
+            controller.unsubscribe(info->data_ch);
+            controller.unsubscribe(info->info_ch);
         }
     }
 }

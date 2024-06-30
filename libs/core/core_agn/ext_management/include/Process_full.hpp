@@ -39,35 +39,6 @@ namespace Logic
         using Elem_t = std::unique_ptr<Remote_ext>;
 
     private:
-        /// @brief Defines exts container
-        // class Ext_cont
-        // {
-        // public:
-        //     using Elem_t = Shared_ext;
-
-        // private:
-        //     /// @brief Hash only based on type, can't insert two elements of same Extension type
-        //     class Hash
-        //     {
-        //     public:
-        //         Elem_t::Id_t operator()(const Elem_t &ext) const noexcept;
-        //     };
-
-        //     class KeyEqual
-        //     {
-        //     public:
-        //         bool operator()(const Elem_t &ext1, const Elem_t &ext2) const noexcept;
-        //     };
-
-        // public:
-        //     Ext_cont() = delete;
-
-        //     using Cont_t = std::unordered_set<
-        //         Elem_t,
-        //         Hash,
-        //         KeyEqual>;
-        // };
-
         using Cont_t = std::unordered_map<Ext_id_base::Id_t, Elem_t>;
 
         /// @brief Storage for all exts.
@@ -103,11 +74,10 @@ namespace Logic
         }
 
     public:
-        /// @brief Function used to initialize and add extension
-        /// @tparam Remote_ext_t
+        /// @brief Construct and add extension
+        /// @tparam Remote_ext_t Extension type
         /// @tparam ...Args_t
-        /// @tparam
-        /// @param ...args
+        /// @param ...args Arguments passed to Extension constructor
         template <
             typename Remote_ext_t,
             typename... Args_t,
@@ -117,6 +87,10 @@ namespace Logic
             add_ext(std::make_unique<Remote_ext_t>(std::forward<Args_t>(args)...));
         }
 
+        /// @brief Add extension
+        /// @tparam Remote_ext_t 
+        /// @tparam Extension type
+        /// @param ext_ptr Extension in unique_ptr
         template <
             typename Remote_ext_t,
             std::enable_if_t<std::is_base_of_v<Remote_ext_base, std::decay_t<Remote_ext_t>>, bool> = true>
@@ -144,7 +118,7 @@ namespace Logic
 
         /// @brief Collective function for removing extensions
         /// @tparam Remote_ext_t
-        /// @tparam
+        /// @tparam Type of extension to remove
         template <
             typename Remote_ext_t,
             std::enable_if_t<std::is_base_of_v<Remote_ext_base, std::decay_t<Remote_ext_t>>, bool> = true>

@@ -8,6 +8,11 @@
 
 namespace Cmd_ctrl
 {
+    /// @brief Storage for commands interpreter
+    /// @tparam Base_handle_t Specyfication of Exec<... Args_t>::Param<Args>::Policies<... Policies_t>::Base_handle // TODO delete, this is unused and unnessesary
+    /// @tparam endl_opt Checking endline enabled/disabled
+    /// @tparam endl_ Character between different commands
+    /// @tparam space_ Character between parameter name and argument 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
     class Base_ctrl_console
     {

@@ -10,10 +10,10 @@ namespace Logic
 {
     class Device_prereq;
 
-    /// @brief
+    /// @brief Constructs a device in form of a shared_ptr
     class Device_initializer
         : public Device_base,
-          std::enable_shared_from_this<Device_initializer>
+          public std::enable_shared_from_this<Device_initializer>
     {
         std::unique_ptr<Device_prereq> dev{nullptr};
 
@@ -29,8 +29,17 @@ namespace Logic
         Device_initializer() = default;
 
     public:
+        /// @brief Get reference to the device
+        /// @return 
         Device_prereq &get_dev() & noexcept;
 
+        /// @brief Construct a new device
+        /// @tparam Dev_t Device type
+        /// @tparam ...Args_t 
+        /// @param notyfier User notifier
+        /// @param rec Device record
+        /// @param ...args Rest of arguments for devices constructor
+        /// @return New device
         template <
             typename Dev_t,
             typename... Args_t,

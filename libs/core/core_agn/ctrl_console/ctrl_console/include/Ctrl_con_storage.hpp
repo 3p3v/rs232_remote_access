@@ -4,6 +4,11 @@
 
 namespace Cmd_ctrl
 {
+    /// @brief Interface for adding commands
+    /// @tparam Base_handle_t Specyfication of Exec<... Args_t>::Param<Args>::Policies<... Policies_t>::Base_handle // TODO delete, this is unused and unnessesary
+    /// @tparam endl_opt Checking endline enabled/disabled
+    /// @tparam endl_ Character between different commands
+    /// @tparam space_ Character between parameter name and argument 
     template <
         typename Base_handle_t, 
         Endl_opt endl_opt, 
@@ -17,9 +22,17 @@ namespace Cmd_ctrl
         Base_ctrl_console_t &cc;
 
     public:
+        /// @brief Add new command
+        /// @tparam Str std::string or any other type that string can be constructed from
+        /// @tparam Handle_t Function type void(Base_handle_t::Arg)
+        /// @param cmd_name Command name
+        /// @param handle Handler to be executed of type void(Base_handle_t::Arg)
         template <typename Str, typename Handle_t>
         void add_cmd(Str &&cmd_name, Handle_t &&handle);
 
+        /// @brief Add new command
+        /// @tparam Cmd_pair_t std::pair
+        /// @param cmd Command name & handler to be executed of type void(Base_handle_t::Arg)
         template <typename Cmd_pair_t>
         void add_cmd(Cmd_pair_t &&cmd);
 
@@ -30,9 +43,9 @@ namespace Cmd_ctrl
         void remove_cmd(const Str &cmd_name);
 
         /// @brief Remove many cmds with given names
-        /// @tparam Iter_t
-        /// @param begin
-        /// @param end
+        /// @tparam Iter_t Iterator
+        /// @param begin First command to be erased
+        /// @param end Last + 1 command to be erased
         template <typename Iter_t>
         void remove_cmd(Iter_t begin, Iter_t end);
 

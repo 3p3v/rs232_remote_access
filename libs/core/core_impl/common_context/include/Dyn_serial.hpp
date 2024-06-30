@@ -8,6 +8,7 @@
 
 namespace Phy_serial
 {
+    /// @brief Serial port implementation 
     class Dyn_serial final : public Serial_port::Serial
     {
     public:
@@ -19,6 +20,5 @@ namespace Phy_serial
     Dyn_serial::Dyn_serial(Str &&port)
         : Serial{Serial_context::shared_io_context_, std::forward<Str>(port)}
     {
-        // std::lock_guard<std::mutex> guard(run_guard);
     }
 }

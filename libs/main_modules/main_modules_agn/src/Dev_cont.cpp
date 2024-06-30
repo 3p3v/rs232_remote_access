@@ -7,8 +7,12 @@ Logic::Dev_cont::Dev_cont(Dev_cont &&dc)
 {
 }
 
-Logic::Dev_cont& Logic::Dev_cont::operator=(Dev_cont &&dc)
-{
-    *this = Dev_cont{std::move(dc)};
-    return *this;
-}
+Logic::Dev_cont::~Dev_cont() = default;
+
+// Logic::Dev_cont& Logic::Dev_cont::operator=(Dev_cont &&dc)
+// {
+//     *this = Dev_cont{std::move(dc)};
+//     return *this;
+// }
+
+

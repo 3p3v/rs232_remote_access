@@ -11,7 +11,7 @@ namespace Mqtt_port
     private:
         using Opt_cont_type = std::unordered_map<Option, Val_type>;
 
-        mutable Opt_cont_type options;
+        mutable Opt_cont_type options{};
 
         void check_if_exists(Option opt);
 

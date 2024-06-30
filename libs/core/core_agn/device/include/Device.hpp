@@ -16,7 +16,10 @@
 namespace Logic
 {
     /// @brief Representation of class contains all extensions and other objects
-    ///        needed to communicate between serial and remote device in respect of protocol
+    ///        needed to communicate between serial and remote device in respect to protocol
+    /// @tparam Timer_impl_t Timer implementation
+    /// @tparam Remote_impl_t Remote implementation
+    /// @tparam Serial_impl_t Serial implementation
     template <
         typename Timer_impl_t,
         typename Remote_impl_t,
@@ -40,13 +43,22 @@ namespace Logic
             Serial_impl_t>;
 
     private:
-        /// @brief Forwarding commands from remote to interpreter
-        Mqtt_settings_connect<Remote_impl_t> remote_sc;
-
         Remote_impl_t remote;
         Serial_impl_t serial;
 
+        /// @brief Forwarding commands from remote to interpreter
+        Mqtt_settings_connect<Remote_impl_t> remote_sc;
+
     public:
+        /// @brief 
+        /// @tparam Device_ptr_t 
+        /// @tparam Remote_impl_ptr_t 
+        /// @tparam Serial_impl_ptr_t 
+        /// @param notyfier 
+        /// @param dev 
+        /// @param rec 
+        /// @param remote 
+        /// @param serial 
         template <
             typename Device_ptr_t,
             typename Remote_impl_ptr_t,
@@ -83,9 +95,9 @@ namespace Logic
             Remote_impl_ptr_t &&remote_,
             Serial_impl_ptr_t &&serial_)
         : Device_prereq{std::move(notyfier_), std::forward<Device_ptr_t>(dev_), std::move(rec__)},
-          remote_sc{remote_},
           remote{std::forward<Remote_impl_ptr_t>(remote_)},
-          serial{std::forward<Serial_impl_ptr_t>(serial_)}
+          serial{std::forward<Serial_impl_ptr_t>(serial_)},
+          remote_sc{remote}
     {
         /* Add Logic extension */
         manager.add_ext<Logic_ext>(

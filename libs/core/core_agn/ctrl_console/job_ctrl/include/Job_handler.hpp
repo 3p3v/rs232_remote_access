@@ -44,7 +44,7 @@ namespace Job_ctrl
                 handler(dynamic_cast<Job_t &>(arg));
             }
 
-            /// @brief Use when job type is known to avoid dynamic casting
+            /// @brief Use when job type is known to avoid dynamic casting (not working with current implementation)
             /// @param arg 
             void exec(Job_t &arg)
             {

@@ -6,8 +6,7 @@ add_library(${PROJECT_NAME} STATIC
     ./src/Dev_cont.cpp
     ./src/Dev_ext.cpp
     ./src/Dev_getter.cpp
-    ./src/Dev_adder.cpp
-    ./src/Dev_remover.cpp
+    ./src/Dev_unsafe_getter.cpp
     ./src/Exception_handler.cpp
 )
 

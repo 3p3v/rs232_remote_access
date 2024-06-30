@@ -5,6 +5,7 @@ project(setup_loader VERSION 0.1.0 LANGUAGES CXX)
 add_library(${PROJECT_NAME} STATIC
     ./src/Setup_defs.cpp
     ./src/Setup_console.cpp
+    ./src/setup_impl.cpp
     ./src/setup_loader.cpp
 )
 

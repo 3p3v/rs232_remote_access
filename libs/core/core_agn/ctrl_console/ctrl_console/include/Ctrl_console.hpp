@@ -12,6 +12,11 @@ namespace Cmd_ctrl
         Base_ctrl_console<Base_handle_t, endl_opt, endl_, space_> cc;
     };
     
+    /// @brief Wrapper for all console functionality
+    /// @tparam Base_handle_t Specyfication of Exec<... Args_t>::Param<Args>::Policies<... Policies_t>::Base_handle // TODO delete, this is unused and unnessesary
+    /// @tparam endl_opt Checking endline enabled/disabled
+    /// @tparam endl_ Character between different commands
+    /// @tparam space_ Character between parameter name and argument 
     template <typename Base_handle_t, Endl_opt endl_opt, char endl_ = '\n', char space_ = ' '>
     class Ctrl_console
         : private Ctrl_console_dummy<Base_handle_t, endl_opt, endl_, space_>,

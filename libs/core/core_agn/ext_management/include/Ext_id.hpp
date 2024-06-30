@@ -25,6 +25,7 @@ namespace Logic
         static Ext_id_base::Id_t check_overflow();
 
     public:
+        /// @brief Id, different for every extension
         static Ext_id_base::Id_t id;
     };
 

@@ -6,11 +6,17 @@
 
 namespace Logic
 {
+    /// @brief Device adding interface
     class Dev_adder : public Dev_ext
     {
         Worker_storage &notyfier;
 
     public:
+        /// @brief Add device
+        /// @tparam Dev_t Device type
+        /// @tparam ...Args_t 
+        /// @param rec Device record
+        /// @param ...args Arguments passed to device constructor
         template <typename Dev_t, typename... Args_t>
         void add(Remote_dev &&rec, Args_t &&...args);
 

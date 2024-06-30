@@ -13,7 +13,7 @@ namespace Phy_serial
     public:
         Serial_context() = delete;
 
-        /* Io_context used by every serial */
+        /// @brief Io_context used by every serial
         static std::shared_ptr<boost::asio::io_context> shared_io_context_;
         
         static void run();

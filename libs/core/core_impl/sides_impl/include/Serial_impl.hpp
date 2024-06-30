@@ -18,10 +18,10 @@ namespace Impl
     class Serial_impl final
     {
     private:
-        /// @brief Information required to connect to serial port
-        Serial_info &info;
-
         Dyn_serial serial;
+
+        /// @brief Information required to connect to serial port
+        std::shared_ptr<Serial_info> info;
 
         template <typename Callb_t>
         friend class Serial_callb;
@@ -78,17 +78,13 @@ namespace Impl
         };
 
     public:
-        Serial_impl(Serial_info &info);
-        inline Serial_impl(Serial_impl &&si) noexcept
-            : info{si.info}, serial{std::move(si.serial)}
-        {
-        }
-        Serial_impl &operator=(Serial_impl &&) = delete;
+        Serial_impl(std::shared_ptr<Serial_info> &&info);
+        Serial_impl(const std::shared_ptr<Serial_info> &info);
+        inline Serial_impl(Serial_impl &&si) = default;
+        Serial_impl &operator=(Serial_impl &&) = default;
         Serial_impl(const Serial_impl &) = delete;
         Serial_impl &operator=(const Serial_impl &) = delete;
-        inline ~Serial_impl()
-        {
-        }
+        inline ~Serial_impl() = default;
 
         /********************************** Settings  **********************************/
     private:

@@ -28,7 +28,7 @@ Impl::Cl_loader::Cl_loader()
 {
     sc.add_cmd(
         "-conf",
-        Mandatority::Mandatory,
+        Mandatoriness::Mandatory,
         Command::Policies<>::Dyn_handle(
             [this](std::string &&arg)
             {

@@ -26,7 +26,7 @@ namespace Logic
 
     std::string Set_defs::baud_rate_trans(Port_settings::Baud_rate baud_rate)
     {
-        auto baud_rate_s = std::to_string(baud_rate.conv());
+        auto baud_rate_s = std::to_string(baud_rate);
         
         if (baud_rate >= 9600 && baud_rate <= 115200)
             return baud_rate_s;
@@ -41,7 +41,7 @@ namespace Logic
 
     std::string Set_defs::char_size_trans(Port_settings::Char_size char_size)
     {
-        auto char_size_s = std::to_string(char_size.conv());
+        auto char_size_s = std::to_string(char_size);
         
         if (char_size >= 5 && char_size <= 8)
             return char_size_s;

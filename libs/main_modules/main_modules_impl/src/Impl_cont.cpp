@@ -1,12 +1,15 @@
 #include <Impl_cont.hpp>
 
 Impl::Impl_cont::Impl_cont(Impl_cont &&ic)
-    : infos{std::move(ic.infos)}, num{ic.num}
+    : Dev_cont{std::move(ic)}, infos{std::move(ic.infos)}
 {
 }
 
 Impl::Impl_cont &Impl::Impl_cont::operator=(Impl_cont &&ic)
 {
-    *this = Impl_cont{std::move(ic)};
+    devs = std::move(ic.devs);
+    num = ic.num;
+    infos = std::move(ic.infos);
+    
     return *this;
 }

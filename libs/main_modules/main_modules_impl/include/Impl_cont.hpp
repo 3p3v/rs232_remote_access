@@ -4,25 +4,22 @@
 #include <mutex>
 #include <Notyfier_defs.hpp>
 #include <Dev_info.hpp>
+#include <Dev_cont.hpp>
 
 namespace Impl
 {
-    class Impl_cont
+    /// @brief Contains all devices and their information (MAC, port, ect.)
+    class Impl_cont : public Dev_cont
     {
     public:
         using Dev_num = ::Logic::Notyfier_defs::Dev_num;
         using Info_num = Dev_num;
-        using Info_cont_t = std::unordered_map<Dev_num, Dev_info>;
+        using Info_cont_t = std::unordered_map<Dev_num, std::shared_ptr<Dev_info>>;
         using iterator = Info_cont_t::iterator;
+        using const_iterator = Info_cont_t::const_iterator;
 
         /// @brief Additional info about devices
         Info_cont_t infos;
-
-        /// @brief 
-        Info_num num{0};
-
-        /// @brief Protect from access to devices  from multiple threads
-        mutable std::mutex info_mutex{};
 
         Impl_cont() = default;
         Impl_cont(Impl_cont &&);

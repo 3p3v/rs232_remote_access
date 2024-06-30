@@ -6,9 +6,11 @@ namespace Logic
 {
     class Dev_cont;
 
+    /// @brief Base class for Dev_con tinterfaces
     class Dev_ext
     {
     protected:
+        /// @brief Container of devices
         Dev_cont &devs;
 
     public:

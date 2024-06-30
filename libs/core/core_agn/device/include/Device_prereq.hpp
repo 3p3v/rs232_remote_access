@@ -9,32 +9,37 @@
 
 namespace Logic
 {
-    /// @brief 
+    /// @brief Dummy for storing in container
     class Device_prereq
     {
     public:
         using Device_weak_ptr = std::weak_ptr<Device_base>;
 
     protected:
-        /// @brief Extension management
-        Process_full manager{};
+        /// @brief User notyfication
+        Notyfier notyfier;
 
-        /// @brief
-        Device_weak_ptr dev;
-
-        /// @brief 
+        /// @brief Device record
         Remote_dev rec_;
 
-        /// @brief 
-        Notyfier notyfier;
+        /// @brief Pointer to device holder (Device_base / Device_initializer)
+        Device_weak_ptr dev;
+
+        /// @brief Extension management
+        Process_full manager{};
 
     public:
         /// @brief Control over device connection parameters ect.
         User_controller cont{manager.ext_forwarder};
 
         /// @brief Current settings and status
-        const Remote_dev rec{rec_};
+        const Remote_dev &rec{rec_};
 
+        /// @brief 
+        /// @tparam Device_ptr_t Device_weak_ptr
+        /// @param notyfier User notyfication
+        /// @param dev Pointer to device holder (Device_base / Device_initializer)
+        /// @param rec Device record object
         template <typename Device_ptr_t>
         Device_prereq(
             Notyfier &&notyfier,

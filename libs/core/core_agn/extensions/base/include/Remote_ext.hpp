@@ -25,23 +25,6 @@ namespace Logic
     private:
         Device_weak_ptr device_ptr;
 
-        // template <typename T>
-        // struct is_shared_ptr : std::false_type
-        // {
-        // };
-        // template <typename T>
-        // struct is_shared_ptr<std::shared_ptr<T>> : std::true_type
-        // {
-        // };
-        // template <typename T>
-        // struct is_weak_ptr : std::false_type
-        // {
-        // };
-        // template <typename T>
-        // struct is_weak_ptr<std::weak_ptr<T>> : std::true_type
-        // {
-        // };
-
     protected:
         template <typename Str_t, typename Cmd_t>
         auto make_pack_elem(Str_t &&name, Cmd_t &&cmd);
@@ -58,6 +41,8 @@ namespace Logic
         /// @return
         Cmds_pack get_cmds();
 
+        /// @brief Get all commands that extension uses to communicate with remote
+        /// @return 
         virtual Cmds_pack return_cmds() = 0;
 
     protected:

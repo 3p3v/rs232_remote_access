@@ -18,7 +18,7 @@ void Impl::Setup_console::check()
         {
             auto &stat = com_stat.second;
 
-            if (stat.mandatority == Mandatority::Mandatory && stat.executed == false)
+            if (stat.mandatoriness == Mandatoriness::Mandatory && stat.executed == false)
                 throw std::logic_error{"Mandatory argument for " + com_stat.first + " was not given!"};
         }
     );
@@ -29,7 +29,7 @@ Impl::Setup_console::Setup_console()
 {
 }
 
-Impl::Setup_console::Stat::Stat(Mandatority mandatority)
-    : mandatority{mandatority}
+Impl::Setup_console::Stat::Stat(Mandatoriness mandatoriness)
+    : mandatoriness{mandatoriness}
 {
 }

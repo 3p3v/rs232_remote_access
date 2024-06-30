@@ -11,8 +11,7 @@ using namespace Mqtt_port;
 
 TEST(general, init_test)
 {
-    Dev_cont devs{};            // Devices of unknown type
-    Impl_cont infos{};          // Additional, implementation-related informatin about devices
+    Impl_cont devs{};           // Devices and their additional info
     Worker_storage notifyer{};  // Information about debug and errors
 
     Server::Cont server_info{
@@ -30,8 +29,8 @@ TEST(general, init_test)
         std::move(user_info)};
 
     /* Control over devices */
-    Impl_getter getter{devs, infos};
-    Impl_adder adder{devs, infos, notifyer, controller};
+    Impl_getter getter{devs};
+    Impl_adder adder{devs, notifyer, controller};
     Impl_remover remover{devs};
     
     /* Error handling */

@@ -10,30 +10,29 @@ namespace Mqtt_port
 {
     namespace Impl
     {
-        Controller::Controller(Controller &&c) noexcept
-            : is_conn{c.is_conn.load()},
-              sub_delay{std::move(c.sub_delay)},
-              pub_delay{std::move(c.pub_delay)},
-              rec_callb{std::move(c.rec_callb)},
-              conn_callb{std::move(c.conn_callb)},
-              client{std::move(c.client)},
-              options{std::move(c.options)}
-        {
+        // Controller::Controller(Controller &&c) noexcept
+        //     : is_conn{c.is_conn.load()},
+        //       sub_delay{std::move(c.sub_delay)},
+        //       pub_delay{std::move(c.pub_delay)},
+        //       rec_callb{std::move(c.rec_callb)},
+        //       conn_callb{std::move(c.conn_callb)},
+        //       client{c.client},
+        //       options{std::move(c.options)}
+        // {
+        // }
 
-        }
+        // Controller &Controller::operator=(Controller &&c) noexcept
+        // {
+        //     is_conn = c.is_conn.load();
+        //     sub_delay = std::move(c.sub_delay);
+        //     pub_delay = std::move(c.pub_delay);
+        //     rec_callb = std::move(c.rec_callb);
+        //     conn_callb = std::move(c.conn_callb);
+        //     client = c.client;
+        //     options = std::move(c.options);
 
-        Controller &Controller::operator=(Controller &&c) noexcept
-        {
-            is_conn = c.is_conn.load();
-            sub_delay = std::move(c.sub_delay);
-            pub_delay = std::move(c.pub_delay);
-            rec_callb = std::move(c.rec_callb);
-            conn_callb = std::move(c.conn_callb);
-            client = std::move(c.client);
-            options = std::move(c.options);
-            
-            return *this;
-        }
+        //     return *this;
+        // }
 
         bool Controller::is_connected()
         {
@@ -49,23 +48,23 @@ namespace Mqtt_port
             {
                 // /* Send overdue messages */
                 // pub_delay.for_each([this](auto &&pub)
-                //                    { 
+                //                    {
                 //                         if (pub.util_callb())
                 //                         {
-                //                             client->publish(pub.channel_name, 
-                //                                             &(*pub.data->begin()), 
-                //                                             pub.data->end() - pub.data->begin(), 
-                //                                             pub.qos, 
-                //                                             false, 
-                //                                             nullptr, 
+                //                             client.publish(pub.channel_name,
+                //                                             &(*pub.data->begin()),
+                //                                             pub.data->end() - pub.data->begin(),
+                //                                             pub.qos,
+                //                                             false,
+                //                                             nullptr,
                 //                                             std::move(pub.callb));
                 //                         }
                 //                         else
                 //                         {
-                //                             client->publish(pub.channel_name, 
+                //                             client.publish(pub.channel_name,
                 //                                             &(*pub.data->begin()),
-                //                                             pub.data->end() - pub.data->begin(), 
-                //                                             pub.qos, 
+                //                                             pub.data->end() - pub.data->begin(),
+                //                                             pub.qos,
                 //                                             false);
                 //                         } });
             }
@@ -76,7 +75,7 @@ namespace Mqtt_port
                                    { 
                                     if (sub.util_callb())
                                         {
-                                            client->subscribe(sub.channel_name, 
+                                            client.subscribe(sub.channel_name, 
                                                               sub.qos, 
                                                               nullptr, 
                                                               std::move(sub.callb),
@@ -84,7 +83,7 @@ namespace Mqtt_port
                                         }
                                         else
                                         {
-                                            client->subscribe(sub.channel_name, 
+                                            client.subscribe(sub.channel_name, 
                                                             sub.qos,
                                                             mqtt::subscribe_options{true});
                                         } });
@@ -112,15 +111,15 @@ namespace Mqtt_port
         {
         }
 
-        Controller::Controller(Server::Get_cont &&server,
-                               User::Get_cont &&user)
+        Controller::Controller(
+            Server::Get_cont &&server,
+            User::Get_cont &&user)
+            : client{mqtt::async_client{
+                  "tcp://" + server.get(Server::Option::ip) + ":" + server.get(Server::Option::port),
+                  user.get(User::Option::id),
+                  mqtt::create_options(MQTTVERSION_5)}}
         {
-            client = std::make_shared<mqtt::async_client>("tcp://" + server.get(Server::Option::ip) + ":" + server.get(Server::Option::port),
-                                                          user.get(User::Option::id),
-                                                          mqtt::create_options(MQTTVERSION_5));
-            
-            client->set_callback(*this);
-
+            client.set_callback(*this);
 
             /* Set options */
             options.set_mqtt_version(MQTTVERSION_5);
@@ -140,18 +139,18 @@ namespace Mqtt_port
             else
             {
                 /* Subscribe */
-                client->subscribe(channel_name, qos);
+                client.subscribe(channel_name, qos);
             }
         }
 
-        void Controller::disconnect(Time time) 
+        void Controller::disconnect(Time time)
         {
-            client->disconnect(time);
+            client.disconnect(time);
         }
 
         void Controller::unsubscribe(const std::string &channel_name)
         {
-            client->unsubscribe(channel_name);
+            client.unsubscribe(channel_name);
         }
     }
 }

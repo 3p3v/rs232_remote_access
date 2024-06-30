@@ -4,8 +4,11 @@ project(main_modules_impl VERSION 0.1.0 LANGUAGES CXX)
 # Main code
 add_library(${PROJECT_NAME} STATIC
     ./src/Impl_cont.cpp
+    ./src/Impl_ext.cpp
+    ./src/Info_getter.cpp
     ./src/Impl_getter.cpp
     ./src/Impl_adder.cpp
+    ./src/Impl_remover.cpp
     ./src/Info_pack_base.cpp
     ./src/Collective_general.cpp
     ./src/Debug_monitor.cpp

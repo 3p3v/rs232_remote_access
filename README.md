@@ -31,7 +31,8 @@ To build the project, the libraries specified above are needed.
 It is required to set correct paths to them in the [main CMakeLists.txt file](./CMakeLists.txt).
 
 ## Config file
-While starting the app, user is obligated to pass a path to config file.
+While starting the app, user is obligated to pass a path to config file using "-conf" parmaeter.
+
 The config file commands are listed below:
 | Command                   | Possible arguments | Default| Mandatoriness | Explanation |
 |---------------------------|--------------------|--------|---------------|-------------|

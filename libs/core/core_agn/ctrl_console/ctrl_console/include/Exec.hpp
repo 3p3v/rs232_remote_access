@@ -28,6 +28,9 @@ namespace Cmd_ctrl
                 class Base_handle : public Base_handle_intf
                 {
                 public:
+                    /// @brief Argument type for handler
+                    using Arg = Arg;
+
                     bool validate(const Arg &arg) const override final
                     {
                         return (Policies_t::validate_t(arg) && ...);
