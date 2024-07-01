@@ -1,1 +1,1 @@
-Module contains all definitions mentioned by protocol specyfication. 
+Module contains all definitions mentioned by protocol specification. 

@@ -10,6 +10,7 @@
 
 namespace Impl
 {
+    /// @brief Start underlying low-level drivers
     class Impl_starter final
     {
     public:
@@ -26,7 +27,12 @@ namespace Impl
         template <typename... Args_t>
         Impl_starter(Args_t &&...args);
 
+        /// @brief Get initialized device adder
+        /// @return Device adder
         Impl_adder_ref get_adder() &;
+
+        /// @brief Run underlying drivers, connect to broker
+        /// @return Pair for optional error thrown by the serial driver and thread running the driver
         Future_and_thread connect() &;
     };
 

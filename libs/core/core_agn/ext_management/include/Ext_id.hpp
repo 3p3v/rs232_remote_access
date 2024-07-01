@@ -15,7 +15,7 @@ namespace Logic
     };
 
     /// @brief Generate unique id for given extension
-    /// @tparam Ext_t
+    /// @tparam Ext_t Extension class type
     template <
         typename Ext_t>
     class Ext_id

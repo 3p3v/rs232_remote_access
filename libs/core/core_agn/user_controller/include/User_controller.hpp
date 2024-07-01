@@ -10,7 +10,7 @@ namespace Logic
 {
     class Remote_record;
 
-    /// @brief Change settings of the device
+    /// @brief User controlling interface, can change devices settings, ect.
     class User_controller final
     {
         /// @brief
@@ -29,13 +29,18 @@ namespace Logic
             typename... Params_t>
         void set_params(Params_t... params);
 
-        /// @brief 
+        /// @brief Run the device
         void run();
 
-        /// @brief 
+        /// @brief Restart the device
         void restart();
 
+        /// @brief Construct user controlling interface
+        /// @param manager Device's message forwarding mechanism
         User_controller(Forwarder &&manager);
+        
+        /// @brief Construct user controlling interface
+        /// @param manager Device's message forwarding mechanism
         User_controller(const Forwarder &manager);
     };
 

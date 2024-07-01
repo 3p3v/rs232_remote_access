@@ -12,5 +12,8 @@ Logic::Error_job::Error_job(const Error_job &ej)
 
 Logic::Error_job &Logic::Error_job::operator=(const Error_job &ej)
 {
-    return Error_job{ej};
+    num = ej.num;
+    exc.reset(ej.exc.get());
+
+    return *this;
 }

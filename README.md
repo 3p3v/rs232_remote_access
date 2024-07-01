@@ -2,15 +2,19 @@
 This branch contains client application part of the project.
 
 The application is the main interface through which users can connect to and use the devices.
-The application allows users to send and download data from/to the device and to remotely change the device's console port settings. 
+It allows users to send and download data from/to the device and to remotely change the device's console port settings. 
+Additionally, user can forward data from the devices by connecting the app to the specified local serial ports.
+
 When the application is launched, it connects to a user-selected console port available locally on the device.
+
+The app uses communicates asynchronously with both MQTT broker and local serial port.
 
 ## Libraries
 The application was written using C++17 and utilizes the following libraries:
 - STL,
 - [Boost](https://www.boost.org/) - version 1.83 was used,
 - [Boost.Asio](https://www.boost.org/doc/libs/1_83_0/doc/html/boost_asio.html) - used for asynchronous serial port operations (version 1.83 was used),
-- [Eclipse Paho MQTT C++ Client Library](https://github.com/3p3v/paho.mqtt.cpp.unique) - fork of Paho MQTT C++ library (1.20), which uses smart pointers instead of raw pointers. [Eclipse Paho MQTT C Client Library](https://github.com/eclipse/paho.mqtt.c) is needed to run the library. Version 1.3.13 was used.
+- [Eclipse Paho MQTT C++ Client Library](https://github.com/3p3v/paho.mqtt.cpp.unique) - fork of Paho MQTT C++ library (1.20) (asynchronous MQTT client), which uses smart pointers instead of raw pointers. [Eclipse Paho MQTT C Client Library](https://github.com/eclipse/paho.mqtt.c) is needed to run the library. Version 1.3.13 was used.
 
 Tests were written using GTest framework.
 
@@ -23,8 +27,13 @@ The rest of the files are located in [libs](./libs/) directory:
 - [setup_loader](./libs/setup_loader/) implements loading structures from setup file.
 
 Core and main_modules were split into *_agn and *_impl.
-Classes in *_agn are implementation-agnostic and thanks to that they have been unit-tested.
-Classes in *_impl depend on the low-level implementation of the device (i.e. Boost.Asio and Paho).
+
+Classes in *_agn are implementation-agnostic and thanks to that they were able to be unit-tested.
+These classes do not depend on any information about low-level protocols.
+
+Classes in *_impl depend on the low-level implementation of the device:
+- the majority of classes are only dependent on information that would be needed for any implementation using MQTT and RS-232 protocols,
+- only few classes depend on low-level driver API (i.e. Boost.Asio and Paho).
 
 ## Building the project
 To build the project, the libraries specified above are needed.

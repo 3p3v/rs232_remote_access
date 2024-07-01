@@ -4,6 +4,7 @@ project(core_agn VERSION 0.1.0 LANGUAGES CXX)
 add_library(${PROJECT_NAME} INTERFACE)
 
 add_subdirectory("./ctrl_console/")
+add_subdirectory("./notifier/")
 add_subdirectory("./extensions/")
 add_subdirectory("./timers/")
 add_subdirectory("./sides/")
@@ -21,4 +22,5 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
     defs
     ext_management
     device
+    notyfier
 )

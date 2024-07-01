@@ -1,0 +1,1 @@
+Module implements mechanism for communication from protocol (protocol extensions) to user.

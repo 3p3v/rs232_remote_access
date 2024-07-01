@@ -16,9 +16,6 @@ int main(unsigned int argc, char **argv)
             std::move(data_pack->server),
             std::move(data_pack->user)};
         
-        /* Release loaded data */
-        data_pack.release();
-        
         /* Connect to broker */
         auto [future, serial_thread] = starter.connect();
 
@@ -32,6 +29,9 @@ int main(unsigned int argc, char **argv)
 
         /* Add devices */
         core.add_devces(data_pack->devices.begin(), data_pack->devices.end());
+
+        /* Release loaded data */
+        data_pack.release();
 
         /* Wait for error in serial thread */
         serial_thread.join();

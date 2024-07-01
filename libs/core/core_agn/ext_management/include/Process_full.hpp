@@ -3,22 +3,40 @@
 #include <memory>
 #include <unordered_map>
 #include <algorithm>
+/* Protocol extension base object */
+#include <Remote_ext.hpp>
 /* Command management */
+#include <Base_ctrl_console.hpp>
 #include <Ctrl_con_exec.hpp>
 #include <Ctrl_con_storage.hpp>
 /* Extension management */
+#include <Worker_storage.hpp>
 #include <Forwarder.hpp>
 #include <Storage.hpp>
 #include <Remote_ext.hpp>
 #include <Ext_id.hpp>
 /* Objects needed for classes above */
-#include <Ws_holder.hpp>
+// #include <Ws_holder.hpp>
 
 namespace Logic
 {
-    /// @brief Storing and managing extensions; storing and running cmds.
-    class Process_full : private Ws_holder
+    /// @brief Storing and managing extensions; storing and running commands generated from protocol extensions.
+    class Process_full// : private Ws_holder
     {
+    private:
+        /// @brief Argument types for received command
+        using Con_storage_param = Remote_ext::Command;
+
+        /// @brief Command interpreter type
+        using Console_base = Cmd_ctrl::Base_ctrl_console<Con_storage_param, Endl_opt::with>;
+
+        /// @brief Protocol extension storage
+        Job_ctrl::Worker_storage ws{};
+
+        /// @brief Commands storage
+        Console_base cc{};
+    
+    private:
         /* ********************* Command control and jobs messaging ********************* */
         using Console_storage = Cmd_ctrl::Ctrl_con_storage<Con_storage_param, Endl_opt::with>;
         using Console_exec = Cmd_ctrl::Ctrl_con_exec<Con_storage_param, Endl_opt::with>;
