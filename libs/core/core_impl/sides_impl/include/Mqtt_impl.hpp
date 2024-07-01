@@ -344,6 +344,12 @@ namespace Impl
                     auto prop_begin = c->get_properties().c_struct().array;
                     auto prop_end = prop_begin + c->get_properties().c_struct().count;
 
+                    if (prop_begin == prop_end)
+                    {
+                        /* Properties, show error to user */
+                        ec_callb(Protocol_except{"No packet properties found! Protocol breach!"});
+                    }
+
                     auto i_ = std::find_if(
                         prop_begin,
                         prop_end,
