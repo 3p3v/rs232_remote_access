@@ -38,7 +38,7 @@ namespace Impl
             class Post_callb
             {
                 Ec_callb_t ec_callb_;
-                Serial_callb<Callb_t, Ec_callb_t> &serial_callb;
+                Serial_callb<Callb_t, Ec_callb_t> serial_callb;
 
             public: 
                 template <typename Iter_t>
@@ -49,7 +49,7 @@ namespace Impl
                 }  
 
                 template <typename Ec_callb_t_t>
-                Post_callb(Ec_callb_t_t &&ec_callb_, Serial_callb<Callb_t, Ec_callb_t> &serial_callb)
+                Post_callb(Ec_callb_t_t &&ec_callb_, Serial_callb<Callb_t, Ec_callb_t> serial_callb)
                     : ec_callb_{std::forward<Ec_callb_t_t>(ec_callb_)}, serial_callb{serial_callb}
                 {
                 }

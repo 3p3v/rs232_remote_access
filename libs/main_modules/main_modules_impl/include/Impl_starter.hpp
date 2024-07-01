@@ -4,6 +4,7 @@
 #include <Server.hpp>
 #include <User.hpp>
 #include <Impl_adder_ref.hpp>
+#include <optional>
 #include <thread>
 #include <future>
 

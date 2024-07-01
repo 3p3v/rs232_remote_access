@@ -21,7 +21,7 @@ namespace Impl
         /// @brief Devices and their additional information
         Impl_cont devs{};
         /// @brief Information about debug and errors
-        Worker_storage notifyer{};
+        Worker_storage notifier{};
 
         /// @brief User debug information
         Debug_monitor debug_monitor;
@@ -105,7 +105,7 @@ namespace Impl
             end,
             [&, this](auto &dev)
             {
-                adder.add(std::move(dev.sett), dev.write_access, std::move(dev.info), devs, notyfier);
+                adder->add(std::move(dev.sett), dev.write_access, std::move(dev.info), devs, notifier);
             }
         );
 

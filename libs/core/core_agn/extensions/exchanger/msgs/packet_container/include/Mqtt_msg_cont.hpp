@@ -206,7 +206,7 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
 
     auto iter = msgs.begin();
 
-    /* Normalisation */
+    /* Normalization */
     auto offset = max_msg_num - (id - 1);
 
     std::for_each(

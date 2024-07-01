@@ -67,8 +67,9 @@ namespace Logic
 
         /// @brief Message counter for master
         Packet_m count_m{};
-        /// @brief
+        /// @brief Message counter for slave
         Packet_s count_s{};
+        Msg_num_type msg_id;
 
         std::atomic_bool comm_unlock{false};
 
@@ -408,62 +409,60 @@ namespace Logic
     {
         auto msg_begin = msg.begin();
         auto msg_end = msg.end();
-        auto msg_id = msg.id();
+        msg_id = msg.id();
 
         // auto ok_callb = [ptr = shared_from_this(), this, id = msg_id](auto begin, auto end, auto callb) mutable
-        auto ok_callb = [ptr = weak_from_this(), this, id = msg_id](auto msg_begin, auto msg_end, auto &&callb) mutable
+        auto ok_callb = [ptr = weak_from_this(), this](auto msg_begin, auto msg_end, auto &&callb) mutable
         {
             if (auto p = ptr.lock() && serial_to_remote())
             {
-
                 /* Retrive buffers of newly created message */
-                auto old_id = id;
-                auto &old_msg = count_m[id];
+                auto &old_msg = count_m[msg_id];
                 /* Set message length */
                 old_msg.data_len = msg_end - msg_begin;
 
-                try
-                {
-                    /* Create new message, save id */
-                    id = count_m.create().id();
-                }
-                catch (const Packet_controller_except &e)
-                {
-                    notyfier.debug(e.what());
-
-                    try
-                    {
-                        /* Use oldest one */
-                        id = count_m.oldest().id();
-                    }
-                    catch (const std::logic_error &e)
-                    {
-                        /* Shutting down connection required */
-                        notyfier.error(Exchanger_fatal_except{e.what()});
-
-                        return;
-                    }
-                }
-
                 /* Send MQTT message */
                 remote_d.write(
-                    old_id,
+                    msg_id,
                     msg_begin,
                     msg_end,
                     [ptr = std::move(p),
                      this,
-                     id,
-                     old_id,
                      callb = std::forward<decltype(callb)>(callb)](char, size_t)
                     {
                         /* Mark last message as unused */
-                        count_m[old_id].unused();
+                        count_m[msg_id].unused();
 
-                        /* Retrive next messages buffers */
-                        auto &msg = count_m[id];
+                        try
+                        {
+                            /* Create new message, save id */
+                            auto &msg = count_m.create();
+                            msg_id = msg.id();
 
-                        /* Set new buffer */
-                        callb(msg.begin(), msg.end());
+                            /* Set new buffer */
+                            callb(msg.begin(), msg.end());
+                        }
+                        catch (const Packet_controller_except &e)
+                        {
+                            try
+                            {
+                                /* Use oldest one */
+                                auto &msg = count_m.oldest();
+                                msg_id = msg.id();
+
+                                /* Set new buffer */
+                                callb(msg.begin(), msg.end());
+                            }
+                            catch (const std::logic_error &e)
+                            {
+                                /* Shutting down connection required */
+                                notyfier.error(Exchanger_fatal_except{e.what()});
+
+                                return;
+                            }
+
+                            notyfier.debug(e.what());
+                        }
 
                         /* Check if messages were ACKed */
                         if (count_m.get_not_acked() > Packet_defs::max_not_ack)

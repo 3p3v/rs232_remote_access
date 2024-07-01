@@ -30,10 +30,8 @@ Impl::Impl_starter::Future_and_thread Impl::Impl_starter::connect() &
     std::promise<std::optional<std::exception>> p;
     auto f = p.get_future();
     auto serial_thread = std::thread{
-        []()
-        {
-            std::optional<std::exception> except;
-            
+        [](std::promise<std::optional<std::exception>> &&p)
+        {  
             try
             {
                 /* Run underlying Boost context for serial ports */
@@ -41,10 +39,8 @@ Impl::Impl_starter::Future_and_thread Impl::Impl_starter::connect() &
             }
             catch(const std::exception& e)
             {
-                except = e;
+                p.set_value(e);
             }
-
-            return except;
         },
         std::move(p)
     };

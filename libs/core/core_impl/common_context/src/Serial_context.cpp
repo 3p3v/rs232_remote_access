@@ -14,7 +14,8 @@ namespace Phy_serial
         {
             boost::system::error_code ec;
             
-            shared_io_context_->run(ec);
+            while(!ec)
+                shared_io_context_->run(ec);
 
             if (ec)
             {

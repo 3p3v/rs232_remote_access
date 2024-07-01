@@ -36,8 +36,8 @@ int main(unsigned int argc, char **argv)
         /* Wait for error in serial thread */
         serial_thread.join();
 
-        if (auto e = future.get().value())
-            throw e;
+        if (future.get().has_value())
+            throw future.get().value();
 
         std::cerr << "Exited without any error." << '\n';
     }
