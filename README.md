@@ -21,6 +21,8 @@ The application is the main interface through which users can connect to and use
 The application allows users to send and download data from/to the device and to remotely change the device's console port settings. 
 When the application is launched, it connects to a user-selected console port available locally on the device.
 
+The aim was to create an application that uses asynchronous I/O and would easily maintainable.
+
 ### Libraries
 The application was written using C++17 and utilizes the following libraries:
 - STL,
