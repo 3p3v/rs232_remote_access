@@ -4,10 +4,9 @@ This branch contains client application part of the project.
 The application is the main interface through which users can connect to and use the devices.
 It allows users to send and download data from/to the device and to remotely change the device's console port settings. 
 Additionally, user can forward data from the devices by connecting the app to the specified local serial ports.
-
-When the application is launched, it connects to a user-selected console port available locally on the device.
-
 The app uses communicates asynchronously with both MQTT broker and local serial port.
+
+The specification of the protocol created especially for this project can be found in [resources directory](./resources/).
 
 ## Libraries
 The application was written using C++17 and utilizes the following libraries:
@@ -22,8 +21,9 @@ Tests were written using GTest framework.
 The main functions can be found in [app](./app/) for final app and [app_debug](./app_debug/) - for debug purposes.
 
 The rest of the files are located in [libs](./libs/) directory:
-- [core](./libs/core/) contains files that implement the connections between user and the remote device (in respect to the remotes protocol),
-- [main_modules](./libs/main_modules/) implements the management of the devices, error handling ect.,
+- [core](./libs/core/) contains files that implement the connections between user and the remote device in respect to the remote's protocol,
+    - the client's side implementation of the protocol can be found in [extensions directory](./libs/core/core_agn/extensions/),
+- [main_modules](./libs/main_modules/) implements the management of the devices, error handling etc.,
 - [setup_loader](./libs/setup_loader/) implements loading structures from setup file.
 
 Core and main_modules were split into *_agn and *_impl.
