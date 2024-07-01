@@ -15,7 +15,7 @@ The application was written using C++17 and utilizes the following libraries:
 - [Boost.Asio](https://www.boost.org/doc/libs/1_83_0/doc/html/boost_asio.html) - used for asynchronous serial port operations (version 1.83 was used),
 - [Eclipse Paho MQTT C++ Client Library](https://github.com/3p3v/paho.mqtt.cpp.unique) - fork of Paho MQTT C++ library (1.20) (asynchronous MQTT client), which uses smart pointers instead of raw pointers. [Eclipse Paho MQTT C Client Library](https://github.com/eclipse/paho.mqtt.c) is needed to run the library. Version 1.3.13 was used.
 
-Tests were written using GTest framework.
+GTest framework was used for unit testing.
 
 ## Project structure
 The main functions can be found in [app](./app/) for final app and [app_debug](./app_debug/) - for debug purposes.
