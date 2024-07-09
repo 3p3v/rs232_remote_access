@@ -93,12 +93,6 @@
 #define MODE_DTE "DTE"
 #define MODE_DCE "DCE"
 
-typedef enum dev_mode
-{
-    dte = 0,
-    dce
-} dev_mode;
-
 /* PACKET NUMBER KEY */
 #define PACKET_NUM_KEY "P"
 #define PACKET_NUM_KEY_C 'P'

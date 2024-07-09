@@ -30,6 +30,43 @@ static void replace_char(char * str, char ch1, char ch2)
     }
 }
 
+static char *malloc_option(char *line, char arg_ptr, unsigned int len)
+{
+    char *arg_str = (char *)malloc(sizeof(char) * (len - (arg_ptr - line) + 1));
+    memcpy(arg_str, arg_ptr, (len - (arg_ptr - line)));
+    arg_str[(len - (arg_ptr - line))] = '\0';
+
+    return arg_str;
+}
+
+static char *malloc_option_rn(char *line, char arg_ptr, unsigned int len)
+{
+    return malloc_option(line, arg_ptr, len - 2)
+}
+
+void auth_free(auth_pack *pack)
+{
+    free(pack->username);
+
+    if (pack->password != NULL)
+        free(pack->password);
+
+    if (pack->server != NULL)
+        free(pack->server);
+
+    if (pack->port != NULL)
+        free(pack->port);
+
+    if (pack->apn != NULL)
+        free(pack->apn);
+
+    if (pack->apn_username != NULL)
+        free(pack->apn_username);
+
+    if (pack->apn_password != NULL)
+        free(pack->apn_password);
+}
+
 int auth_load(auth_pack *pack)
 {
     char *line = NULL;
@@ -42,11 +79,15 @@ int auth_load(auth_pack *pack)
     bool server = false;
     bool port = false;
     bool chain_size = false;
+    bool apn = false;
 
     /* Nullout pack */
     pack->password = NULL;
     pack->server = NULL;
     pack->port = NULL;
+    pack->apn = NULL;
+    pack->apn_username = NULL;
+    pack->apn_password = NULL;
 
     /* Start initialization */
     ESP_LOGI(TAG, "INITIALIZING SPIFFS PARTITION");
@@ -129,33 +170,21 @@ int auth_load(auth_pack *pack)
         /* Check commands */
         if ((arg_ptr = cmdcmp_arg(AUTH_PASSWORD, line, len)) != NULL)
         {
-            pack->password = malloc(sizeof(char) * (len - (arg_ptr - line)));
-            memcpy(pack->password, arg_ptr, (len - (arg_ptr - line)));
-            pack->password[(len - (arg_ptr - line))] = '\0';
-
-            replace_char(pack->password, '\r', '\0');
+            pack->password = malloc_option_rn(line, arg_ptr, len);
 
             ESP_LOGE(TAG, "PASSWOED LOADED");
             password = true;
         }
         else if ((arg_ptr = cmdcmp_arg(AUTH_SERVER, line, len)) != NULL)
         {
-            pack->server = malloc(sizeof(char) * (len - (arg_ptr - line)));
-            memcpy(pack->server, arg_ptr, (len - (arg_ptr - line)));
-            pack->server[(len - (arg_ptr - line))] = '\0';
-
-            replace_char(pack->server, '\r', '\0');
+            pack->server = malloc_option_rn(line, arg_ptr, len);
 
             ESP_LOGE(TAG, "SERVER: %s", pack->server);
             server = true;
         }
         else if ((arg_ptr = cmdcmp_arg(AUTH_PORT, line, len)) != NULL)
         {
-            pack->port = malloc(sizeof(char) * (len - (arg_ptr - line)));
-            memcpy(pack->port, arg_ptr, (len - (arg_ptr - line)));
-            pack->port[(len - (arg_ptr - line))] = '\0';
-
-            replace_char(pack->port, '\r', '\0');
+            pack->port = malloc_option_rn(line, arg_ptr, len);
 
             ESP_LOGE(TAG, "PORT: %s", pack->port);
             port = true;
@@ -163,9 +192,7 @@ int auth_load(auth_pack *pack)
         else if ((arg_ptr = cmdcmp_arg(AUTH_CHAIN_SIZE, line, len)) != NULL)
         {
             /* Argument in cstring to uint */
-            char *arg_str = (char *)malloc(sizeof(char) * (len - (arg_ptr - line)));
-            memcpy(arg_str, arg_ptr, (len - (arg_ptr - line)));
-            arg_str[(len - (arg_ptr - line))] = '\0';
+            char *arg_str = malloc_option_rn(line, arg_ptr, len);
             pack->chain_size = atoi(arg_str);
             free(arg_str);
 
@@ -181,6 +208,13 @@ int auth_load(auth_pack *pack)
         }
     }
 
+    // TODO read from file
+    const char *apn_str = DEF_APN;
+    pack->apn = malloc_option(apn_str, apn_str, strlen(apn_str));
+    apn = true;
+    pack->apn_username = DEF_USERNAME;
+    pack->apn_password = DEF_PASSWORD;
+
     /* Deallocate line */
     if (line)
         free(line);
@@ -189,17 +223,11 @@ int auth_load(auth_pack *pack)
     fclose(f);
 
     /* Error occured or something was not loaded? */
-    if (err != ESP_OK || (password & server & port & chain_size) == false)
+    if (err != ESP_OK || (password & server & port & chain_size & apn) == false)
     {
         ESP_LOGE(TAG, "ERROR, DEALLOCATING STRUCTURES");
 
-        free(pack->username);
-        if (pack->password != NULL)
-            free(pack->password);
-        else if (pack->server != NULL)
-            free(pack->server);
-        else if (pack->port != NULL)
-            free(pack->port);
+        auth_free(pack);
     }
 
     /* Close partition */
@@ -208,10 +236,4 @@ int auth_load(auth_pack *pack)
     return err;
 }
 
-void auth_free(auth_pack *pack)
-{
-    free(pack->username);
-    free(pack->password);
-    free(pack->server);
-    free(pack->port);
-}
+

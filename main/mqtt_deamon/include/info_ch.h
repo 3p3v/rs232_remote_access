@@ -1,7 +1,6 @@
 #pragma once
 
-#include <mqtt_deamon.h>
-#include <uart_deamon.h>
-#include <cmd_defs.h>
+struct mqtt_deamon_handler;
+typedef struct mqtt_deamon_handler mqtt_deamon_handler;
 
 int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t len);

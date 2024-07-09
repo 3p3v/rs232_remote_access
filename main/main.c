@@ -34,8 +34,6 @@
 #include <psa/crypto.h>
 #endif
 #include <esp_crt_bundle.h>
-/* MQTT-C lib */
-// #include <mqtt.h>
 /* Main deamon */
 #include <error_handler.h>
 #include <mqtt_deamon.h>
@@ -48,33 +46,48 @@
 #include <cert.h>
 
 /* Definitions */
-#define MAIN_SIM_BUF_SIZE 12000
+#define ERROR_HANDLING_TASK_NAME "err_handling_task"
+#define ERROR_HANDLING_TASK_STACK_SIZE 2048
+#define ERROR_HANDLING_TASK_PRIORITY 3
 
-#define MQTT_TOPIC "console_device1"
+#define MAIN_TASK_NAME "mqtt_main_task"
+#define MAIN_TASK_STACK_SIZE 20000
+#define MAIN_TASK_PRIORITY 3
 
 /* Global variables */
 SIM_intf *sim;
 struct mqtt_client *client;
 
-static mqtt_deamon_handler mqtt_handler;
+mqtt_deamon_handler mqtt_handler;
 static sim_deamon_handler sim_handler;
 static uart_deamon_handler uart_handler;
 
 /* Function decalrations */
-void *client_refresher(void *client);
 static void rec_callback(unsigned char *buf, unsigned int);
+
+/* Device start task */
 void main_task(void *);
+
+/* Task from handling errors */
 void err_handling_task(void *);
-void return_error(const char *tag, int err);
-void mqtt_deamon(void *);
-static void socket_resp_handler(int *err);
+
+/* Start error handling task */
+int error_handler_start(auth_pack *auth);
+
+/* Check TCP buffer */
 static size_t buf_check(mbedtls_context *ctx);
+
+/* Print device name */
+void printf_dev_name(const char *name);
+
+/* Print error */
+void log_error(const char *module, const char *info);
 
 /* Main */
 void app_main(void)
 {
     /* Run startup */
-    xTaskCreate(main_task, "mqtt_main_task", 20000, NULL, 3, NULL);
+    xTaskCreate(main_task, MAIN_TASK_NAME, MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIORITY, NULL);
 }
 
 void main_task(void *)
@@ -99,39 +112,33 @@ void main_task(void *)
 
     /* Init needed structures */
     auth_pack *auth = malloc(sizeof(auth_pack));
-    if (auth_load(auth) != 0)
+    if (auth_load(auth))
     {
-        ESP_LOGE("AUTH", "COUNDN'T LOAD, REBOOTING");
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        log_error(AUTH_TASK_NAME, "COUNDN'T LOAD, REBOOTING");
         esp_restart();
     }
     error_create_queue();
 
     /* Cout device name */
-    printf("\r\n");
-    printf("/****************************************************************************/\r\n");
-    printf("/*****************/");
-    printf("DEVICE MAC ADDRESS IS: %s", auth->username);
-    printf("/*****************/\r\n");
-    printf("/****************************************************************************/\r\n");
+    printf_dev_name(auth->username);
 
     /* Start error handing task */
-    if (xTaskCreate(err_handling_task, "err_handling_task", 2048, &auth, 3, NULL) != pdPASS)
+    if (error_handler_start(auth))
     {
-        ESP_LOGE("ERROR_DEAMON", "COUNDN'T START, REBOOTING");
+        log_error(ERROR_HANDLER_TASK_NAME, "COUNDN'T START, REBOOTING");
         esp_restart();
     }
 
     /* Start SIM deamon */
     if ((err = sim_deamon_start(&sim_handler)))
     {
-        ESP_LOGE("SIM_DEAMON", "COUNDN'T START, REBOOTING");
+        log_error(SIM_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
         esp_restart();
     }
     /* Start UART deamon */
     if ((err = uart_deamon_start(&uart_handler)))
     {
-        ESP_LOGE("UART_DEAMON", "COUNDN'T START, REBOOTING");
+        log_error(UART_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
         esp_restart();
     }
 
@@ -143,10 +150,9 @@ void main_task(void *)
                                  auth->username,
                                  auth->password,
                                  cert_load_chain,
-                                 auth->chain_size,
-                                 socket_resp_handler)))
+                                 auth->chain_size)))
     {
-        ESP_LOGE("MQTT_DEAMON", "COUNDN'T START, REBOOTING");
+        log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
         esp_restart();
     }
 
@@ -167,24 +173,41 @@ void err_handling_task(void *auth_ptr)
     {
         ESP_LOGI(TAG, "START READING ERRORS\r\n");
         xQueueReceive(*main_queue, &ext_err, portMAX_DELAY);
-        ESP_LOGE(TAG, "GOT ERROR\r\n");
+        ESP_LOGE(TAG, "GOT AN ERROR\r\n");
 
         echo_error(&ext_err);
 
         if (ext_err.type != ext_type_fatal)
         {
-            ext_mqtt_send_error(&ext_err);
+            if (sim_handler.handler == ext_err.handler)
+            {
+                ext_mqtt_send_error(SIM_DAEMON_TASK_NAME, &ext_err);
+                echo_error(SIM_DAEMON_TASK_NAME, &ext_err);
+            }
+            else if (mqtt_handler.handler == ext_err.handler)
+            {
+                ext_mqtt_send_error(MQTT_DAEMON_TASK_NAME, &ext_err);
+                echo_error(MQTT_DAEMON_TASK_NAME, &ext_err);
+            }
+            else if (uart_handler.handler == ext_err.handler)
+            {
+                ext_mqtt_send_error(UART_DAEMON_TASK_NAME, &ext_err);
+                echo_error(UART_DAEMON_TASK_NAME, &ext_err);
+            }
         }
         else
         {
             if (sim_handler.handler == ext_err.handler)
             {
                 /* Unhandlable exception occured in SIM task */
+                echo_error(SIM_DAEMON_TASK_NAME, &ext_err);
+                log_error(SIM_DAEMON_TASK_NAME, "UNHANDLABLE EXCEPTION OCCURED");
                 goto exit;
             }
             else if (mqtt_handler.handler == ext_err.handler)
             {
                 /* Unhandlable exception occured in MQTT task, reset this task */
+                echo_error(MQTT_DAEMON_TASK_NAME, &ext_err);
                 mqtt_deamon_stop(&mqtt_handler);
                 if ((err = mqtt_deamon_start(&mqtt_handler,
                                              &uart_handler.uart_conf,
@@ -193,38 +216,35 @@ void err_handling_task(void *auth_ptr)
                                              auth->username,
                                              auth->password,
                                              cert_load_chain,
-                                             auth->chain_size,
-                                             socket_resp_handler)))
+                                             auth->chain_size)))
                 {
-                    ESP_LOGE("MQTT_DEAMON", "COUNDN'T START, REBOOTING");
+                    log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
                 else
                 {
-                    ext_mqtt_send_error(&ext_err);
+                    ext_mqtt_send_error(MQTT_DAEMON_TASK_NAME, &ext_err);
                 }
             }
             else if (uart_handler.handler == ext_err.handler)
             {
                 /* Unhandlable exception occured in MQTT task, reset this task */
+                echo_error(UART_DAEMON_TASK_NAME, &ext_err);
                 uart_deamon_stop(&uart_handler);
                 if ((err = uart_deamon_start(&uart_handler)))
                 {
-                    ESP_LOGE("UART_DEAMON", "COUNDN'T START, REBOOTING");
+                    log_error(UART_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
                 else
                 {
-                    ext_mqtt_send_error(&ext_err);
+                    ext_mqtt_send_error(UART_DAEMON_TASK_NAME, &ext_err);
                 }
             }
         }
-
-        free(ext_err.module);
     }
 
 exit:
-    free(ext_err.module); // TODO
     sim_deamon_stop(&sim_handler);
     mqtt_deamon_stop(&mqtt_handler);
     uart_deamon_delete_task(&uart_handler);
@@ -233,6 +253,14 @@ exit:
     free(auth);
 
     esp_restart();
+}
+
+int error_handler_start(auth_pack *auth)
+{
+    if (xTaskCreate(err_handling_task, ERROR_HANDLING_TASK_NAME, ERROR_HANDLING_TASK_STACK_SIZE, auth, ERROR_HANDLING_TASK_PRIORITY, NULL) == pdPASS)
+        return 0;
+    else 
+        return -1;
 }
 
 static size_t buf_check(mbedtls_context *ctx)
@@ -245,11 +273,22 @@ static void rec_callback(unsigned char *buf, unsigned int len)
     int err;
     if ((err = mqtt_write_d(&mqtt_handler, buf, len)) <= 0)
     {
-        ext_error_send(&sim_handler, "MQTT", ext_type_fatal, err);
+        ext_error_send(&sim_handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
     }
 }
 
-static void socket_resp_handler(int *err)
+void printf_dev_name(const char *name)
 {
-    mqtt_deamon_awake(&mqtt_handler, err);
+    printf("\r\n");
+    printf("/****************************************************************************/\r\n");
+    printf("/*****************/");
+    printf("DEVICE MAC ADDRESS IS: %s", name);
+    printf("/*****************/\r\n");
+    printf("/****************************************************************************/\r\n");
+}
+
+void log_error(const char *module, const char *info)
+{
+    ESP_LOGE(module, info);
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
 }

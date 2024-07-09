@@ -12,7 +12,7 @@
 #include <error_handler.h>
 #include <mqtt_deamon.h>
 
-static const char *TAG = "UART_DEAMON";
+static const char *TAG = "UART_DAEMON";
 
 /* GPIO interrupt handler */
 static void IRAM_ATTR gpio_isr_handler(void *arg)
@@ -21,7 +21,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
 
 int uart_write(unsigned char *buf, size_t len)
 {
-    return uart_write_bytes(UART_DEAMON_DEF_UART_NUM, buf, len);
+    return uart_write_bytes(UART_DAEMON_DEF_UART_NUM, buf, len);
 }
 
 void uart_deamon(void *v_handler)
@@ -31,7 +31,7 @@ void uart_deamon(void *v_handler)
     QueueHandle_t *queue = &handler->queue;
     uart_event_t event;
     int len;
-    unsigned char buf[UART_DEAMON_DEF_REC_BUF_SIZE];
+    unsigned char buf[UART_DAEMON_DEF_REC_BUF_SIZE];
 
     while (xQueueReceive(*queue, &event, portMAX_DELAY))
     {
@@ -40,9 +40,9 @@ void uart_deamon(void *v_handler)
         // Event of UART receving data
         case UART_DATA:
         {
-            ESP_LOGI(TAG, "uart[%d] event size: %i", UART_DEAMON_DEF_UART_NUM, event.size);
+            ESP_LOGI(TAG, "uart[%d] event size: %i", UART_DAEMON_DEF_UART_NUM, event.size);
 
-            len += uart_read_bytes(UART_DEAMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
+            len += uart_read_bytes(UART_DAEMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
 
             if (len > 0)
             {
@@ -56,14 +56,14 @@ void uart_deamon(void *v_handler)
         // Event of HW FIFO overflow detected
         case UART_FIFO_OVF:
             ESP_LOGI(TAG, "hw fifo overflow");
-            uart_flush_input(UART_DEAMON_DEF_UART_NUM);
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
             handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_FIFO_OVF);
             break;
         // Event of UART ring buffer full
         case UART_BUFFER_FULL:
             ESP_LOGI(TAG, "ring bufer full");
-            uart_flush_input(UART_DEAMON_DEF_UART_NUM);
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
             handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BUFFER_FULL);
             // return SIM_TAGferFullErr;
@@ -130,13 +130,13 @@ uart_config_t uart_deamon_load_config()
 {
     // TODO load config from memory
     uart_config_t uart_def_conf = {
-        .baud_rate = UART_DEAMON_DEF_UART_BAUD_RATE,
-        .data_bits = UART_DEAMON_DEF_UART_DATA_BITS,
-        .parity = UART_DEAMON_DEF_UART_PARITY,
-        .stop_bits = UART_DEAMON_DEF_UART_STOP_BITS,
-        .flow_ctrl = UART_DEAMON_DEF_UART_FLOW_CTRL,
-        .rx_flow_ctrl_thresh = UART_DEAMON_DEF_UART_RX_FLOW_CTRL_TRESH,
-        .source_clk = UART_DEAMON_DEF_UART_SOURCE_CLK};
+        .baud_rate = UART_DAEMON_DEF_UART_BAUD_RATE,
+        .data_bits = UART_DAEMON_DEF_UART_DATA_BITS,
+        .parity = UART_DAEMON_DEF_UART_PARITY,
+        .stop_bits = UART_DAEMON_DEF_UART_STOP_BITS,
+        .flow_ctrl = UART_DAEMON_DEF_UART_FLOW_CTRL,
+        .rx_flow_ctrl_thresh = UART_DAEMON_DEF_UART_RX_FLOW_CTRL_TRESH,
+        .source_clk = UART_DAEMON_DEF_UART_SOURCE_CLK};
 
     return uart_def_conf;
 }
@@ -162,10 +162,10 @@ int uart_deamon_start(uart_deamon_handler *handler)
     esp_err_t err;
 
     /* Basic UART config */
-    if ((err = uart_driver_install(UART_DEAMON_DEF_UART_NUM,
-                                   UART_DEAMON_DEF_RX_BUF_SIZE,
-                                   UART_DEAMON_DEF_TX_BUF_SIZE,
-                                   UART_DEAMON_DEF_QUEUE_SIZE,
+    if ((err = uart_driver_install(UART_DAEMON_DEF_UART_NUM,
+                                   UART_DAEMON_DEF_RX_BUF_SIZE,
+                                   UART_DAEMON_DEF_TX_BUF_SIZE,
+                                   UART_DAEMON_DEF_QUEUE_SIZE,
                                    &handler->queue,
                                    0)) != ESP_OK)
     {
@@ -173,14 +173,14 @@ int uart_deamon_start(uart_deamon_handler *handler)
         return (int)err; //(int)err;
     }
 
-    if ((err = uart_param_config(UART_DEAMON_DEF_UART_NUM,
+    if ((err = uart_param_config(UART_DAEMON_DEF_UART_NUM,
                                  &handler->uart_conf)) != ESP_OK)
     {
         /* Parameter configuration failed, uninstall drivers */
-        err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
+        err = uart_driver_delete(UART_DAEMON_DEF_UART_NUM);
         return (int)err;
     }
-    ESP_ERROR_CHECK(uart_set_pin(UART_DEAMON_DEF_UART_NUM, UART_DEAMON_DEF_UART_TX, UART_DEAMON_DEF_UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_set_pin(UART_DAEMON_DEF_UART_NUM, UART_DAEMON_DEF_UART_TX, UART_DAEMON_DEF_UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     /* Finally run the deamon */
     uart_deamon_create_task(handler);
@@ -192,7 +192,7 @@ int uart_deamon_start(uart_deamon_handler *handler)
     else
     {
         /* Deamon creation failed, uninstall drivers */
-        err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
+        err = uart_driver_delete(UART_DAEMON_DEF_UART_NUM);
         return (int)err;
     }
 }
@@ -206,7 +206,7 @@ int uart_deamon_stop(uart_deamon_handler *handler)
 
     if (!(handler->handler))
     {
-        err = uart_driver_delete(UART_DEAMON_DEF_UART_NUM);
+        err = uart_driver_delete(UART_DAEMON_DEF_UART_NUM);
         return (int)err;
     }
     else

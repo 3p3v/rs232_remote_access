@@ -34,16 +34,28 @@ static struct timeval convert_time(char *t_str)
     return tv;
 }
 
-int sim_deamon_start(sim_deamon_handler *handler)
+static struct timeval convert_time_from_cmd(char *time_str_ptr, unsigned char time_str_len)
+{
+    char t_str[18];
+    memcpy(t_str, time_str_ptr, time_str_len);
+    t_str[time_str_len] = '\0';
+    return convert_time(t_str);
+}
+
+int sim_deamon_start(
+    sim_deamon_handler *handler,
+    char *apn,
+    char *username,
+    char *password
+)
 {
     /* Initialize the SIM card module */
     SIM_error err = SIM_ok;
     SIM_cmd cmd;
     SIM_cmd_init(&cmd);
-    // sim = malloc(sizeof(SIM_intf));
     LL_SIM_def(&handler->sim);
-    sim->buf = malloc(sizeof(unsigned char) * 12000);
-    sim->buf_len = 12000;
+    sim->buf = malloc(sizeof(unsigned char) * SIM_DAEMON_BUF_LEN);
+    sim->buf_len = SIM_DAEMON_BUF_LEN;
     LL_SIM_init(&handler->sim);
 
     /* Start the SIM deamon */
@@ -53,9 +65,9 @@ int sim_deamon_start(sim_deamon_handler *handler)
         return SIM_err;
     }
 
-    unsigned char cycles = 15;
+    unsigned char cycles = SIM_DAEMON_AT_CYCLES;
 
-    start:
+    START:
     
     /* Restart module */
     ESP_LOGI(TAG, "RESETTING SIM");
@@ -67,7 +79,7 @@ int sim_deamon_start(sim_deamon_handler *handler)
     do
     {
         err = SIM_run(&handler->sim, SIM_execAT(&cmd));
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(SIM_DAEMON_AT_WAIT / portTICK_PERIOD_MS);
     } while (err != SIM_ok && cycles-- > 0);
 
     if (err != SIM_ok)
@@ -76,13 +88,13 @@ int sim_deamon_start(sim_deamon_handler *handler)
     /* Disable echo */
     err = SIM_run(&handler->sim, SIM_execATE0(&cmd));
     
-    cycles = 15;
+    cycles = SIM_DAEMON_CREG_CYCLES;
 
     /* Check if registered to network, it can take some time... */
     ESP_LOGI(TAG, "CHECKING NETWORK REGISTARTION");
     do
     {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(SIM_DAEMON_CREG_WAIT / portTICK_PERIOD_MS);
         err = SIM_run(&handler->sim, SIM_readCREG(&cmd));
         if (cmd.resp.params_num > 1 && cmd.resp.params[1].len != 0)
         {
@@ -100,9 +112,8 @@ int sim_deamon_start(sim_deamon_handler *handler)
         return SIM_err;
 
     /* Convert time */
-    char t_str[18] = {0};
-    memcpy(t_str, cmd.resp.params[0].ptr, cmd.resp.params[0].len);
-    struct timeval tv_now = convert_time(t_str);
+    struct timeval tv_now = convert_time_from_cmd(cmd.resp.params[0].ptr, cmd.resp.params[0].len);
+    
     /* Check if time ok */
     if (tv_now.tv_sec < LINUX_TS_2011)
     {
@@ -118,18 +129,18 @@ int sim_deamon_start(sim_deamon_handler *handler)
             return SIM_err;
 
         /* Reboot SIM and retry */
-        goto start;
+        goto START;
     }
 
     /* Set time in case it's needed to check a validity of certyficates */
     settimeofday(&tv_now, NULL);
 
-    cycles = 50;
+    cycles = SIM_DAEMON_CGATT_CYCLES;
     
     /* Check if attached to GPRS */
     do
     {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(SIM_DAEMON_CGATT_WAIT / portTICK_PERIOD_MS);
         err = SIM_run(&handler->sim, SIM_readCGATT(&cmd));
         if (cmd.resp.params_num > 0)
         {
@@ -147,7 +158,7 @@ int sim_deamon_start(sim_deamon_handler *handler)
         return SIM_err;
     
     err = SIM_run(&handler->sim, SIM_writeCIPMUX(&cmd, 1));
-    err = SIM_run(&handler->sim, SIM_writeCSTT(&cmd, "internet", NULL, NULL));
+    err = SIM_run(&handler->sim, SIM_writeCSTT(&cmd, apn, username, password));
     err = SIM_run(&handler->sim, SIM_execCIICR(&cmd));
     if ((err = SIM_run(&handler->sim, SIM_execCIFSR(&cmd)) != SIM_ok))
         return err;
@@ -178,12 +189,6 @@ int sim_deamon_stop(sim_deamon_handler *handler)
     }
 }
 
-// TaskHandle_t *sim_deamon_get_task()
-// {
-//     static TaskHandle_t handle = NULL;
-//     return &handle;
-// }
-
 void sim_deamon(void *v_handler)
 {
     int err;
@@ -201,7 +206,7 @@ void sim_deamon(void *v_handler)
             case LL_SIM_HARDWARE_ERR:
             {
                 handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
-                goto exit;
+                goto EXIT;
             }
             default:
             {
@@ -215,7 +220,7 @@ void sim_deamon(void *v_handler)
         SIM_exec(sim);
     }
 
-    exit:
+    EXIT:
     for (;;)
         ;
 }
@@ -224,7 +229,7 @@ TaskHandle_t sim_deamon_create_task(sim_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(sim_deamon, "SIM_listener", 4000, (void *)(handler), 2, &handler->handler);
+        xTaskCreate(sim_deamon, SIM_DAEMON_TASK_NAME, SIM_DAEMON_TASK_STACK_SIZE, (void *)(handler), SIM_DAEMON_TASK_PRIORITY, &handler->handler);
     }
     return handler->handler;
 }
