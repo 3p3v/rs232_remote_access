@@ -107,38 +107,65 @@ inline auto Mqtt_msg_cont<
     T2,
     T3>::get(Val_t id) noexcept
 {
-    std::vector<Val_t> msg_idx{};
+    auto max_id = id + max_saved - 1;
 
-    if ((id + max_saved) <= max_msg_num)
+    if (max_id <= max_msg_num)
     {
-        std::for_each(msgs.begin(),
-                      msgs.end(),
-                      [this, id, &msg_idx](auto &&c)
-                      {
-                          if ((c.id_ >= id || c.id_ < (id + max_saved)) && c.used == false && c.inited == true)
-                          {
-                              c.used = true;
-                              msg_idx.emplace_back(c.id_);
-                          }
-                      });
+        auto msg_idx = std::vector<Val_t>();
+
+        std::for_each(
+            msgs.begin(),
+            msgs.end(),
+            [this, id, &msg_idx](auto &&c)
+            {
+                if ((c.id_ >= id && c.id_ <= max_id) && c.used == false && c.inited == true)
+                {
+                    c.used = true;
+                    msg_idx.emplace_back(c.id_);
+                }
+            });
+
+        std::sort(msg_idx.begin(), msg_idx.end());
+
+        return msg_idx;
     }
     else
     {
-        auto end = (id + max_saved) % max_msg_num;
+        auto msg_idx_end = std::vector<Val_t>();
+        auto msg_idx_beg = std::vector<Val_t>();
+        
+        auto end = max_id - max_msg_num;
 
-        std::for_each(msgs.begin(),
-                      msgs.end(),
-                      [this, id, end, &msg_idx](auto &&c)
-                      {
-                          if ((c.id_ >= id || c.id_ < end) && c.used == false && c.inited == true)
-                          {
-                              c.used = true;
-                              msg_idx.emplace_back(c.id_);
-                          }
-                      });
+        std::for_each(
+            msgs.begin(),
+            msgs.end(),
+            [this, id, end, &msg_idx_end, &msg_idx_beg](auto &&c)
+            {
+                if (c.used == false && c.inited == true)
+                {
+                    if (c.id_ >= id)
+                    {
+                        c.used = true;
+                        msg_idx_end.emplace_back(c.id_);
+                    }
+                    else if (c.id_ <= end)
+                    {
+                        c.used = true;
+                        msg_idx_beg.emplace_back(c.id_);
+                    }
+                }
+            });
+
+        std::sort(msg_idx_end.begin(), msg_idx_end.end());
+        std::sort(msg_idx_beg.begin(), msg_idx_beg.end());
+        
+        msg_idx_end.insert(
+            msg_idx_end.end(), 
+            std::make_move_iterator(msg_idx_beg.begin()), 
+            std::make_move_iterator(msg_idx_beg.end()));
+
+        return msg_idx_end;
     }
-
-    return msg_idx;
 }
 
 template <
@@ -268,16 +295,16 @@ inline void Mqtt_msg_cont<
     T2,
     T3>::free_untill(Val_t id) noexcept
 {
-    // if (std::find(msgs.cbegin(), msgs.cend(), id) != msgs.cend())
-    // {
-    if ((id - max_saved) >= min_msg_num)
+    auto min_id = id - max_saved + 1;
+
+    if (min_id >= min_msg_num)
     {
         std::for_each(
             msgs.begin(),
             msgs.end(),
             [this, id](auto &&c)
             {
-                if (c.id_ <= id && c.used == false)
+                if ((c.id_ <= id && c.id_ >= min_id) && c.used == false)
                 {
                     c.freed = true;
                 }
@@ -285,20 +312,19 @@ inline void Mqtt_msg_cont<
     }
     else
     {
-        auto beg = max_msg_num - (id % min_msg_num);
+        auto beg = min_id + max_msg_num;
 
         std::for_each(
             msgs.begin(),
             msgs.end(),
             [this, id, beg](auto &&c)
             {
-                if ((c.id_ > beg || c.id_ <= id) && c.used == false)
+                if ((c.id_ >= beg || c.id_ <= id) && c.used == false)
                 {
                     c.freed = true;
                 }
             });
     }
-    // }
 }
 
 template <
