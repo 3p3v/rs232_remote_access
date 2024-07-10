@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 
 /* Channels */
 #define INFO_CH_C 'i'
@@ -57,9 +58,9 @@
 #define STOP_BITS_ONEPOINTFIVE "OPF"
 #define STOP_BITS_TWO "T"
 #define STOP_BITS_ONE_C 'O'
-#define STOP_BITS_ONEPOINTFIVE_C0 'O'
-#define STOP_BITS_ONEPOINTFIVE_C1 'P'
-#define STOP_BITS_ONEPOINTFIVE_C2 'F'
+// #define STOP_BITS_ONEPOINTFIVE_C0 'O'
+#define STOP_BITS_ONEPOINTFIVE_C 'P'
+// #define STOP_BITS_ONEPOINTFIVE_C2 'F'
 #define STOP_BITS_TWO_C 'T'
 
 /* New session */
@@ -144,10 +145,12 @@
 #define SPACE_C ' '
 #define ENDL_C '\n'
 
+bool mqtt_if_bigger(char dem_id, char slave_id);
+bool mqtt_if_smaller_or_equal(char dem_id, char slave_id);
 volatile char *mqtt_num_up(volatile char * num);
 char *mqtt_num_up_(char * num);
 unsigned short *mqtt_id_up(unsigned short *);
-char *get_channel_name(char *dev_name, char channel_end);
+char *get_channel_name(const char *dev_name, char channel_end);
 /*  */
 char *cmdcmp(char *cmd, char *data, size_t len);
 char *cmdcmp_arg(char *cmd, char *data, size_t len);

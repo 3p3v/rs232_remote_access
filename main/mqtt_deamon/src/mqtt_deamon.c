@@ -19,6 +19,7 @@
 #include <uart_deamon.h>
 /*  */
 #include <cmd_defs.h>
+#include <auth_defs.h>
 /* MQTT topics handling */
 #include <info_ch.h>
 #include <set_ch.h>
@@ -28,8 +29,125 @@
 #include <mqtt_queue.h>
 /* MQTT pinging */
 #include <mqtt_ping.h>
+#include <mqtt_ch_rw.h>
+#include <mqtt_rw.h>
 
 extern mqtt_deamon_handler mqtt_handler;
+
+static void handle_disconnect(mqtt_deamon_handler *handler)
+{
+    /* This should never happen */
+    ESP_LOGE(TAG, "GOT DISCONNECTED");
+    handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_deamon_disconnected);
+}
+
+static mqtt_daemon_code handle_connack(mqtt_deamon_handler *handler, unsigned int *keep_alive)
+{
+    if (keep_alive)
+    {
+        handler->keep_alive_int = keep_alive - MQTT_DEAMON_DEF_PING_OFFSET;
+    }
+    else
+    {
+        handler->keep_alive_int = MQTT_DEAMON_DEF_PING_TIME;
+    }
+
+    ESP_LOGI(TAG, "KEEP ALIVE: %i", handler->keep_alive_int);
+    
+    /* Start Ping timer */
+    start_ping_timer(handler);
+
+    /* Subscribe to channels */
+    int err;
+    if ((err = mqtt_subscribe(handler, INFO_CH_C)) < 0)
+    {
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
+        
+        return err;
+    }
+    else if ((err = mqtt_subscribe(handler, SET_CH_C)) < 0)
+    {
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
+        
+        return err;
+    }
+    else if ((err = mqtt_subscribe(handler, DATA_CH_C)) < 0)
+    {
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
+        
+        return err;
+    }
+
+    return mqtt_daemon_ok;
+}
+
+static mqtt_daemon_code handle_suback(mqtt_deamon_handler *handler, int reason_code)
+{
+    if (err)
+    {
+        /* This should never happen */
+        ESP_LOGE(TAG, "SUBSCRIBE ERROR");
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_subscribe_err);
+        
+        return mqtt_daemon_subscribe_err;
+    }
+
+    return mqtt_daemon_ok;
+}
+
+static void handle_error(mqtt_deamon_handler *handler, mqtt_daemon_code err)
+{
+    handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
+}
+
+static mqtt_daemon_code handle_rts_cts(mqtt_deamon_handler *handler)
+{
+    ESP_LOGI(TAG, "SENDING CTS UPDATE");
+    char *msg;
+    int len = 0;
+    int state = gpio_get_level(MQTT_CTS_PIN);
+
+    if (state == 1)
+    {
+        len = add_cmd_none(&msg, len, CTS_SET);
+    }
+    else
+    {
+        len = add_cmd_none(&msg, len, CTS_RESET);
+    }
+
+    if (mqtt_write_i(handler, (unsigned char *)msg, len) < 0)
+    {
+        ESP_LOGE(TAG, "COULD NOT SEND DATA");
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_werr);
+
+        return mqtt_daemon_werr;
+    }
+
+    return mqtt_daemon_ok;
+}
+
+static mqtt_daemon_code handle_ping(mqtt_deamon_handler *handler)
+{
+    ESP_LOGI(TAG, "SENDING PING");
+    int len = MQTTV5Serialize_pingreq(recvbuf, MAIN_MQTT_REC_BUF_SIZE);
+
+    if (mqtt_tls_write(handler, recvbuf, len) < 0)
+    {
+        ESP_LOGE(TAG, "COULD NOT SEND DATA");
+        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_werr);
+
+        return mqtt_daemon_werr;
+    }
+
+    return mqtt_daemon_ok;
+}
+
+static void handle_socket_closed(mqtt_deamon_handler *handler)
+{
+    ESP_LOGE(TAG, "SOCKET CLOSED, RECONNECT REQUIRED");
+    handler->error_handler(&handler->handler, "SIM", ext_type_fatal, mqtt_deamon_disconnected);
+}
 
 static void mqtt_deamon(void *v_mqtt_deamon_handler)
 {
@@ -68,48 +186,30 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
         /* Check if sockt didn't get any error */
         if (err == SIM_closed || err == SIM_closedOk)
         {
-            ESP_LOGE(TAG, "SOCKET CLOSED, RECONNECT REQUIRED");
-            handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
-            goto exit;
+            handle_socket_closed(handler);
+
+            goto EXIT;
         }
 
         ESP_LOGI(TAG, "CHECK PING");
         /* Check if ping needed */
         if (err == PING_REQUEST)
         {
-            ESP_LOGI(TAG, "SENDING PING");
-            int len = MQTTV5Serialize_pingreq(recvbuf, MAIN_MQTT_REC_BUF_SIZE);
-            if (mqtt_tls_write(handler, recvbuf, len) <= 0)
+            if (handle_ping(handler))
             {
-                ESP_LOGE(TAG, "COULD NOT SEND DATA");
-                handler->error_handler(&handler->handler, "MQTT", ext_type_non_fatal, -1);
-                goto exit;
+                goto EXIT;
             }
+
             continue;
         }
         /* Check CTS */
         else if (err == CTS_CHANGED_STATE)
         {
-            ESP_LOGI(TAG, "SENDING CTS UPDATE");
-            char *msg;
-            int len = 0;
-            int state = gpio_get_level(MQTT_CTS_PIN);
-
-            if (state == 1)
+            if (handle_rts_cts(handler))
             {
-                len = add_cmd_none(&msg, len, CTS_SET);
-            }
-            else
-            {
-                len = add_cmd_none(&msg, len, CTS_RESET);
+                goto EXIT;
             }
 
-            if (mqtt_write_i(handler, (unsigned char *)msg, len) <= 0)
-            {
-                ESP_LOGE(TAG, "COULD NOT SEND DATA");
-                handler->error_handler(&handler->handler, "MQTT", ext_type_non_fatal, -1);
-                goto exit;
-            }
             continue;
         }
 
@@ -128,13 +228,21 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 /* Check if connected */
                 unsigned char sessionPresent, connack_rc;
 
-                if (MQTTV5Deserialize_connack(&properties, &sessionPresent, &connack_rc, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1 || connack_rc != 0)
+                if (MQTTV5Deserialize_connack(&properties, &sessionPresent, &connack_rc, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1)
                 {
-                    handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, connack_rc);
-                    goto exit;
+                    handle_error(handler, mqtt_daemon_deserialize_error);
+                    goto EXIT;
+                }
+                else if (connack_rc)
+                {
+                    handle_error(handler, mqtt_daemon_connect_err);
+                    goto EXIT;
                 }
 
                 /* Find keep alive time */
+                unsigned int ka;
+                bool if_found_ka = false;
+
                 ESP_LOGI(TAG, "PROPERTIES, size: %i", properties.count);
                 for (unsigned int i = 0; i < properties.count; i++)
                 {
@@ -142,25 +250,21 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
 
                     if (properties.array[i].identifier == MQTTPROPERTY_CODE_SERVER_KEEP_ALIVE)
                     {
-                        handler->keep_alive_int = properties.array[i].value.integer2 - 30;
+                        ka = properties.array[i].value.integer2 - 30;
+                        if_found_ka = true;
+
                         ESP_LOGI(TAG, "KEEP ALIVE, rec: %i", properties.array[i].value.integer2);
-                        ESP_LOGI(TAG, "KEEP ALIVE: %i", handler->keep_alive_int);
-                    }
-                    else
-                    {
-                        handler->keep_alive_int = 60;
-                        ESP_LOGI(TAG, "KEEP ALIVE: %i", handler->keep_alive_int);
                     }
                 }
 
-                /* Start Ping timer */
-                start_ping_timer(handler);
-
-                /* Subscribe to channels */
-                ESP_LOGE(TAG, "SENDING SUBSCRIBE TO CHANNEL: %c", INFO_CH_C);
-                mqtt_subscribe(handler, INFO_CH_C);
-                mqtt_subscribe(handler, SET_CH_C);
-                mqtt_subscribe(handler, DATA_CH_C);
+                if (if_found_ka)
+                {
+                    handle_connack(handler, &ka);
+                }
+                else
+                {
+                    handle_connack(handler, NULL);
+                }
 
                 break;
             }
@@ -172,11 +276,15 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 int subcount;
                 unsigned char reason_code;
 
-                if (MQTTV5Deserialize_suback(&msg_id, &properties, 1, &subcount, &reason_code, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1 || reason_code != 0)
+                if (MQTTV5Deserialize_suback(&msg_id, &properties, 1, &subcount, &reason_code, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1)
                 {
-                    ESP_LOGE(TAG, "SUBSCRIBE ERROR");
-                    handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, reason_code);
-                    goto exit;
+                    handle_error(handler, mqtt_daemon_deserialize_error);
+                    goto EXIT;
+                }
+                else if (reason_code != 0)
+                {
+                    handle_error(handler, mqtt_daemon_subscribe_err);
+                    goto EXIT;
                 }
 
                 break;
@@ -195,9 +303,8 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
 
                 if (MQTTV5Deserialize_publish(&dup, &qos_, &retained, &packet_id, &topic_name, &properties, (unsigned char **)&payload, &payload_len, recvbuf, MAIN_MQTT_REC_BUF_SIZE) != 1)
                 {
-                    ESP_LOGE(TAG, "NOT CORRECTLY FORMATTED DATA PACKET");
-                    handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, -1);
-                    goto exit;
+                    handle_error(handler, mqtt_daemon_deserialize_error);
+                    goto EXIT;
                 }
 
                 if (topic_name.lenstring.len < USERNAME_LEN + 1)
@@ -208,14 +315,20 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                 /* Info arrived */
                 case INFO_CH_C:
                 {
-                    handle_info_channel(handler, (unsigned char *)payload, payload_len);
+                    if (handle_info_channel(handler, (unsigned char *)payload, payload_len))
+                    {
+                        goto EXIT;
+                    }
 
                     break;
                 }
                 /* Settings arrived */
                 case SET_CH_C:
                 {
-                    handle_set_channel(handler, (unsigned char *)payload, payload_len);
+                    if (handle_set_channel(handler, (unsigned char *)payload, payload_len))
+                    {
+                        goto EXIT;
+                    }
 
                     break;
                 }
@@ -227,7 +340,6 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                      * Otherwise throw away this packet.
                      */
                     /* Find packet number */
-                    char *data_to_send = NULL;
                     bool num_found = false;
                     char packet_num;
                     for (unsigned char i = 0; i < properties.count; i++)
@@ -248,38 +360,11 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                         }
                     }
 
-                    if (num_found == false)
+                    if (handle_data_channel(handler, (unsigned char *)payload, payload_len, packet_num, num_found))
                     {
-                        /* Send no packet number error, throw away this packet */
-                        ESP_LOGE(TAG, "NO_PACKET_NUMBER");
-                        size_t len = add_cmd_none(&data_to_send, 0, NO_PACKET_NUMBER);
-                        mqtt_write_i(handler, (unsigned char *)data_to_send, len);
-                        free(data_to_send);
+                        goto EXIT;
                     }
-                    else if (packet_num != handler->master_num)
-                    {
-                        /* Send invalid packet number error, ask for valid one, throw away this packet */
-                        ESP_LOGE(TAG, "INVALID_PACKET_NUM");
-                        size_t len = add_cmd(&data_to_send, 0, INVALID_PACKET_NUM, &handler->master_num);
-                        mqtt_write_i(handler, (unsigned char *)data_to_send, len);
-                        free(data_to_send);
-                    }
-                    else
-                    {
-                        /* Increment unack */
-                        handler->m_not_ack++;
 
-                        /* Send data to UART */
-                        handler->publish_callb((unsigned char *)payload, payload_len);
-                        /* Send ack if exceded ACK_AFTER */
-                        if (handler->m_not_ack > ACK_AFTER)
-                        {
-                            mqtt_send_ack(handler, handler->master_num);
-                            handler->m_not_ack = 0;
-                        }
-                        /* Set next packet number */
-                        mqtt_num_up(&handler->master_num);
-                    }
                     break;
                 }
                 }
@@ -288,10 +373,9 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             }
             case DISCONNECT:
             {
-                /* This should never happen */
-                ESP_LOGE(TAG, "GOT DISCONNECTED");
-                handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, -1);
-                goto exit;
+                handle_disconnect(handler);
+
+                goto EXIT;
                 break;
             }
             default:
@@ -305,15 +389,15 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
             {
             default:
             {
-                handler->error_handler(&handler->handler, "MQTT", ext_type_fatal, err);
-                goto exit;
+                handle_error(&handler->handler, mqtt_daemon_uerr);
+                goto EXIT;
             }
             }
         }
     }
 
 /* wait for the task to be deleted */
-exit:
+EXIT:
     stop_ping_timer(handler);
     for (;;)
         ;
@@ -323,12 +407,6 @@ static void mqtt_deamon_awake(mqtt_deamon_handler *handler, int *err)
 {
     xQueueSend(handler->queue, err, portMAX_DELAY);
 }
-
-// TaskHandle_t *mqtt_deamon_get_task()
-// {
-//     static TaskHandle_t handle = NULL;
-//     return &handle;
-// }
 
 static TaskHandle_t mqtt_deamon_create_task(mqtt_deamon_handler *handler)
 {
@@ -349,21 +427,13 @@ static TaskHandle_t mqtt_deamon_delete_task(mqtt_deamon_handler *handler)
     return handler->handler;
 }
 
-static void socket_resp_handler(int *err) //TODO pass handler as an argument
+static void socket_resp_handler(int *err) // TODO pass handler as an argument
 {
-    mqtt_deamon_awake(&mqtt_handler, err); 
+    mqtt_deamon_awake(&mqtt_handler, err);
 }
 
-int mqtt_deamon_start(mqtt_deamon_handler *handler,
-                      uart_config_t *uart_conf,
-                      char *server,
-                      char *port,
-                      char *username,
-                      char *password,
-                      unsigned char (*get_cert)(unsigned char),
-                      unsigned char chain_size)
+static void mqtt_daemon_struct_init(mqtt_deamon_handler *handler, const char *username)
 {
-    int err;
     /* Prepare mutexes */
     handler->mbed_mutex_handle = xSemaphoreCreateBinary();
     xSemaphoreGive(handler->mbed_mutex_handle);
@@ -381,97 +451,64 @@ int mqtt_deamon_start(mqtt_deamon_handler *handler,
     handler->m_not_ack = 0;
     handler->m_clean_session = true;
     handler->slave_num = MIN_MSG_NUM;
-    handler->uart_conf = uart_conf;
     for (unsigned char i = 0; i < MAX_SAVED; i++)
     {
         handler->send_msgs[i].ack = true;
         handler->send_msgs[i].num = 0;
     }
 
-    /* GPIO RTS, CTS */
-    rts_cts_set_mode(dce, handler->queue);
-
     /* Init MQTT client */
     handler->trp.sck = (void *)&handler->ctx.ssl_ctx; // set contrxt
     handler->trp.getfn = mqtt_tls_read;               // set read function
     handler->trp.state = 0;
+}
 
-    /* Open encrypted socket */
-    if ((err = open_nb_socket(&handler->ctx, server, port, get_cert, chain_size)) != 0)
+mqtt_daemon_code mqtt_deamon_start(mqtt_deamon_handler *handler,
+                      char *server,
+                      char *port,
+                      char *username,
+                      char *password,
+                      unsigned char (*get_cert)(unsigned char),
+                      unsigned char chain_size)
+{
+    mqtt_daemon_code err;
+
+    mqtt_daemon_struct_init(handler, username);
+
+    
+    if (/* Open encrypted socket */
+        socket_open_nb(&handler->ctx, server, port, get_cert, chain_size) ||
+        /* set handler that awakes deamon when new message comes */s
+        socket_set_handler(&handler->ctx, socket_resp_handler))
     {
-        return err;
-    }
-    // set handler that awakes deamon when new message comes
-    if ((err = socket_set_handler(&handler->ctx, socket_resp_handler)) != 0)
-    {
-        return err;
+        return mqtt_daemon_socket_err;
     }
 
     /* SSL initialized */
     handler->initialized = true;
 
-    /* Will channel */
-    char *channel_name = get_channel_name(handler->username, INFO_CH_C);
-    MQTTString will_topic = MQTTString_initializer;
-    will_topic.cstring = channel_name;
+    /* GPIO RTS, CTS */
+    rts_cts_set_mode(dce, handler->queue);
 
-    /* Will message */
-    char *will_str = NULL;
-    size_t len_ = add_cmd_none(&will_str, 0, DEV_DISCONNECT);
-    will_str = realloc(will_str, sizeof(char) * len_ + 1);
-    will_str[len_] = '\0';
-    MQTTString will_msg = MQTTString_initializer;
-    will_msg.cstring = will_str;
+    /* Connect to broker */
+    err = mqtt_connect(handler, username, password);
 
-    /* Will properties */
-    MQTTProperties will_props = MQTTProperties_initializer;
-
-    /* Will */
-    MQTTV5Packet_willOptions will = MQTTV5Packet_willOptions_initializer;
-    will.topicName = will_topic;
-    will.message = will_msg;
-    will.qos = QOS;
-    will.properties = &will_props;
-
-    /* Connection parameters */
-    MQTTV5Packet_connectData connect_data = MQTTV5Packet_connectData_initializer;
-    connect_data.username.cstring = username;
-    connect_data.password.cstring = password;
-    connect_data.MQTTVersion = 5;
-    connect_data.keepAliveInterval = 90;
-    connect_data.willFlag = 1;
-    connect_data.will = will;
-
-    /* Connection properties, none needed */
-    MQTTProperties conn_properties = MQTTProperties_initializer;
-
-    xSemaphoreTake(handler->send_buf_mutex_handle, portMAX_DELAY);
-    int len = MQTTV5Serialize_connect(handler->sendbuf, MAIN_MQTT_SEND_BUF_SIZE, &connect_data, &conn_properties);
-    int write_len = mqtt_tls_write_no_ping(handler, handler->sendbuf, len);
-    xSemaphoreGive(handler->send_buf_mutex_handle);
-
-    free(channel_name);
-    free(will_str);
-
-    if (write_len == len)
+    if (err == mqtt_daemon_ok)
     {
         /* Start deamon */
         mqtt_deamon_create_task(handler);
         if (!handler->handler)
         {
             /* Couldn't start deamon */
-            return -1;
+            return mqtt_daemon_uerr;
         }
+    }
 
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
+    return err;
+
 }
 
-int mqtt_deamon_stop(mqtt_deamon_handler *handler)
+mqtt_daemon_code mqtt_deamon_stop(mqtt_deamon_handler *handler)
 {
     vSemaphoreDelete(handler->mbed_mutex_handle);
     vSemaphoreDelete(handler->send_buf_mutex_handle);
@@ -482,20 +519,9 @@ int mqtt_deamon_stop(mqtt_deamon_handler *handler)
     while (handler->handler)
         ;
 
-    return 0;
-    // mbedtls_net_context ctx = {.fd = handler->socket_num};
-
-    // if (!(handler->handler))
-    // {
-    //     // TODO close socket, clean up
-    //     close_nb_socket(&ctx);
-    //     if (ctx.fd == -1)
-    //         return 0;
-    //     else
-    //         return -2;
-    // }
-    // else
-    // {
-    //     return -1;
-    // }
+    close_nb_socket(&handler->ctx);
+    if (handler->ctx.net_ctx.fd == -1)
+        return mqtt_daemon_ok;
+    else
+        return mqtt_daemon_socket_err;
 }

@@ -34,13 +34,13 @@
 #include <psa/crypto.h>
 #endif
 #include <esp_crt_bundle.h>
-/* Main deamon */
+/* Daemons */
 #include <error_handler.h>
 #include <mqtt_deamon.h>
+#include <mqtt_ch_rw.h>
 #include <sim_deamon.h>
 #include <uart_deamon.h>
 #include <auth.h>
-#include <ctrl_ch.h>
 #include <info_ch.h>
 /* TEMPORARY */
 #include <cert.h>
@@ -97,8 +97,10 @@ void main_task(void *)
     mqtt_handler.handler = NULL;
     mqtt_handler.queue = NULL;
     mqtt_handler.publish_callb = uart_write;
+    mqtt_handler.uart_change_conf = uart_change_conf;
     mqtt_handler.error_handler = ext_error_send;
     mqtt_handler.buf_check = buf_check;
+    mqtt_handler.uart_handler = &uart_handler;
 
     sim_handler.handler = NULL;
     sim_handler.error_handler = ext_error_send;
@@ -106,7 +108,7 @@ void main_task(void *)
 
     uart_handler.handler = NULL;
     uart_handler.queue = NULL;
-    uart_handler.uart_conf = uart_deamon_load_config();
+    uart_handler.uart_handler = uart_deamon_load_config();
     uart_handler.resp_handler = rec_callback;
     uart_handler.error_handler = ext_error_send;
 
@@ -130,7 +132,7 @@ void main_task(void *)
     }
 
     /* Start SIM deamon */
-    if ((err = sim_deamon_start(&sim_handler)))
+    if ((err = sim_deamon_start(&sim_handler, auth->apn, auth->username, auth->password)))
     {
         log_error(SIM_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
         esp_restart();
@@ -144,12 +146,11 @@ void main_task(void *)
 
     /* Start mqtt deamon */
     if ((err = mqtt_deamon_start(&mqtt_handler,
-                                 &uart_handler.uart_conf,
                                  auth->server,
                                  auth->port,
                                  auth->username,
                                  auth->password,
-                                 cert_load_chain,
+                                 &cert_load_chain,
                                  auth->chain_size)))
     {
         log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
@@ -174,8 +175,6 @@ void err_handling_task(void *auth_ptr)
         ESP_LOGI(TAG, "START READING ERRORS\r\n");
         xQueueReceive(*main_queue, &ext_err, portMAX_DELAY);
         ESP_LOGE(TAG, "GOT AN ERROR\r\n");
-
-        echo_error(&ext_err);
 
         if (ext_err.type != ext_type_fatal)
         {
@@ -210,12 +209,11 @@ void err_handling_task(void *auth_ptr)
                 echo_error(MQTT_DAEMON_TASK_NAME, &ext_err);
                 mqtt_deamon_stop(&mqtt_handler);
                 if ((err = mqtt_deamon_start(&mqtt_handler,
-                                             &uart_handler.uart_conf,
                                              auth->server,
                                              auth->port,
                                              auth->username,
                                              auth->password,
-                                             cert_load_chain,
+                                             &cert_load_chain,
                                              auth->chain_size)))
                 {
                     log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
@@ -230,16 +228,30 @@ void err_handling_task(void *auth_ptr)
             {
                 /* Unhandlable exception occured in MQTT task, reset this task */
                 echo_error(UART_DAEMON_TASK_NAME, &ext_err);
-                uart_deamon_stop(&uart_handler);
+
+                /* Reset UART */
                 if ((err = uart_deamon_start(&uart_handler)))
                 {
                     log_error(UART_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
                     goto exit;
                 }
-                else
+
+                /* Reset MQTT */
+                mqtt_deamon_stop(&mqtt_handler);
+                uart_deamon_stop(&uart_handler);
+                if ((err = mqtt_deamon_start(&mqtt_handler,
+                                             auth->server,
+                                             auth->port,
+                                             auth->username,
+                                             auth->password,
+                                             &cert_load_chain,
+                                             auth->chain_size)))
                 {
-                    ext_mqtt_send_error(UART_DAEMON_TASK_NAME, &ext_err);
+                    log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING");
+                    goto exit;
                 }
+
+                ext_mqtt_send_error(UART_DAEMON_TASK_NAME, &ext_err);
             }
         }
     }
@@ -271,7 +283,7 @@ static size_t buf_check(mbedtls_context *ctx)
 static void rec_callback(unsigned char *buf, unsigned int len)
 {
     int err;
-    if ((err = mqtt_write_d(&mqtt_handler, buf, len)) <= 0)
+    if ((err = mqtt_transmit(&mqtt_handler, buf, len)) <= 0)
     {
         ext_error_send(&sim_handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
     }
@@ -289,6 +301,6 @@ void printf_dev_name(const char *name)
 
 void log_error(const char *module, const char *info)
 {
-    ESP_LOGE(module, info);
+    ESP_LOGE(module, "%s", info);
     vTaskDelay(10000 / portTICK_PERIOD_MS);
 }

@@ -2,22 +2,124 @@
 #include <SIM_TCPIP.h>
 #include <esp_err.h>
 #include <esp_log.h>
+#include <mbedtls/net_sockets.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/debug.h>
+#include <mbedtls_sockets.h>
+#include <mbedtls/platform.h>
+#include <mbedtls/esp_debug.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
+#ifdef CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
+#include <psa/crypto.h>
+#endif
+#include <esp_crt_bundle.h>
 
 #define TAG "SIM_encrypt"
 
-extern SIM_intf *sim;
-
-int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) )
+int socket_write(mbedtls_context *ctx_, unsigned char *buf, int len)
 {
-    return SIM_listenTCP_setHandler(sim, ctx->net_ctx.fd, resp_handler);
+    mbedtls_ssl_context *ctx = &ctx_->ssl_ctx;
+    
+    int sent = 0;
+    while (sent < len)
+    {
+        int rv = mbedtls_ssl_write(ctx, buf, len);
+        if (rv < 0)
+        {
+            if (rv == MBEDTLS_ERR_SSL_WANT_READ ||
+                rv == MBEDTLS_ERR_SSL_WANT_WRITE
+#if defined(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS)
+                || rv == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS
+#endif
+#if defined(MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS)
+                || rv == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS
+#endif
+            )
+            {
+                continue;
+            }
+            break;
+        }
+
+        sent += rv;
+    }
 }
 
-void close_nb_socket(mbedtls_context *ctx)
+int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len)
+{
+    int rv;
+    mbedtls_ssl_context *ctx = &ctx_->ssl_ctx;
+
+    do
+    {
+        rv = mbedtls_ssl_read(ctx, buf, len);
+        if (rv > 0)
+        {
+            /* Enough data, return */
+            return len;
+        }
+        else if (rv == 0)
+        {
+            /* Socket closed */
+            return -1;
+        }
+        else if (rv < 0)
+        {
+            if (rv == -1)
+            {
+                /* No data in buffer */
+                rv = 0;
+                return rv;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_WANT_READ)
+            {
+                rv = 0;
+                continue;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
+            {
+                /* Ignore it */
+                rv = 0;
+                continue;
+            }
+            else if (rv == MBEDTLS_ERR_SSL_WANT_WRITE
+#if defined(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS)
+                     || rv == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS
+#endif
+#if defined(MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS)
+                     || rv == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS
+#endif
+            )
+            {
+                /* should call mbedtls_ssl_read later again */
+                return 0;
+            }
+
+            /* Other error? */
+            rv = -1;
+            break;
+        }
+    } while (1);
+
+    return rv;
+}
+
+int socket_set_handler(mbedtls_context *ctx, void (*resp_handler)(int *) )
+{
+    return SIM_listenTCP_setHandler(ctx->sim, ctx->net_ctx.fd, resp_handler);
+}
+
+void socket_close_nb(mbedtls_context *ctx)
 {
     mbedtls_net_close(&ctx->net_ctx);
 }
 
-int open_nb_socket(mbedtls_context *ctx,
+int socket_open_nb(mbedtls_context *ctx,
                     char *hostname,
                     char *port,
                     unsigned char *(*get_cert)(unsigned char),
@@ -26,7 +128,7 @@ int open_nb_socket(mbedtls_context *ctx,
     char buf[512];
     int ret, flags;
 
-    mbedtls_net_context *net = &ctx->net_ctx;
+    socket_context *net = &ctx->net_ctx;
     mbedtls_ssl_context *ssl = &ctx->ssl_ctx;
     mbedtls_ssl_config *ssl_conf = &ctx->ssl_conf;
     mbedtls_x509_crt *ca_crt = &ctx->ca_crt;

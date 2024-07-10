@@ -4,6 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 /* ESP32-specyfic libraries */
+#include <driver/gpio.h>
 #include <driver/uart.h>
 #include <esp_log.h>
 
@@ -28,6 +29,20 @@
 /* UART interrupt config, no changable */
 #define UART_DAEMON_DEF_QUEUE_SIZE 60
 
+typedef enum
+{
+    uart_sett_baud_rate = 0,
+    uart_sett_char_size,
+    uart_sett_parity,
+    uart_sett_stop_bits
+} uart_sett;
+
+typedef enum 
+{
+    uart_daemon_ok = 0,
+    uart_daemon_hardware_err = -128 
+} uart_daemon_code;
+
 typedef struct uart_deamon_handler
 {
     TaskHandle_t handler;
@@ -40,8 +55,8 @@ typedef struct uart_deamon_handler
 
 
 // uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int));
+void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
 
-// static uart_deamon_handler *uart_deamon_get_handle();
 int uart_write(unsigned char* buf, size_t len);
 
 void uart_deamon(void *v_handler);

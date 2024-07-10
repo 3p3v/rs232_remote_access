@@ -4,11 +4,14 @@
 #include <freertos/task.h>
 #include <driver/gpio.h>
 #include <mqtt_queue.h>
+#include <MQTTV5Packet.h>
+#include <mqtt_ch_rw.h>
+#include <mqtt_deamon.h>
 
 IRAM_ATTR static void cts_handle(void *arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-    
+
     int intr_type = CTS_CHANGED_STATE;
     QueueHandle_t queue = (QueueHandle_t)arg;
 
@@ -23,7 +26,7 @@ IRAM_ATTR static void cts_handle(void *arg)
 IRAM_ATTR static void rts_handle(void *arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-    
+
     int intr_type = RTS_CHANGED_STATE;
     QueueHandle_t queue = (QueueHandle_t)arg;
 
@@ -61,10 +64,10 @@ void rts_cts_set_mode(dev_mode mode, QueueHandle_t *queue)
 
     if (mode == dte)
     {
-        gpio_isr_handler_add(MQTT_RTS_PIN, cts_handle, (void *)queue);
+        gpio_isr_handler_add(MQTT_RTS_PIN, rts_handle, (void *)queue);
     }
     else
     {
-        gpio_isr_handler_add(MQTT_RTS_PIN, cts_handle, (void *)queue);
+        gpio_isr_handler_add(MQTT_CTS_PIN, cts_handle, (void *)queue);
     }
 }

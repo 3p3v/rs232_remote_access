@@ -6,17 +6,114 @@
 /* ESP32-specyfic libraries */
 #include <driver/uart.h>
 #include <esp_log.h>
-/* MQTT-C lib */
-#include <MQTTClient.h>
 /* Main deamon */
 #include <error_handler.h>
-#include <mqtt_deamon.h>
 
 static const char *TAG = "UART_DAEMON";
 
-/* GPIO interrupt handler */
-static void IRAM_ATTR gpio_isr_handler(void *arg)
+void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
 {
+    uart_deamon_handler *handler = (uart_deamon_handler *)uart_handler_ptr;
+
+    switch (sett)
+    {
+    case uart_sett_baud_rate:
+    {
+        /* Set UART */
+        handler->uart_conf.baud_rate = *((int *)arg);
+
+        if (
+            uart_set_baudrate(UART_DAEMON_DEF_UART_NUM, handler->uart_conf.baud_rate) ||
+            uart_flush(UART_DAEMON_DEF_UART_NUM) ||
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM))
+        {
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+        }
+
+        break;
+    }
+    case uart_sett_char_size:
+    {
+        handler->uart_conf.data_bits = *((int *)arg);
+
+        if (
+            uart_set_word_length(UART_DAEMON_DEF_UART_NUM, handler->uart_conf.data_bits) ||
+            uart_flush(UART_DAEMON_DEF_UART_NUM) ||
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM))
+        {
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+        }
+
+        break;
+    }
+    case uart_sett_parity:
+    {
+        switch (*arg)
+        {
+        case PARITY_EVEN_C:
+        {
+            handler->uart_conf.parity = UART_PARITY_EVEN;
+            break;
+        }
+        case PARITY_ODD_C:
+        {
+            handler->uart_conf.parity = UART_PARITY_ODD;
+            break;
+        }
+        case PARITY_NONE_C:
+        {
+            handler->uart_conf.parity = UART_PARITY_DISABLE;
+            break;
+        }
+        }
+
+        /* Change parity */
+        if (
+            uart_set_parity(UART_DAEMON_DEF_UART_NUM, handler->uart_conf.parity) ||
+            uart_flush(UART_DAEMON_DEF_UART_NUM) ||
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM))
+        {
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+        }
+
+        break;
+    }
+    case uart_sett_stop_bits:
+    {
+        switch (*arg)
+        {
+        case STOP_BITS_ONE_C:
+        {
+            handler->uart_conf.stop_bits = UART_STOP_BITS_1;
+
+            break;
+        }
+        case STOP_BITS_ONEPOINTFIVE_C:
+        {
+            handler->uart_conf.stop_bits = UART_STOP_BITS_1_5;
+
+            break;
+        }
+        case STOP_BITS_TWO_C:
+        {
+            handler->uart_conf.stop_bits = UART_STOP_BITS_2;
+
+            break;
+        }
+        }
+
+        /* Change parity */
+        if (
+            uart_set_stop_bits(UART_DAEMON_DEF_UART_NUM, handler->uart_conf.stop_bits) ||
+            uart_flush(UART_DAEMON_DEF_UART_NUM) ||
+            uart_flush_input(UART_DAEMON_DEF_UART_NUM))
+        {
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+        }
+
+        break;
+    }
+    }
 }
 
 int uart_write(unsigned char *buf, size_t len)
@@ -26,7 +123,6 @@ int uart_write(unsigned char *buf, size_t len)
 
 void uart_deamon(void *v_handler)
 {
-    // esp_err_t err = ESP_OK;
     uart_deamon_handler *handler = (uart_deamon_handler *)v_handler;
     QueueHandle_t *queue = &handler->queue;
     uart_event_t event;
@@ -37,11 +133,8 @@ void uart_deamon(void *v_handler)
     {
         switch (event.type)
         {
-        // Event of UART receving data
         case UART_DATA:
         {
-            ESP_LOGI(TAG, "uart[%d] event size: %i", UART_DAEMON_DEF_UART_NUM, event.size);
-
             len += uart_read_bytes(UART_DAEMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
 
             if (len > 0)
@@ -49,55 +142,58 @@ void uart_deamon(void *v_handler)
                 handler->resp_handler(buf, len);
             }
 
-            len = 0;
-
             break;
         }
-        // Event of HW FIFO overflow detected
         case UART_FIFO_OVF:
+        {
             ESP_LOGI(TAG, "hw fifo overflow");
             uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_FIFO_OVF);
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_FIFO_OVF);
             break;
-        // Event of UART ring buffer full
+        }
         case UART_BUFFER_FULL:
+        {
             ESP_LOGI(TAG, "ring bufer full");
             uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BUFFER_FULL);
-            // return SIM_TAGferFullErr;
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_BUFFER_FULL);
             break;
-        // Event of UART RX break detected
+        }
         case UART_BREAK:
+        {
             ESP_LOGI(TAG, "uart rx break");
             handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BREAK);
             break;
-        // Event of UART parity check error
+        }
         case UART_PARITY_ERR:
+        {
             ESP_LOGI(TAG, "uart parity error");
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_PARITY_ERR);
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_PARITY_ERR);
             break;
-        // Event of UART frame error
+        }
         case UART_FRAME_ERR:
+        {
             ESP_LOGI(TAG, "uart frame error");
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_FRAME_ERR);
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_FRAME_ERR);
             break;
+        }
         case UART_DATA_BREAK:
+        {
             ESP_LOGI(TAG, "uart data break");
             handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_DATA_BREAK);
             break;
+        }
         case UART_EVENT_MAX:
-            ESP_LOGI(TAG, "uart event max");
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_EVENT_MAX);
+        {
+            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_DATA_BREAK);
             break;
+        }
         case UART_PATTERN_DET:
         {
             break;
         }
         default:
-            ESP_LOGI(TAG, "uart event type: %d", event.type);
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, event.type);
             break;
         }
     }

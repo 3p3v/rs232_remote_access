@@ -209,10 +209,10 @@ static SIM_error SIM_writeCIPSTART_handler(SIM_line_pair *lines, SIM_line_pair *
     SIM_errMsgEnd_pair err2 = SIM_retrieveCustomErr(lines, c_st);
     resp->err = err2.err;
     resp->msg_end = err2.ptr;
-    if (resp->err != SIM_connectOk && resp->err != SIM_alreadyConnect && resp->err != SIM_connectFail)
-        return SIM_noErrCode;
-    else if (resp->err == SIM_connectOk)
+    if (resp->err == SIM_connectOk)
         return SIM_ok;
+    else if (resp->err != SIM_alreadyConnect && resp->err != SIM_connectFail)
+        return SIM_noErrCode;
     else
         return SIM_err;
     // todo check code and connect status

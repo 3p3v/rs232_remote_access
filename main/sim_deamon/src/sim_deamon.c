@@ -8,7 +8,6 @@
 #include <esp_log.h>
 #include <esp_log.h>
 #include <esp_system.h>
-#include <nvs_flash.h>
 #include <sys/time.h>
 /* SIM800-specyfic libraries */
 #include <SIM.h>

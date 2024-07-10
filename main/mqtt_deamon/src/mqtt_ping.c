@@ -1,6 +1,9 @@
 #include <mqtt_ping.h>
 #include <driver/gptimer.h>
 #include <mqtt_deamon.h>
+#include <mqtt_rw.h>
+#include <MQTTV5Packet.h>
+#include <mqtt_queue.h>
 
 /* Ping callback */
 IRAM_ATTR static bool ping_handle(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)

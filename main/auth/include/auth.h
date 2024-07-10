@@ -1,6 +1,6 @@
 #pragma once
 
-#define MAC_LEN strlen("XX:XX:XX:XX:XX:XX") + 1
+#include <auth_defs.h>
 
 /* Files realted */
 #define TAG "AUTH"

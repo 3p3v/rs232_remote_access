@@ -2,18 +2,13 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
 /* FreeRTOS-specyfic libraries */
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 /* ESP32-specyfic libraries */
-#include <esp_event.h>
 #include <esp_log.h>
-#include <esp_log.h>
-#include <esp_system.h>
-#include <nvs_flash.h>
 
 /* Definitions */
 #define MAIN_SECS_TILL_REBOOT 10

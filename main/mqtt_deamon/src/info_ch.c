@@ -1,4 +1,8 @@
 #include <info_ch.h>
+#include <mqtt_deamon.h>
+#include <uart_deamon.h>
+#include <cmd_defs.h>
+#include <mqtt_ch_rw.h>
 
 int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_t len_)
 {
@@ -10,9 +14,6 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
     /* Data to send container */
     char *channel_data = NULL;
     size_t len = 0;
-
-    /* Set property */
-    MQTTProperties properties = MQTTProperties_initializer;
 
     while (1)
     {
@@ -103,16 +104,18 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
 
         if (rem_len == 0)
         {
+            mqtt_daemon_code err = mqtt_daemon_ok;
+
             /* Send */
             if (len > 0)
             {
                 /* Send */
-                mqtt_write_i(handler, (unsigned char *)channel_data, len);
+                err = mqtt_write_i(handler, (unsigned char *)channel_data, len);
             }
 
             free(channel_data);
 
-            return 0;
+            return err;
         }
     }
 }

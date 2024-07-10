@@ -30,7 +30,7 @@ static void replace_char(char * str, char ch1, char ch2)
     }
 }
 
-static char *malloc_option(char *line, char arg_ptr, unsigned int len)
+static char *malloc_option(char *line, char *arg_ptr, unsigned int len)
 {
     char *arg_str = (char *)malloc(sizeof(char) * (len - (arg_ptr - line) + 1));
     memcpy(arg_str, arg_ptr, (len - (arg_ptr - line)));
@@ -39,9 +39,9 @@ static char *malloc_option(char *line, char arg_ptr, unsigned int len)
     return arg_str;
 }
 
-static char *malloc_option_rn(char *line, char arg_ptr, unsigned int len)
+static char *malloc_option_rn(char *line, char *arg_ptr, unsigned int len)
 {
-    return malloc_option(line, arg_ptr, len - 2)
+    return malloc_option(line, arg_ptr, len - 2);
 }
 
 void auth_free(auth_pack *pack)

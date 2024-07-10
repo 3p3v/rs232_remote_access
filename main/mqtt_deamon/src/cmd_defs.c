@@ -1,6 +1,7 @@
 #include <cmd_defs.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 volatile char *mqtt_num_up(volatile char * num)
 {
@@ -37,8 +38,42 @@ unsigned short *mqtt_id_up(unsigned short *num)
 
     return num;
 }
+bool mqtt_if_bigger(char dem_id, char slave_id)
+{
+    return !mqtt_if_smaller_or_equal(dem_id, slave_id);
+}
 
-char *get_channel_name(char *dev_name, char channel_end)
+bool mqtt_if_smaller_or_equal(char dem_id, char slave_id)
+{
+    char min_id = slave_id - MAX_SAVED + 1;
+    
+    if (min_id >= MIN_MSG_NUM)
+    {
+        if (dem_id <= slave_id &&  dem_id >= min_id)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        char end = min_id + MAX_MSG_NUM;
+
+        if (dem_id <= slave_id || dem_id >= end)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+char *get_channel_name(const char *dev_name, char channel_end)
 {
     char *channel_name = (char *)malloc(sizeof(char) * (strlen(dev_name) + 2));
     memcpy(channel_name, dev_name, strlen(dev_name) + 1);
