@@ -115,7 +115,7 @@ inline auto Mqtt_msg_cont<
                       msgs.end(),
                       [this, id, &msg_idx](auto &&c)
                       {
-                          if ((c.id_ >= id || c.id_ <= (id + max_saved)) && c.used == false && c.inited == true)
+                          if ((c.id_ >= id || c.id_ < (id + max_saved)) && c.used == false && c.inited == true)
                           {
                               c.used = true;
                               msg_idx.emplace_back(c.id_);
