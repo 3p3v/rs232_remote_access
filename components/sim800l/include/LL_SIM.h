@@ -57,7 +57,7 @@ typedef struct LL_SIM_intf
     unsigned char unread_num;
     SIM_cmd_grip cmds; // [LL_SIM_DEF_BUF_SIZE];
     SIM_TCP_cmd_grip tcp_cmds[LL_SIM_DEF_TCP_CMDS_NUM];
-    volatile SIM_TCP_cmd_grip *tcp_ret;
+    SIM_TCP_cmd_grip *tcp_ret;
     SIM_line_pair lines[SIM_MAX_LINES_ARR_LEN];
     SIM_data_len lines_num;
 

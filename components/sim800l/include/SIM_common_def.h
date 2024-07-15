@@ -69,22 +69,11 @@ typedef struct SIM_err_pair
     const SIM_error err; 
 } SIM_err_pair;
 
-// typedef struct SIM_err_triple
-// {
-//     const char *name;
-//     const SIM_error err; 
-//     const unsigned char max_len;
-// } SIM_err_triple;
-
 typedef struct SIM_line_pair
 {
     char *ptr;
     unsigned int len; 
 } SIM_line_pair;
-// typedef union SIM_err_pair_triple
-// {
-//     SIM_err_triple 
-// } SIM_err_pair_triple;
 
 typedef struct SIM_errMsgEnd_pair
 {
@@ -159,7 +148,7 @@ void SIM_cmd_free(SIM_cmd *cmd);
 
 typedef struct SIM_TCP_cmd
 {
-    SIM_con_num con;
+    // SIM_con_num con;
     SIM_error (*handler)(SIM_line_pair *, SIM_line_pair *, SIM_resp *, void *);
     SIM_resp resp;
     void (*resp_handler)(SIM_error *err);

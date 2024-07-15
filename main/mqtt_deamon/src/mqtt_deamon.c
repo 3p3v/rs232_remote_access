@@ -53,7 +53,7 @@ static mqtt_daemon_code handle_connack(mqtt_deamon_handler *handler, unsigned in
     }
 
     ESP_LOGI(TAG, "KEEP ALIVE: %i", handler->keep_alive_int);
-    
+
     /* Start Ping timer */
     start_ping_timer(handler);
 
@@ -62,19 +62,19 @@ static mqtt_daemon_code handle_connack(mqtt_deamon_handler *handler, unsigned in
     if ((err = mqtt_subscribe(handler, INFO_CH_C)) < 0)
     {
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
-        
+
         return err;
     }
     else if ((err = mqtt_subscribe(handler, SET_CH_C)) < 0)
     {
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
-        
+
         return err;
     }
     else if ((err = mqtt_subscribe(handler, DATA_CH_C)) < 0)
     {
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
-        
+
         return err;
     }
 
@@ -88,7 +88,7 @@ static mqtt_daemon_code handle_suback(mqtt_deamon_handler *handler, int reason_c
         /* This should never happen */
         ESP_LOGE(TAG, "SUBSCRIBE ERROR");
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_subscribe_err);
-        
+
         return mqtt_daemon_subscribe_err;
     }
 
@@ -412,7 +412,7 @@ static TaskHandle_t mqtt_deamon_create_task(mqtt_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(mqtt_deamon, "mqtt_deamon", 20000, handler, 3, &handler->handler);
+        xTaskCreate(mqtt_deamon, MQTT_DAEMON_TASK_NAME, MQTT_DAEMON_STACK_SIZE, handler, MQTT_DAEMON_TASK_PRIORITY, &handler->handler);
     }
     return handler->handler;
 }
@@ -463,22 +463,40 @@ static void mqtt_daemon_struct_init(mqtt_deamon_handler *handler, const char *us
     handler->trp.state = 0;
 }
 
-mqtt_daemon_code mqtt_deamon_start(mqtt_deamon_handler *handler,
-                      char *server,
-                      char *port,
-                      char *username,
-                      char *password,
-                      unsigned char (*get_cert)(unsigned char),
-                      unsigned char chain_size)
+void mqtt_daemon_reinit(
+    mqtt_deamon_handler *handler,
+    void *uart_handler,
+    AT_socket_context socket_ctx,
+    int (*publish_callb)(unsigned char *, size_t),
+    void (*uart_change_conf)(void *uart_handler, uart_sett sett, void *arg),
+    void (*error_handler)(void *, const char *, int, int))
+{
+    handler->handler = NULL;
+    handler->queue = NULL;
+
+    handler->uart_handler = uart_handler;
+    handler->socket_ctx = socket_ctx;
+    handler->uart_change_conf = uart_change_conf;
+    handler->error_handler = error_handler;
+    handler->publish_callb = publish_callb;
+}
+
+mqtt_daemon_code mqtt_deamon_start(
+    mqtt_deamon_handler *handler,
+    char *server,
+    char *port,
+    char *username,
+    char *password,
+    unsigned char (*get_cert)(unsigned char),
+    unsigned char chain_size)
 {
     mqtt_daemon_code err;
 
     mqtt_daemon_struct_init(handler, username);
 
-    
     if (/* Open encrypted socket */
-        socket_open_nb(&handler->ctx, server, port, get_cert, chain_size) ||
-        /* set handler that awakes deamon when new message comes */s
+        socket_open_nb(&handler->ctx, server, port, get_cert, chain_size, &handler->socket_ctx) ||
+        /* set handler that awakes deamon when new message comes */
         socket_set_handler(&handler->ctx, socket_resp_handler))
     {
         return mqtt_daemon_socket_err;
@@ -505,7 +523,6 @@ mqtt_daemon_code mqtt_deamon_start(mqtt_deamon_handler *handler,
     }
 
     return err;
-
 }
 
 mqtt_daemon_code mqtt_deamon_stop(mqtt_deamon_handler *handler)

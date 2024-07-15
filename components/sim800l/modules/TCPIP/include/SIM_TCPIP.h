@@ -49,9 +49,6 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
 
 /* Listen to TCP stream */
 void SIM_listenTCP_resp_handler(SIM_error *err);
-#define SIM_TCP_READ_TIMEOUT 5000
-SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len);
-SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len);
 SIM_error SIM_listenTCP(SIM_intf *sim, const SIM_con_num n, void (*resp_handler)(SIM_error *));
 SIM_error SIM_listenTCP_setHandler(SIM_intf *sim, const SIM_con_num n,  void (*resp_handler)(SIM_error *));
 SIM_error SIM_listenTCP_free(SIM_intf *sim, const SIM_con_num n);

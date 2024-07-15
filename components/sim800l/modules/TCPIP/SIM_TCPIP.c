@@ -1,5 +1,6 @@
 #include "SIM_TCPIP.h"
 #include <string.h>
+#include <stdlib.h>
 
 extern SIM_intf *sim; // TODO delete
 
@@ -132,34 +133,6 @@ static SIM_errMsgEnd_pair SIM_execCIFSR_retrieveIP(SIM_line_pair *lines, SIM_res
             }
         }
     }
-
-    // if (resp->data + resp->data_len > buf + rec_len)
-    // {
-    //     resp->data = NULL;
-    //     resp->data_len = 0;
-    //     err.err = SIM_recErr;
-    //     err.ptr = NULL;
-    //     return err;
-    // }
-    // else
-    // {
-    //     const char *end = strstr(resp->data, "\r\n");
-    //     if (end != NULL)
-    //     {
-    //         resp->data_len = end - (char *)resp->data;
-    //         err.err = SIM_ok;
-    //         err.ptr = end + strlen("\r\n");
-    //         return err;
-    //     }
-    //     else
-    //     {
-    //         resp->data = NULL;
-    //         resp->data_len = 0;
-    //         err.err = SIM_recErr;
-    //         err.ptr = NULL;
-    //         return err;
-    //     }
-    // }
 }
 
 static SIM_error SIM_execCIFSR_handler(SIM_line_pair *lines, SIM_line_pair *lines_beg, SIM_resp *resp, void *sim)
@@ -210,7 +183,9 @@ static SIM_error SIM_writeCIPSTART_handler(SIM_line_pair *lines, SIM_line_pair *
     resp->err = err2.err;
     resp->msg_end = err2.ptr;
     if (resp->err == SIM_connectOk)
+    {
         return SIM_ok;
+    }
     else if (resp->err != SIM_alreadyConnect && resp->err != SIM_connectFail)
         return SIM_noErrCode;
     else
@@ -276,9 +251,6 @@ static SIM_error SIM_execCIPSEND_handler1(SIM_line_pair *lines, SIM_line_pair *l
 
     if (err.err == SIM_ok)
         err.err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data, resp->send_data_len);
-
-    // if (err.err == SIM_ok)
-    //     err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
 
     return err.err;
 }
@@ -346,9 +318,6 @@ static SIM_error SIM_writeCIPSEND_handler1(SIM_line_pair *lines, SIM_line_pair *
     if (err.err == SIM_ok)
         err.err = LL_SIM_sendData((SIM_intf *)sim, resp->send_data, resp->send_data_len);
 
-    // if (err.err == SIM_ok)
-    //     err.err = LL_SIM_sendData((SIM_intf *)sim, "\032", strlen("\032"));
-
     return err.err;
 }
 
@@ -401,20 +370,6 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
     return cmd;
 }
 
-// static void SIM_listenTCP_receive_handler(/* EDIT */)
-// {
-//     /* EDIT */
-
-//     /********/
-// }
-
-// static void SIM_listenTCP_closed_handler(/* EDIT */)
-// {
-//     /* EDIT */
-
-//     /********/
-// }
-
 static SIM_error SIM_listenTCP_cipmux0_handler(SIM_line_pair *lines, SIM_line_pair *lines_beg, SIM_resp *resp, void *sim)
 {
     resp->data = NULL;
@@ -449,13 +404,6 @@ static SIM_error SIM_listenTCP_cipmux0_handler(SIM_line_pair *lines, SIM_line_pa
 
 static SIM_error SIM_listenTCP_cipmux1_handler(SIM_line_pair *lines, SIM_line_pair *lines_beg, SIM_resp *resp, void *sim)
 {
-    // resp->data = NULL;
-    // resp->data_len = 0;
-    // resp->params_num = 0;
-    // resp->resp_name_len = 0;
-
-    printf("SIM: TCP GOT DATA");
-    
     SIM_err_pair c_st[] = {{.name = "+RECEIVE,", .err = SIM_receive},
                            {.name = "., CLOSED\r\n", .err = SIM_closed},
                            {.name = NULL, .err = SIM_noErrCode}};
@@ -522,6 +470,7 @@ static SIM_error SIM_listenTCP_cipmux1_handler(SIM_line_pair *lines, SIM_line_pa
         // SIM_listenTCP_closed_handler(/* EDIT */);
         resp->err = err.err;
         resp->msg_end = err.ptr;
+
         return SIM_err;
     }
     else
@@ -549,8 +498,6 @@ static SIM_error SIM_writeCIPCLOSE_handler(SIM_line_pair *lines, SIM_line_pair *
     {
         return SIM_err;
     }
-    // todo check code and connect status
-    // return err.err;
 }
 
 SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
@@ -585,128 +532,6 @@ SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
     cmd->timeout = SIM_WRITECIPCLOSE_TIMEOUT;
 
     return cmd;
-}
-
-SIM_data_len SIM_TCP_read(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
-{
-    printf("SIM: START READ\n");
-    if (n > SIM_con_5 || n < SIM_con_0)
-        return SIM_err;
-
-    SIM_error err = SIM_noErrCode;
-    SIM_TCP_cmd_grip *cmd_grip;
-    SIM_TCP_cmd *cmd;
-    SIM_resp *resp;
-
-    // Find the right stream
-    cmd_grip = &sim->tcp_cmds[n];
-    cmd = sim->tcp_cmds[n].cmd;
-    if (cmd)
-        resp = &sim->tcp_cmds[n].cmd->resp;
-    else
-        return SIM_err;
-
-    //
-    err = resp->err;
-    if (err != SIM_noErrCode && err != SIM_receive && err != SIM_unknown)
-        return err;
-
-    // no data to receive, wait for it
-    err = SIM_noErrCode;
-    if (resp->data_len == 0)
-    {
-        printf("SIM: WAIT FOR DATA\n");
-        xQueueReceive(cmd_grip->queue, &err, SIM_TCP_READ_TIMEOUT / portTICK_PERIOD_MS);
-    }
-
-    // if error code
-    if (err != SIM_noErrCode && err != SIM_receive)
-        return err;
-
-    // Read the data and delete it from the buffer
-    printf("SIM: TAKING READ SEMAPHORE\n");
-    xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
-    printf("SIM: TOOK READ SEMAPHORE\n");
-    unsigned int read_len;
-    if (len < resp->data_len)
-    {
-        memcpy(buf, resp->data, len);
-        memcpy(resp->data, resp->data + len, resp->data_len - len);
-        read_len = len;
-        resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
-        goto EXIT;
-    }
-    else if (len == resp->data_len)
-    {
-        memcpy(buf, resp->data, len);
-        free(resp->data);
-        read_len = len;
-        resp->data_len = 0;
-        goto EXIT;
-    }
-    else
-    {
-        xSemaphoreGive(resp->data_mutex);
-        printf("SIM: GIVING READ SEMAPHORE\n");
-        // wait for enough data while raw data is still being processed by main task
-        while ((len > resp->data_len) && sim->rec_len)
-        {
-            printf("WAITING FOR DATA\r\n");
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
-        printf("SIM: TAKING READ SEMAPHORE\n");
-        xSemaphoreTake(resp->data_mutex, portMAX_DELAY);
-        printf("SIM: TOOK READ SEMAPHORE\n");
-        if (!resp->data_len)
-        {
-            /* No data received */
-            printf("NO DATA\r\n");
-            read_len = 0;
-            goto EXIT;
-        }
-        if (len < resp->data_len)
-        {
-            memcpy(buf, resp->data, len);
-            memcpy(resp->data, resp->data + len, resp->data_len - len);
-            read_len = len;
-            resp->data = realloc(resp->data, (resp->data_len = (resp->data_len - len)));
-            goto EXIT;
-        }
-        else if (len == resp->data_len)
-        {
-            memcpy(buf, resp->data, len);
-            free(resp->data);
-            read_len = len;
-            resp->data_len = 0;
-            goto EXIT;
-        }
-        else
-        {
-            /* Too little data was received */
-            memcpy(buf, resp->data, resp->data_len);
-            free(resp->data);
-            read_len = resp->data_len;
-            resp->data_len = 0;
-            goto EXIT;
-        }
-    }
-
-EXIT:
-    printf("SIM: GIVING READ SEMAPHORE\n");
-    xSemaphoreGive(resp->data_mutex);
-    return read_len;
-}
-
-SIM_data_len SIM_TCP_write(SIM_intf *sim, SIM_con_num n, void *buf, unsigned int len)
-{
-    SIM_error err;
-    SIM_cmd cmd;
-    SIM_cmd_init(&cmd);
-
-    if ((err = SIM_run(sim, SIM_writeCIPSEND(&cmd, n, len, buf, len))) != SIM_ok)
-        return (int)err;
-
-    return len;
 }
 
 SIM_error SIM_listenTCP(SIM_intf *sim, const SIM_con_num n, void (*resp_handler)(SIM_error *))

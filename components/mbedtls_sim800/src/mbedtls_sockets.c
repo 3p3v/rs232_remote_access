@@ -24,7 +24,7 @@
 int socket_write(mbedtls_context *ctx_, unsigned char *buf, int len)
 {
     mbedtls_ssl_context *ctx = &ctx_->ssl_ctx;
-    
+
     int sent = 0;
     while (sent < len)
     {
@@ -109,7 +109,7 @@ int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len)
     return rv;
 }
 
-int socket_set_handler(mbedtls_context *ctx, void (*resp_handler)(int *) )
+int socket_set_handler(mbedtls_context *ctx, void (*resp_handler)(int *))
 {
     return SIM_listenTCP_setHandler(ctx->sim, ctx->net_ctx.fd, resp_handler);
 }
@@ -120,10 +120,11 @@ void socket_close_nb(mbedtls_context *ctx)
 }
 
 int socket_open_nb(mbedtls_context *ctx,
-                    char *hostname,
-                    char *port,
-                    unsigned char *(*get_cert)(unsigned char),
-                    unsigned char chain_size)
+                   char *hostname,
+                   char *port,
+                   unsigned char *(*get_cert)(unsigned char),
+                   unsigned char chain_size,
+                   AT_socket_context *socket_ctx)
 {
     char buf[512];
     int ret, flags;
@@ -139,7 +140,7 @@ int socket_open_nb(mbedtls_context *ctx,
     psa_status_t status = psa_crypto_init();
     if (status != PSA_SUCCESS)
     {
-        ESP_LOGE(TAG, "Failed to initialize PSA crypto, returned %d", (int) status);
+        ESP_LOGE(TAG, "Failed to initialize PSA crypto, returned %d", (int)status);
         return status;
     }
 #endif
@@ -206,7 +207,8 @@ int socket_open_nb(mbedtls_context *ctx,
         /* Free cert */
         free(ca_file);
 
-        if (ret != 0) {
+        if (ret != 0)
+        {
             ESP_LOGE(TAG, "PARSING FAILED, RETURNING");
             goto exit;
         }
@@ -231,7 +233,7 @@ int socket_open_nb(mbedtls_context *ctx,
     }
 
     ESP_LOGI(TAG, "mbedtls_net_init...");
-    mbedtls_net_init(net);
+    mbedtls_net_init(net, socket_ctx);
     ESP_LOGI(TAG, "mbedtls_net_connect...");
     if ((ret = mbedtls_net_connect(net, hostname,
                                    port, MBEDTLS_NET_PROTO_TCP)) != 0)
@@ -265,8 +267,6 @@ int socket_open_nb(mbedtls_context *ctx,
         ESP_LOGI(TAG, "Certificate verified.");
     }
 
-    exit:
+exit:
     return ret;
 }
-
-

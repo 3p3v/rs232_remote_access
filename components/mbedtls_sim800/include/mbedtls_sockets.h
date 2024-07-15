@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SIM.h>
-
+#include <AT_sockets.h>
 #include "mbedtls/platform.h"
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/esp_debug.h"
@@ -22,14 +21,9 @@
 #endif
 #include "esp_crt_bundle.h"
 
-typedef struct socket_context
+typedef struct mbedtls_context
 {
-    SIM_intf *sim;
-    SIM_con_num fd;
-} socket_context;
-
-typedef struct mbedtls_context {
-    socket_context net_ctx;
+    AT_socket net_ctx;
     mbedtls_ssl_context ssl_ctx;
     mbedtls_ssl_config ssl_conf;
     mbedtls_x509_crt ca_crt;
@@ -37,15 +31,18 @@ typedef struct mbedtls_context {
     mbedtls_ctr_drbg_context ctr_drbg;
 } mbedtls_context;
 
+void socket_reinit(mbedtls_context *ctx, AT_socket_context socket_ctx);
 
 int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len);
 
-int socket_set_handler( mbedtls_context *ctx, void (*resp_handler)(int *) );
+int socket_set_handler(mbedtls_context *ctx, void (*resp_handler)(int *));
 
-int socket_open_nb(mbedtls_context *ctx,
-                    char *hostname,
-                    char *port,
-                    unsigned char *(*get_cert)(unsigned char),
-                    unsigned char chain_size);
+int socket_open_nb(
+    mbedtls_context *ctx,
+    char *hostname,
+    char *port,
+    unsigned char *(*get_cert)(unsigned char),
+    unsigned char chain_size,
+    AT_socket_context *socket_ctx);
 
 void socket_close_nb(mbedtls_context *ctx);

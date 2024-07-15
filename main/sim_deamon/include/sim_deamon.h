@@ -29,6 +29,11 @@ typedef struct sim_deamon_handler
     void (*error_handler)(void *handler, const char *module, int type, int err);
 } sim_deamon_handler;
 
+void sim_daemon_reinit(
+    sim_deamon_handler *handler,
+    void (*error_handler)(void *handler, const char *module, int type, int err)
+);
+
 void sim_deamon(void *v_handler);
 
 int sim_deamon_start(

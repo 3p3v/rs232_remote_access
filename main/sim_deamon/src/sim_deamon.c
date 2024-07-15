@@ -18,7 +18,7 @@
 /**/
 #include <string.h>
 
-#define TAG "SIM"
+#define TAG SIM_DAEMON_TASK_NAME
 
 extern SIM_intf *sim;
 
@@ -188,6 +188,12 @@ int sim_deamon_stop(sim_deamon_handler *handler)
     }
 }
 
+void sim_daemon_reinit(sim_deamon_handler *handler, void (*error_handler)(void *handler, const char *module, int type, int err))
+{
+    handler->handler = NULL;
+    handler->error_handler = error_handler;
+}
+
 void sim_deamon(void *v_handler)
 {
     int err;
@@ -204,12 +210,12 @@ void sim_deamon(void *v_handler)
             {
             case LL_SIM_HARDWARE_ERR:
             {
-                handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
+                handler->error_handler(&handler->handler, SIM_DAEMON_TASK_NAME, ext_type_fatal, err);
                 goto EXIT;
             }
             default:
             {
-                handler->error_handler(&handler->handler, "SIM", ext_type_fatal, err);
+                handler->error_handler(&handler->handler, SIM_DAEMON_TASK_NAME, ext_type_fatal, err);
                 break;
             }
             }

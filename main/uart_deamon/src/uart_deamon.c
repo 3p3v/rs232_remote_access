@@ -9,8 +9,6 @@
 /* Main deamon */
 #include <error_handler.h>
 
-static const char *TAG = "UART_DAEMON";
-
 void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
 {
     uart_deamon_handler *handler = (uart_deamon_handler *)uart_handler_ptr;
@@ -27,7 +25,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
             uart_flush(UART_DAEMON_DEF_UART_NUM) ||
             uart_flush_input(UART_DAEMON_DEF_UART_NUM))
         {
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_daemon_hardware_err);
         }
 
         break;
@@ -41,7 +39,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
             uart_flush(UART_DAEMON_DEF_UART_NUM) ||
             uart_flush_input(UART_DAEMON_DEF_UART_NUM))
         {
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_daemon_hardware_err);
         }
 
         break;
@@ -73,7 +71,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
             uart_flush(UART_DAEMON_DEF_UART_NUM) ||
             uart_flush_input(UART_DAEMON_DEF_UART_NUM))
         {
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_daemon_hardware_err);
         }
 
         break;
@@ -108,7 +106,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
             uart_flush(UART_DAEMON_DEF_UART_NUM) ||
             uart_flush_input(UART_DAEMON_DEF_UART_NUM))
         {
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, uart_daemon_hardware_err);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_daemon_hardware_err);
         }
 
         break;
@@ -149,7 +147,7 @@ void uart_deamon(void *v_handler)
             ESP_LOGI(TAG, "hw fifo overflow");
             uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_FIFO_OVF);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, UART_FIFO_OVF);
             break;
         }
         case UART_BUFFER_FULL:
@@ -157,36 +155,36 @@ void uart_deamon(void *v_handler)
             ESP_LOGI(TAG, "ring bufer full");
             uart_flush_input(UART_DAEMON_DEF_UART_NUM);
             xQueueReset(*queue);
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_BUFFER_FULL);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, UART_BUFFER_FULL);
             break;
         }
         case UART_BREAK:
         {
             ESP_LOGI(TAG, "uart rx break");
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_BREAK);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_non_fatal, UART_BREAK);
             break;
         }
         case UART_PARITY_ERR:
         {
             ESP_LOGI(TAG, "uart parity error");
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_PARITY_ERR);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, UART_PARITY_ERR);
             break;
         }
         case UART_FRAME_ERR:
         {
             ESP_LOGI(TAG, "uart frame error");
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_FRAME_ERR);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, UART_FRAME_ERR);
             break;
         }
         case UART_DATA_BREAK:
         {
             ESP_LOGI(TAG, "uart data break");
-            handler->error_handler(&handler->handler, "UART", ext_type_non_fatal, UART_DATA_BREAK);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_non_fatal, UART_DATA_BREAK);
             break;
         }
         case UART_EVENT_MAX:
         {
-            handler->error_handler(&handler->handler, "UART", ext_type_fatal, UART_DATA_BREAK);
+            handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, UART_DATA_BREAK);
             break;
         }
         case UART_PATTERN_DET:
@@ -203,11 +201,23 @@ void uart_deamon(void *v_handler)
         ;
 }
 
+void uart_deamon_reinit(
+    uart_deamon_handler handler,
+    void *mqtt_handler,
+    void (*resp_handler)(void *, unsigned char *, unsigned int),
+    void (*error_handler)(void *handler, const char *module, int type, int err))
+{
+    handler->uart_conf = uart_deamon_load_config();
+    handler->mqtt_handler = mqtt_handler;
+    handler->resp_handler = resp_handler;
+    handler->error_handler = error_handler;
+}
+
 TaskHandle_t uart_deamon_create_task(uart_deamon_handler *handler)
 {
     if (!(handler->handler))
     {
-        xTaskCreate(uart_deamon, "uart_deamon", 12000, (void *)handler, 3, &handler->handler);
+        xTaskCreate(uart_deamon, UART_DAEMON_TASK_NAME, UART_DAEMON_STACK_SIZE, (void *)handler, UART_DAEMON_TASK_PRIORITY, &handler->handler);
     }
     return handler->handler;
 }

@@ -9,6 +9,9 @@
 #include <esp_log.h>
 
 #define UART_DAEMON_TASK_NAME "UART_DAEMON"
+#define TAG MQTT_DAEMON_TASK_NAME
+#define UART_DAEMON_STACK_SIZE 12000
+#define UART_DAEMON_TASK_PRIORITY 3
 
 /* UART config, no changable */
 #define UART_DAEMON_DEF_UART_NUM UART_NUM_2
@@ -37,29 +40,41 @@ typedef enum
     uart_sett_stop_bits
 } uart_sett;
 
-typedef enum 
+typedef enum
 {
     uart_daemon_ok = 0,
-    uart_daemon_hardware_err = -128 
+    uart_daemon_hardware_err = -128
 } uart_daemon_code;
 
 typedef struct uart_deamon_handler
 {
     TaskHandle_t handler;
+
+    /* Task messaging */
     QueueHandle_t queue;
+
+    /* UART config */
     uart_config_t uart_conf;
-    void (*resp_handler)(unsigned char *, unsigned int);
+
+    /* Data forwarding */
+    void *mqtt_handler;
+    void (*resp_handler)(void *, unsigned char *, unsigned int);
+
+    /* Error handling */
     void (*error_handler)(void *handler, const char *module, int type, int err);
-    // void (*hard_error_handler)(TaskHandle_t *);
 } uart_deamon_handler;
 
+void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg);
 
-// uart_deamon_handler *uart_deamon_set_handle(void (*resp_handler)(const unsigned char *, unsigned int), void (*error_handler)(const char *, int), void (*hard_error_handler)(const char *, int));
-void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
-
-int uart_write(unsigned char* buf, size_t len);
+int uart_write(unsigned char *buf, size_t len);
 
 void uart_deamon(void *v_handler);
+
+void uart_deamon_reinit(
+    uart_deamon_handler handler,
+    void *mqtt_handler,
+    void (*resp_handler)(void *, unsigned char *, unsigned int),
+    void (*error_handler)(void *handler, const char *module, int type, int err));
 
 TaskHandle_t uart_deamon_create_task(uart_deamon_handler *handler);
 
@@ -67,21 +82,15 @@ TaskHandle_t uart_deamon_delete_task(uart_deamon_handler *handler);
 
 uart_config_t uart_deamon_load_config();
 
-// static uart_config_t *uart_deamon_get_config();
-
-// uart_config_t *uart_deamon_set_config(uart_config_t *new_uart_conf);
-
 uart_config_t *uart_deamon_save_config(uart_config_t *new_uart_conf);
 
 /* Start UART deamon.
- * If driver install and starting deamon was successful 
+ * If driver install and starting deamon was successful
  * then handler != NULL and returned value == 0.
- * If driver install and uninstall was successful but starting deamon was't 
+ * If driver install and uninstall was successful but starting deamon was't
  * then handler == NULL and returned value == 0.
- * If both we unsuccessfull 
+ * If both we unsuccessfull
  * then handler == NULL and returned value != 0.*/
 int uart_deamon_start(uart_deamon_handler *handler);
 
 int uart_deamon_stop(uart_deamon_handler *handler);
-
-// TaskHandle_t *uart_deamon_get_task();

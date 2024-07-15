@@ -28,7 +28,11 @@ void LL_SIM_def(LL_SIM_intf *sim)
     sim->cmds.cmd = NULL;
     sim->cmds.queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
     for (int i = 0; i < LL_SIM_DEF_TCP_CMDS_NUM; i++)
+    {
         sim->tcp_cmds[i].queue = xQueueCreate(LL_SIM_DEF_CMD_QUEUE_SIZE, sizeof(SIM_error));
+        // sim->tcp_cmds[i].cmd->con = SIM_con_def;
+        // sim->tcp_cmds[i].cmd->resp = SIM_noErrCode;
+    }
 
     sim->tcp_ret = NULL;
 
