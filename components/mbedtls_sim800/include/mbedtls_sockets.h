@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <AT_sockets.h>
+#include <AT_socket.h>
 #include "mbedtls/platform.h"
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/esp_debug.h"
@@ -32,6 +32,10 @@ typedef struct mbedtls_context
 } mbedtls_context;
 
 void socket_reinit(mbedtls_context *ctx, AT_socket_context socket_ctx);
+
+int socket_write(mbedtls_context *ctx_, unsigned char *buf, int len);
+
+unsigned int socket_buf_check(mbedtls_context *ctx);
 
 int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len);
 

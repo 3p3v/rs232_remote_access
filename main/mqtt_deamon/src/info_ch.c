@@ -28,61 +28,19 @@ int handle_info_channel(mqtt_deamon_handler *handler, unsigned char *data, size_
         else if ((arg_ptr = cmdcmp(GET_INFO, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
             /* Return current settings */
+            uart_cmd_conf conf = handler->uart_get_conf(handler->uart_handler);
 
             /* Baud rate */
-            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, handler->uart_conf->baud_rate);
+            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, conf.baud_rate);
 
             /* Parity */
-            char *parity_arg = NULL;
-            switch (handler->uart_conf->parity)
-            {
-            case UART_PARITY_DISABLE:
-            {
-                parity_arg = PARITY_NONE;
-                break;
-            }
-            case UART_PARITY_EVEN:
-            {
-                parity_arg = PARITY_EVEN;
-                break;
-            }
-            case UART_PARITY_ODD:
-            {
-                parity_arg = PARITY_ODD;
-                break;
-            }
-            }
-            len = add_cmd(&channel_data, len, GET_PARITY, parity_arg);
+            len = add_cmd(&channel_data, len, GET_PARITY, conf.parity);
 
             /* Char size */
-            len = add_cmd_uint(&channel_data, len, GET_CHAR_SIZE, handler->uart_conf->data_bits + 5);
+            len = add_cmd_uint(&channel_data, len, GET_CHAR_SIZE, conf.char_size);
 
             /* Stop bits */
-            char *stop_bits_arg = NULL;
-            switch (handler->uart_conf->stop_bits)
-            {
-            case UART_STOP_BITS_1:
-            {
-                stop_bits_arg = STOP_BITS_ONE;
-                break;
-            }
-            case UART_STOP_BITS_1_5:
-            {
-                stop_bits_arg = STOP_BITS_ONEPOINTFIVE;
-                break;
-            }
-            case UART_STOP_BITS_2:
-            {
-                stop_bits_arg = STOP_BITS_TWO;
-                break;
-            }
-            case UART_STOP_BITS_MAX:
-            {
-                len = add_cmd(&channel_data, len, GET_STOP_BITS, INVALID_OPTION);
-                break;
-            }
-            }
-            len = add_cmd(&channel_data, len, GET_STOP_BITS, stop_bits_arg);
+            len = add_cmd(&channel_data, len, GET_STOP_BITS, conf.stop_bits);
 
             
         }

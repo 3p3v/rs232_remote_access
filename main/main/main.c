@@ -65,7 +65,7 @@ static uart_deamon_handler uart_handler;
 auth_pack auth;
 
 /* Function decalrations */
-static void rec_callback(unsigned char *buf, unsigned int);
+void rec_callback(mqtt_deamon_handler *handler, unsigned char *buf, unsigned int len);
 
 /* Device start task */
 void main_task(void *);
@@ -74,10 +74,7 @@ void main_task(void *);
 void err_handling_task(void *);
 
 /* Start error handling task */
-int error_handler_start(auth_pack *auth);
-
-/* Check TCP buffer */
-static size_t buf_check(mbedtls_context *ctx);
+int error_handler_start();
 
 /* Print device name */
 void printf_dev_name(const char *name);
@@ -100,7 +97,7 @@ void main_task(void *)
     int err;
     
     /* Load credentials from memory */
-    if (err = auth_load(&auth))
+    if ((err = auth_load(&auth)))
     {
         log_error(AUTH_TASK_NAME, "COUNDN'T LOAD, REBOOTING", err);
         reboot();
@@ -111,7 +108,7 @@ void main_task(void *)
     printf_dev_name(auth.username);
 
     /* Start error handing task */
-    if (err = error_handler_start(&auth))
+    if ((err = error_handler_start(&auth)))
     {
         log_error(ERROR_HANDLER_TASK_NAME, "COUNDN'T START, REBOOTING", err);
         reboot();
@@ -123,7 +120,7 @@ void main_task(void *)
         &ext_error_send);
     sim = &sim_handler.sim;
 
-    if (err = sim_deamon_start(&sim_handler, auth.apn, auth.username, auth.password))
+    if ((err = sim_deamon_start(&sim_handler, auth.apn, auth.username, auth.password)))
     {
         log_error(SIM_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING", err);
         reboot();
@@ -136,7 +133,7 @@ void main_task(void *)
         &rec_callback,
         &ext_error_send);
 
-    if (err = uart_deamon_start(&uart_handler))
+    if ((err = uart_deamon_start(&uart_handler)))
     {
         log_error(UART_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING", err);
         reboot();
@@ -149,16 +146,17 @@ void main_task(void *)
         AT_socket_context_init(&sim_handler.sim),
         &uart_write,
         &uart_change_conf,
-        &ext_error_send, );
+        &uart_get_conf,
+        &ext_error_send);
 
-    if (err = mqtt_deamon_start(
+    if ((err = mqtt_deamon_start(
             &mqtt_handler,
             auth.server,
             auth.port,
             auth.username,
             auth.password,
             &cert_load_chain,
-            auth.chain_size))
+            auth.chain_size)))
     {
         log_error(MQTT_DAEMON_TASK_NAME, "COUNDN'T START, REBOOTING", err);
         reboot();
@@ -206,7 +204,7 @@ void err_handling_task(void *)
     mqtt_deamon_stop(&mqtt_handler);
     uart_deamon_delete_task(&uart_handler);
     error_delete_queue();
-    auth_free(auth);
+    auth_free(&auth);
 
     reboot();
 }
@@ -219,7 +217,7 @@ int error_handler_start()
         return -1;
 }
 
-static void rec_callback(mqtt_deamon_handler *handler, unsigned char *buf, unsigned int len)
+void rec_callback(mqtt_deamon_handler *handler, unsigned char *buf, unsigned int len)
 {
     int err;
 

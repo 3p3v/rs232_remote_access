@@ -108,13 +108,13 @@ void SIM_setAT(char *at, const char *type, const SIM_param *params)
    at[0] = '\0';
    strcat(at, beg);
    strcat(at, type);
-   if (*params[0].name != NULL)
+   if (*params[0].name != '\0')
    {
       strcat(at, end);
       for (int p_num = 0; p_num < SIM_MAX_PARAMS; p_num++)
       {
          strcat(at, params[p_num].name);
-         if (*params[p_num + 1].name != NULL)
+         if (*params[p_num + 1].name != '\0')
             strcat(at, next);
          else 
             break;
@@ -468,7 +468,7 @@ SIM_data_len SIM_retrieveData(char *buf, unsigned int rec_len, SIM_resp *resp, c
 
    resp->data = strstr(buf, "\r\n") + 4;
 
-   if (resp->data + resp->data_len > buf + rec_len)
+   if ((char *)(resp->data + resp->data_len) > (buf + rec_len))
    {
       resp->data = NULL;
       resp->data_len = 0;

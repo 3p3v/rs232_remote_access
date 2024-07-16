@@ -25,7 +25,7 @@ static SIM_error SIM_readCGATT_handler(SIM_line_pair *lines, SIM_line_pair *line
 SIM_cmd *SIM_readCGATT(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CGATT?", params);
     cmd->handlers[0] = &SIM_readCGATT_handler;
     cmd->handlers_num = 1;
@@ -53,11 +53,11 @@ SIM_cmd *SIM_writeCSTT(SIM_cmd *cmd, const char *apn, const char *username, cons
     {
         strcpy(params[1].name, username);
         strcpy(params[2].name, password);
-        *params[3].name = NULL;
+        *params[3].name = '\0';
     }
     else
     {
-        *params[1].name = NULL;
+        *params[1].name = '\0';
     }
     SIM_setAT(cmd->at, "CSTT", params);
     cmd->handlers[0] = &SIM_writeCSTT_handler;
@@ -81,7 +81,7 @@ static SIM_error SIM_execCIICR_handler(SIM_line_pair *lines, SIM_line_pair *line
 SIM_cmd *SIM_execCIICR(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CIICR", params);
     cmd->handlers[0] = &SIM_execCIICR_handler;
     cmd->handlers_num = 1;
@@ -156,7 +156,7 @@ static SIM_error SIM_execCIFSR_handler(SIM_line_pair *lines, SIM_line_pair *line
 SIM_cmd *SIM_execCIFSR(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CIFSR", params);
     cmd->handlers[0] = &SIM_execCIFSR_handler;
     cmd->handlers_num = 1;
@@ -206,7 +206,7 @@ SIM_cmd *SIM_writeCIPSTART(SIM_cmd *cmd, const SIM_con_num n, char *mode, char *
     strcpy(params[0 + num].name, mode);
     strcpy(params[1 + num].name, address);
     sprintf(params[2 + num].name, "%u", (unsigned int)port);
-    *params[3 + num].name = NULL;
+    *params[3 + num].name = '\0';
     SIM_setAT(cmd->at, "CIPSTART", params);
     cmd->handlers[0] = &SIM_writeCIPSTART_handler;
     cmd->handlers_num = 1;
@@ -258,7 +258,7 @@ static SIM_error SIM_execCIPSEND_handler1(SIM_line_pair *lines, SIM_line_pair *l
 SIM_cmd *SIM_execCIPSEND(SIM_cmd *cmd, void *send_data, SIM_data_len send_data_len)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CIPSEND", params);
     cmd->handlers[0] = &SIM_execCIPSEND_handler2;
     cmd->handlers[1] = &SIM_execCIPSEND_handler1;
@@ -334,12 +334,12 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
         {
             sprintf(params[0].name, "%u", (unsigned int)n);
             sprintf(params[1].name, "%u", length);
-            *params[2].name = NULL;
+            *params[2].name = '\0';
         }
         else
         {
             sprintf(params[0].name, "%u", (unsigned int)n);
-            *params[1].name = NULL;
+            *params[1].name = '\0';
         }
     }
     else if (n == SIM_con_def)
@@ -348,7 +348,7 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
             return NULL;
 
         sprintf(params[0].name, "%u", length);
-        *params[1].name = NULL;
+        *params[1].name = '\0';
     }
     SIM_setAT(cmd->at, "CIPSEND", params);
     cmd->handlers[0] = &SIM_writeCIPSEND_handler2;
@@ -361,7 +361,7 @@ SIM_cmd *SIM_writeCIPSEND(SIM_cmd *cmd, SIM_con_num n, SIM_data_len length, void
                                   {.name = "., SEND OK\r\n", .err = SIM_sendOk},
                                   {.name = "., SEND FAIL\r\n", .err = SIM_sendFail},
                                   {.name = NULL, .err = SIM_noErrCode}};
-    cmd->resp.pos_resps = &c_st;
+    cmd->resp.pos_resps = c_st;
     cmd->resp.send_data = send_data;
     cmd->resp.send_data_len = send_data_len;
     cmd->type = SIM_cmd_single_use;
@@ -509,7 +509,7 @@ SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
         sprintf(params[num++].name, "%u", (unsigned int)id);
     }
     sprintf(params[num++].name, "%u", (unsigned int)n);
-    *params[num++].name = NULL;
+    *params[num++].name = '\0';
     SIM_setAT(cmd->at, "CIPCLOSE", params);
     cmd->handlers[0] = &SIM_writeCIPCLOSE_handler;
     cmd->handlers_num = 1;
@@ -519,14 +519,14 @@ SIM_cmd *SIM_writeCIPCLOSE(SIM_cmd *cmd, const SIM_con_num id, const char n)
         static SIM_err_pair c_st[] = {{.name = "ERROR\r\n", .err = SIM_err},
                                       {.name = "CLOSE OK\r\n", .err = SIM_closedOk},
                                       {.name = NULL, .err = SIM_noErrCode}};
-        cmd->resp.pos_resps = &c_st;
+        cmd->resp.pos_resps = c_st;
     }
     else
     {
         static SIM_err_pair c_st[] = {{.name = "ERROR\r\n", .err = SIM_err},
                                       {.name = "., CLOSE OK\r\n", .err = SIM_closedOk},
                                       {.name = NULL, .err = SIM_noErrCode}};
-        cmd->resp.pos_resps = &c_st;
+        cmd->resp.pos_resps = c_st;
     }
     cmd->type = SIM_cmd_single_use;
     cmd->timeout = SIM_WRITECIPCLOSE_TIMEOUT;
@@ -551,7 +551,6 @@ SIM_error SIM_listenTCP(SIM_intf *sim, const SIM_con_num n, void (*resp_handler)
         /* Allocate stream */
         *cmd = malloc(sizeof(SIM_TCP_cmd));
         /* Set handlers */
-        (*cmd)->con = n;
         if (n == SIM_con_def)
             (*cmd)->handler = &SIM_listenTCP_cipmux0_handler;
         else
@@ -617,7 +616,6 @@ SIM_error SIM_listenTCP_setHandler(SIM_intf *sim, const SIM_con_num n, void (*re
     SIM_error err = SIM_noErrCode;
     SIM_TCP_cmd_grip *cmd_grip;
     SIM_TCP_cmd *cmd;
-    SIM_resp *resp;
 
     // Find the right stream
     cmd_grip = &sim->tcp_cmds[n];
@@ -643,7 +641,7 @@ SIM_cmd *SIM_writeCIPMUX(SIM_cmd *cmd, const unsigned char n)
 {
     SIM_param params[2];
     sprintf(params[0].name, "%u", (unsigned int)n);
-    *params[1].name = NULL;
+    *params[1].name = '\0';
     SIM_setAT(cmd->at, "CIPMUX", params);
     cmd->handlers[0] = &SIM_writeCIPMUX_handler;
     cmd->handlers_num = 1;

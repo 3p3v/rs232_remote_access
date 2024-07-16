@@ -1,6 +1,8 @@
 #include <set_ch.h>
 #include <esp_log.h>
 #include <mqtt_ch_rw.h>
+#include <rts_cts.h>
+#include <error_handler.h>
 
 #define TAG "MQTT_S_CH"
 
@@ -46,7 +48,7 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
             handler->uart_change_conf(handler->uart_handler, uart_sett_baud_rate, &new_buad_rate);
 
             /* Add baud rate set cmd */
-            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, handler->uart_conf->baud_rate);
+            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, new_buad_rate);
         }
         else if ((arg_ptr = cmdcmp_arg(SET_PARITY, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
@@ -60,7 +62,7 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
             case PARITY_ODD_C:
             case PARITY_NONE_C:
             {
-                handler->uart_change_conf(handler->uart_handler, uart_sett_parity, &new_buad_rate);
+                handler->uart_change_conf(handler->uart_handler, uart_sett_parity, arg_ptr);
                 break;
             }
             default:
@@ -95,7 +97,7 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
             handler->uart_change_conf(handler->uart_handler, uart_sett_char_size, &new_char_size);
 
             /* Add baud rate set cmd */
-            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, handler->uart_conf->baud_rate);
+            len = add_cmd_uint(&channel_data, len, GET_BAUD_RATE, new_char_size);
         }
         else if ((arg_ptr = cmdcmp_arg(SET_STOP_BITS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
@@ -127,15 +129,14 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
         }
         else if ((arg_ptr = cmdcmp(SET_RTS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            gpio_set_level(MQTT_RTS_PIN, 1);
+            rts_cts_set(handler);
         }
         else if ((arg_ptr = cmdcmp(RESET_RTS, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            gpio_set_level(MQTT_RTS_PIN, 0);
+            rts_cts_set(handler);
         }
         else if ((arg_ptr = cmdcmp(MASTER_HI, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            handler->m_clean_session = true;
             len = add_cmd_none(&channel_data, len, SLAVE_HI);
         }
         else if ((arg_ptr = cmdcmp(INVALID_PACKET_NUM, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
@@ -157,19 +158,17 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
         {
             mqtt_rec_ack(handler, *arg_ptr);
         }
-        /*  */
         else if ((arg_ptr = cmdcmp(NO_PACKET_NUMBER, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            handler->m_clean_session = true;
             len = add_cmd_none(&channel_data, len, SLAVE_HI);
         }
         else if ((arg_ptr = cmdcmp(MODE_DCE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            set_mode(dce);
+            rts_cts_set_mode(handler, dce);
         }
         else if ((arg_ptr = cmdcmp(MODE_DTE, next_cmd_ptr, (endl - next_cmd_ptr))) != NULL)
         {
-            set_mode(dte);
+            rts_cts_set_mode(handler, dte);
         }
         else
         {
@@ -178,7 +177,6 @@ mqtt_daemon_code handle_set_channel(mqtt_deamon_handler *handler, unsigned char 
             len = add_cmd_none(&channel_data, len, UNKNOWN_CMD);
         }
 
-    end:
         /* Set ptr to next command */
         next_cmd_ptr = endl + 1;
 

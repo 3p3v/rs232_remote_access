@@ -9,7 +9,7 @@
 #include <esp_log.h>
 
 #define UART_DAEMON_TASK_NAME "UART_DAEMON"
-#define TAG MQTT_DAEMON_TASK_NAME
+#define TAG UART_DAEMON_TASK_NAME
 #define UART_DAEMON_STACK_SIZE 12000
 #define UART_DAEMON_TASK_PRIORITY 3
 
@@ -32,6 +32,8 @@
 /* UART interrupt config, no changable */
 #define UART_DAEMON_DEF_QUEUE_SIZE 60
 
+#define ESP_DATA_BITS_OFFSET 5
+
 typedef enum
 {
     uart_sett_baud_rate = 0,
@@ -43,7 +45,8 @@ typedef enum
 typedef enum
 {
     uart_daemon_ok = 0,
-    uart_daemon_hardware_err = -128
+    uart_daemon_hardware_err = -128,
+    uart_invalid_conf_arg
 } uart_daemon_code;
 
 typedef struct uart_deamon_handler
@@ -64,14 +67,24 @@ typedef struct uart_deamon_handler
     void (*error_handler)(void *handler, const char *module, int type, int err);
 } uart_deamon_handler;
 
+typedef struct uart_cmd_conf
+{
+    unsigned int baud_rate;
+    const char *parity;
+    unsigned int char_size;
+    const char *stop_bits;
+} uart_cmd_conf;
+
 void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg);
+
+uart_cmd_conf uart_get_conf(void *uart_handler_ptr);
 
 int uart_write(unsigned char *buf, size_t len);
 
 void uart_deamon(void *v_handler);
 
 void uart_deamon_reinit(
-    uart_deamon_handler handler,
+    uart_deamon_handler *handler,
     void *mqtt_handler,
     void (*resp_handler)(void *, unsigned char *, unsigned int),
     void (*error_handler)(void *handler, const char *module, int type, int err));

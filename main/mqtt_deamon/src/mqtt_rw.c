@@ -13,7 +13,7 @@ int mqtt_tls_write_no_ping(mqtt_deamon_handler *handler, unsigned char *buf, siz
         xSemaphoreTake(handler->mbed_mutex_handle, portMAX_DELAY);
         ESP_LOGI(TAG, "TRYING SSL WRITE, socket: %i", handler->ctx.net_ctx.fd);
 
-        int sent = socket_write(&handler->ctx);
+        int sent = socket_write(&handler->ctx, buf, len);
         if (sent == 0)
         {
             ESP_LOGI(TAG, "SSL WRITE, returned: 0");
@@ -33,7 +33,7 @@ int mqtt_tls_write_no_ping(mqtt_deamon_handler *handler, unsigned char *buf, siz
         else
             ESP_LOGI(TAG, "MQTT STRUCTURE NOT INITIALIZED");
 
-        return return (int)mqtt_daemon_structure_not_inited;
+        return (int)mqtt_daemon_structure_not_inited;
     }
 }
 
@@ -52,9 +52,7 @@ int mqtt_tls_write(mqtt_deamon_handler *handler, unsigned char *buf, size_t len)
 
 int mqtt_tls_read(mqtt_deamon_handler *handler, unsigned char *buf, int len)
 {
-    int len;
-    
-    if (len = socket_read(&handler->ctx) > 0)
+    if ((len = socket_read(&handler->ctx, buf, len)) > 0)
     {
         return len;
     }

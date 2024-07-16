@@ -11,6 +11,8 @@
 #include <driver/gptimer.h>
 #include <mbedtls_sockets.h>
 #include <AT_socket.h>
+#include <uart_deamon.h>
+#include <rts_cts.h>
 
 #define MQTT_DAEMON_TASK_NAME "MQTT_DAEMON"
 #define TAG MQTT_DAEMON_TASK_NAME
@@ -62,6 +64,7 @@ typedef struct mqtt_deamon_handler
     /* Forwarding data to UART */
     void *uart_handler;
     void (*uart_change_conf)(void *uart_handler, uart_sett sett, void *arg);
+    uart_cmd_conf (*uart_get_conf)(void *uart_handler);
     int (*publish_callb)(unsigned char *, size_t);
 
     /* Mutexes */
@@ -87,6 +90,9 @@ typedef struct mqtt_deamon_handler
     gptimer_handle_t ping_timer;
     int keep_alive_int; /* Keep alive interval */
 
+    /* RTS CTS */
+    dev_mode mode;
+
     /* Task messaging */
     QueueHandle_t queue;
 
@@ -104,6 +110,7 @@ void mqtt_daemon_reinit(
     AT_socket_context socket_ctx,
     int (*publish_callb)(unsigned char *, size_t),
     void (*uart_change_conf)(void *uart_handler, uart_sett sett, void *arg),
+    uart_cmd_conf (*uart_get_conf)(void *uart_handler),
     void (*error_handler)(void *, const char *, int, int));
 
 /* Start deamon */

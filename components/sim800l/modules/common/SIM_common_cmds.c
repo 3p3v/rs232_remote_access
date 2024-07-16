@@ -91,7 +91,7 @@ static SIM_error SIM_readCCLK_handler(SIM_line_pair *lines, SIM_line_pair *lines
 SIM_cmd *SIM_readCCLK(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "CCLK?", params);
     cmd->handlers[0] = &SIM_readCCLK_handler;
     cmd->handlers_num = 1;
@@ -145,7 +145,7 @@ static SIM_error SIM_execATandW_handler(SIM_line_pair *lines, SIM_line_pair *lin
 SIM_cmd *SIM_execATandW(SIM_cmd *cmd)
 {
     SIM_param params[1];
-    *params[0].name = NULL;
+    *params[0].name = '\0';
     SIM_setAT(cmd->at, "AT&W", params);
     cmd->handlers[0] = &SIM_readCCLK_handler;
     cmd->handlers_num = 1;

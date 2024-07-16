@@ -7,7 +7,7 @@ idf_component_register(
         mbedtls
         MQTTPacket
         auth
-        uart_deamon
+        uart_deamon # FIXME added temporarly
         error_handler
         driver
         esp_event)

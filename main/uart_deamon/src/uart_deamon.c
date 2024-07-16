@@ -8,6 +8,7 @@
 #include <esp_log.h>
 /* Main deamon */
 #include <error_handler.h>
+#include <cmd_defs.h>
 
 void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
 {
@@ -32,7 +33,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
     }
     case uart_sett_char_size:
     {
-        handler->uart_conf.data_bits = *((int *)arg);
+        handler->uart_conf.data_bits = *((int *)arg) - ESP_DATA_BITS_OFFSET;
 
         if (
             uart_set_word_length(UART_DAEMON_DEF_UART_NUM, handler->uart_conf.data_bits) ||
@@ -46,7 +47,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
     }
     case uart_sett_parity:
     {
-        switch (*arg)
+        switch (*(char *)arg)
         {
         case PARITY_EVEN_C:
         {
@@ -78,7 +79,7 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
     }
     case uart_sett_stop_bits:
     {
-        switch (*arg)
+        switch (*(char *)arg)
         {
         case STOP_BITS_ONE_C:
         {
@@ -114,6 +115,83 @@ void uart_change_conf(void *uart_handler_ptr, uart_sett sett, void *arg)
     }
 }
 
+uart_cmd_conf uart_get_conf(void *uart_handler_ptr)
+{
+    uart_deamon_handler *handler = (uart_deamon_handler *)uart_handler_ptr;
+
+    unsigned int baud_rate;
+    const char *parity;
+    unsigned int char_size;
+    const char *stop_bits;
+
+    /* Get baud rate */
+    baud_rate = handler->uart_conf.baud_rate;
+
+    /* Get parity */
+    switch (handler->uart_conf.parity)
+    {
+    case UART_PARITY_EVEN:
+    {
+        parity = PARITY_EVEN;
+        break;
+    }
+    case UART_PARITY_ODD:
+    {
+        parity = PARITY_ODD;
+        break;
+    }
+    case UART_PARITY_DISABLE:
+    {
+        parity = PARITY_NONE;
+        break;
+    }
+    default:
+    {
+        handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_invalid_conf_arg);
+        parity = PARITY_NONE;
+        break;
+    }
+    }
+
+    /* Get char size */
+    char_size = handler->uart_conf.data_bits + ESP_DATA_BITS_OFFSET;
+
+    /* Get stop bits */
+    switch (handler->uart_conf.stop_bits)
+    {
+    case UART_STOP_BITS_1:
+    {
+        stop_bits = STOP_BITS_ONE;
+        break;
+    }
+    case UART_STOP_BITS_1_5:
+    {
+        stop_bits = STOP_BITS_ONEPOINTFIVE;
+        break;
+    }
+    case UART_STOP_BITS_2:
+    {
+        stop_bits = STOP_BITS_TWO;
+        break;
+    }
+    default:
+    {
+        handler->error_handler(&handler->handler, UART_DAEMON_TASK_NAME, ext_type_fatal, uart_invalid_conf_arg);
+        stop_bits = STOP_BITS_ONE;
+        break;
+    }
+    }
+
+    uart_cmd_conf conf = {
+        .baud_rate = baud_rate,
+        .parity = parity,
+        .char_size = char_size,
+        .stop_bits = stop_bits
+    };
+    
+    return conf;
+}
+
 int uart_write(unsigned char *buf, size_t len)
 {
     return uart_write_bytes(UART_DAEMON_DEF_UART_NUM, buf, len);
@@ -124,7 +202,6 @@ void uart_deamon(void *v_handler)
     uart_deamon_handler *handler = (uart_deamon_handler *)v_handler;
     QueueHandle_t *queue = &handler->queue;
     uart_event_t event;
-    int len;
     unsigned char buf[UART_DAEMON_DEF_REC_BUF_SIZE];
 
     while (xQueueReceive(*queue, &event, portMAX_DELAY))
@@ -133,11 +210,11 @@ void uart_deamon(void *v_handler)
         {
         case UART_DATA:
         {
-            len += uart_read_bytes(UART_DAEMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
+            int len = uart_read_bytes(UART_DAEMON_DEF_UART_NUM, buf, event.size, portMAX_DELAY);
 
             if (len > 0)
             {
-                handler->resp_handler(buf, len);
+                handler->resp_handler(handler->mqtt_handler, buf, len);
             }
 
             break;
@@ -202,7 +279,7 @@ void uart_deamon(void *v_handler)
 }
 
 void uart_deamon_reinit(
-    uart_deamon_handler handler,
+    uart_deamon_handler *handler,
     void *mqtt_handler,
     void (*resp_handler)(void *, unsigned char *, unsigned int),
     void (*error_handler)(void *handler, const char *module, int type, int err))

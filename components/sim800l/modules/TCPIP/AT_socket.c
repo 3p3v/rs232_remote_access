@@ -1,4 +1,6 @@
 #include <AT_socket.h>
+#include <SIM_TCPIP.h>
+#include <string.h>
 
 void AT_socket_reinit(AT_socket* socket, AT_socket_context* ctx)
 {
@@ -10,8 +12,8 @@ AT_socket AT_socket_init(AT_socket_context* ctx)
 {
     AT_socket socket = {
         .ctx = ctx,
-        .fd = -1;
-    }
+        .fd = -1
+    };
     
     return socket;
 }
@@ -28,7 +30,7 @@ void AT_socket_context_reinit(AT_socket_context *ctx, SIM_intf *sim)
     
     for (unsigned char i = 0; i < sizeof(ctx->sockets); i++)
     {
-        AT_socket_info_init(ctx->sockets + i, (sim->tcp_cmds + i)->cmd); // FIXME for now sim lib uses same socket id as array iterator number, fix when changed 
+        AT_socket_info_init(ctx->sockets + i, (sim->tcp_cmds + i)); // FIXME for now sim lib uses same socket id as array iterator number, fix when changed 
     }
 }
 
@@ -36,7 +38,7 @@ AT_socket_context AT_socket_context_init(SIM_intf *sim)
 {
     AT_socket_context ctx;
     
-    AT_socket_context_reinit(&ctx);
+    AT_socket_context_reinit(&ctx, sim);
 
     return ctx;
 }
@@ -95,7 +97,7 @@ AT_socket_code AT_socket_connect(AT_socket* socket, const char *host, const char
     {
         socket_set_state(socket, AT_socket_state_connected);
         
-        return AT_socket_ok
+        return AT_socket_ok;
     }
 }
 
@@ -119,11 +121,11 @@ int AT_socket_read(AT_socket* socket, void *buf, unsigned int len)
     cmd_grip = socket->ctx->sim->tcp_cmds + n;
     cmd = cmd_grip->cmd;
     if (cmd)
-        resp = cmd->resp;
+        resp = &cmd->resp;
     else
         return AT_socket_err;
 
-    SIM_resp err = resp->err;
+    SIM_error err = resp->err;
     // Check if socket disconnected
     if (socket_disconnected(err))
     {
@@ -170,7 +172,7 @@ int AT_socket_read(AT_socket* socket, void *buf, unsigned int len)
         xSemaphoreGive(resp->data_mutex);
         // wait for enough data while raw data is still being processed by main task
         // TODO delete
-        while ((len > resp->data_len) && sim->rec_len)
+        while ((len > resp->data_len) && socket->ctx->sim->rec_len)
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
@@ -215,7 +217,7 @@ int AT_socket_write(AT_socket* socket, void *buf, unsigned int len)
     SIM_cmd cmd;
     SIM_cmd_init(&cmd);
 
-    if ((err = SIM_run(sim, SIM_writeCIPSEND(&cmd, socket->fd, len, buf, len))) != SIM_ok)
+    if ((err = SIM_run(socket->ctx->sim, SIM_writeCIPSEND(&cmd, socket->fd, len, buf, len))) != SIM_ok)
         return (int)AT_socket_err;
 
     return len;
@@ -227,7 +229,7 @@ AT_socket_code AT_socket_disconnect(AT_socket* socket)
     SIM_cmd_init(&cmd);
     SIM_error err;
 
-    if (socket->ctx->sim->tcp_cmds[ctx->fd].cmd->resp.err == SIM_closed)
+    if (socket->ctx->sim->tcp_cmds[socket->fd].cmd->resp.err == SIM_closed)
     {
         socket_set_state(socket, AT_socket_state_disconnected);
         return AT_socket_ok;
@@ -248,4 +250,11 @@ AT_socket_code AT_socket_disconnect(AT_socket* socket)
     {
         return AT_socket_err;
     }
+}
+
+unsigned int AT_socket_buf_check(AT_socket *socket)
+{
+    SIM_con_num fd = socket->fd;
+    
+    return (socket->ctx->sim->tcp_cmds + fd)->cmd->resp.data_len;
 }

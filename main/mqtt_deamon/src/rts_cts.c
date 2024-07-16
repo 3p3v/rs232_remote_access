@@ -38,8 +38,10 @@ IRAM_ATTR static void rts_handle(void *arg)
     }
 }
 
-void rts_cts_set_mode(dev_mode mode, QueueHandle_t *queue)
+void rts_cts_set_mode(mqtt_deamon_handler *handler, dev_mode mode)
 {
+    handler->mode = mode;
+    
     /* Reset gpio */
     gpio_reset_pin(MQTT_CTS_PIN);
     gpio_reset_pin(MQTT_RTS_PIN);
@@ -64,10 +66,34 @@ void rts_cts_set_mode(dev_mode mode, QueueHandle_t *queue)
 
     if (mode == dte)
     {
-        gpio_isr_handler_add(MQTT_RTS_PIN, rts_handle, (void *)queue);
+        gpio_isr_handler_add(MQTT_RTS_PIN, rts_handle, (void *)handler->queue);
     }
     else
     {
-        gpio_isr_handler_add(MQTT_CTS_PIN, cts_handle, (void *)queue);
+        gpio_isr_handler_add(MQTT_CTS_PIN, cts_handle, (void *)handler->queue);
+    }
+}
+
+void rts_cts_set(mqtt_deamon_handler *handler)
+{
+    if (handler->mode == dte)
+    {
+        gpio_set_level(MQTT_CTS_PIN, 1);
+    }
+    else
+    {
+        gpio_set_level(MQTT_RTS_PIN, 1);
+    }
+}
+
+void rts_cts_reset(mqtt_deamon_handler *handler)
+{
+    if (handler->mode == dte)
+    {
+        gpio_set_level(MQTT_CTS_PIN, 0);
+    }
+    else
+    {
+        gpio_set_level(MQTT_RTS_PIN, 0);
     }
 }

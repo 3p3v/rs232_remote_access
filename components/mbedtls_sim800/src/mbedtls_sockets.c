@@ -1,4 +1,5 @@
 #include <mbedtls_sockets.h>
+#include <net_sockets_sim800.h>
 #include <SIM_TCPIP.h>
 #include <esp_err.h>
 #include <esp_log.h>
@@ -48,6 +49,13 @@ int socket_write(mbedtls_context *ctx_, unsigned char *buf, int len)
 
         sent += rv;
     }
+
+    return sent;
+}
+
+unsigned int socket_buf_check(mbedtls_context *ctx)
+{
+    return AT_socket_buf_check(&ctx->net_ctx);
 }
 
 int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len)
@@ -111,12 +119,12 @@ int socket_read(mbedtls_context *ctx_, unsigned char *buf, int len)
 
 int socket_set_handler(mbedtls_context *ctx, void (*resp_handler)(int *))
 {
-    return SIM_listenTCP_setHandler(ctx->sim, ctx->net_ctx.fd, resp_handler);
+    return SIM_listenTCP_setHandler(ctx->net_ctx.ctx->sim, ctx->net_ctx.fd, resp_handler);
 }
 
 void socket_close_nb(mbedtls_context *ctx)
 {
-    mbedtls_net_close(&ctx->net_ctx);
+    return mbedtls_net_close_(&ctx->net_ctx);
 }
 
 int socket_open_nb(mbedtls_context *ctx,
@@ -129,7 +137,7 @@ int socket_open_nb(mbedtls_context *ctx,
     char buf[512];
     int ret, flags;
 
-    socket_context *net = &ctx->net_ctx;
+    AT_socket *net = &ctx->net_ctx;
     mbedtls_ssl_context *ssl = &ctx->ssl_ctx;
     mbedtls_ssl_config *ssl_conf = &ctx->ssl_conf;
     mbedtls_x509_crt *ca_crt = &ctx->ca_crt;
@@ -233,10 +241,9 @@ int socket_open_nb(mbedtls_context *ctx,
     }
 
     ESP_LOGI(TAG, "mbedtls_net_init...");
-    mbedtls_net_init(net, socket_ctx);
+    mbedtls_net_init_(net, socket_ctx);
     ESP_LOGI(TAG, "mbedtls_net_connect...");
-    if ((ret = mbedtls_net_connect(net, hostname,
-                                   port, MBEDTLS_NET_PROTO_TCP)) != 0)
+    if ((ret = mbedtls_net_connect_(net, hostname, port)) != 0)
     {
         ESP_LOGE(TAG, "mbedtls_net_connect returned -%x", -ret);
         goto exit;

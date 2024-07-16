@@ -23,6 +23,7 @@
 /* MQTT topics handling */
 #include <info_ch.h>
 #include <set_ch.h>
+#include <data_ch.h>
 /* RTS CTS pin */
 #include <rts_cts.h>
 /* Queue defs */
@@ -45,7 +46,7 @@ static mqtt_daemon_code handle_connack(mqtt_deamon_handler *handler, unsigned in
 {
     if (keep_alive)
     {
-        handler->keep_alive_int = keep_alive - MQTT_DEAMON_DEF_PING_OFFSET;
+        handler->keep_alive_int = *keep_alive - MQTT_DEAMON_DEF_PING_OFFSET;
     }
     else
     {
@@ -76,20 +77,6 @@ static mqtt_daemon_code handle_connack(mqtt_deamon_handler *handler, unsigned in
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, err);
 
         return err;
-    }
-
-    return mqtt_daemon_ok;
-}
-
-static mqtt_daemon_code handle_suback(mqtt_deamon_handler *handler, int reason_code)
-{
-    if (err)
-    {
-        /* This should never happen */
-        ESP_LOGE(TAG, "SUBSCRIBE ERROR");
-        handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_subscribe_err);
-
-        return mqtt_daemon_subscribe_err;
     }
 
     return mqtt_daemon_ok;
@@ -127,12 +114,12 @@ static mqtt_daemon_code handle_rts_cts(mqtt_deamon_handler *handler)
     return mqtt_daemon_ok;
 }
 
-static mqtt_daemon_code handle_ping(mqtt_deamon_handler *handler)
+static mqtt_daemon_code handle_ping(mqtt_deamon_handler *handler, unsigned char *buf)
 {
     ESP_LOGI(TAG, "SENDING PING");
-    int len = MQTTV5Serialize_pingreq(recvbuf, MAIN_MQTT_REC_BUF_SIZE);
+    int len = MQTTV5Serialize_pingreq(buf, MAIN_MQTT_REC_BUF_SIZE);
 
-    if (mqtt_tls_write(handler, recvbuf, len) < 0)
+    if (mqtt_tls_write(handler, buf, len) < 0)
     {
         ESP_LOGE(TAG, "COULD NOT SEND DATA");
         handler->error_handler(&handler->handler, MQTT_DAEMON_TASK_NAME, ext_type_fatal, mqtt_daemon_werr);
@@ -170,7 +157,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
         if (xQueueReceive(handler->queue, &err, MQTT_UNLOCK_T / portTICK_PERIOD_MS) != pdTRUE)
         {
             /* Check if there is any data in buffer */
-            if (handler->buf_check(&handler->ctx) > 0)
+            if (socket_buf_check(handler) > 0)
             {
                 ESP_LOGI(TAG, "FOUND DATA");
                 err = SIM_receive;
@@ -195,7 +182,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
         /* Check if ping needed */
         if (err == PING_REQUEST)
         {
-            if (handle_ping(handler))
+            if (handle_ping(handler, recvbuf))
             {
                 goto EXIT;
             }
@@ -341,7 +328,7 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                      */
                     /* Find packet number */
                     bool num_found = false;
-                    char packet_num;
+                    char packet_num = 0; // TODO change handle_data_channel to handle only found number, then delete packet_num initialization
                     for (unsigned char i = 0; i < properties.count; i++)
                     {
                         /* Property found */
@@ -351,12 +338,14 @@ static void mqtt_deamon(void *v_mqtt_deamon_handler)
                             num_found = true;
                             packet_num = properties.array[i].value.string_pair.val.data[0];
 
-                            if (handler->m_clean_session == true)
-                            {
-                                /* Master initialized clean session, set packet number */
-                                handler->m_clean_session = false;
-                                handler->master_num = packet_num;
-                            }
+                            // if (handler->m_clean_session == true)
+                            // {
+                            //     /* Master initialized clean session, set packet number */
+                            //     handler->m_clean_session = false;
+                            //     handler->master_num = packet_num;
+                            // }
+
+                            handler->master_num = packet_num;
                         }
                     }
 
@@ -449,7 +438,6 @@ static void mqtt_daemon_struct_init(mqtt_deamon_handler *handler, const char *us
     handler->msg_id = 1;
     handler->m_not_ack = 0;
     handler->m_not_ack = 0;
-    handler->m_clean_session = true;
     handler->slave_num = MIN_MSG_NUM;
     for (unsigned char i = 0; i < MAX_SAVED; i++)
     {
@@ -469,6 +457,7 @@ void mqtt_daemon_reinit(
     AT_socket_context socket_ctx,
     int (*publish_callb)(unsigned char *, size_t),
     void (*uart_change_conf)(void *uart_handler, uart_sett sett, void *arg),
+    uart_cmd_conf (*uart_get_conf)(void *uart_handler),
     void (*error_handler)(void *, const char *, int, int))
 {
     handler->handler = NULL;
@@ -477,6 +466,7 @@ void mqtt_daemon_reinit(
     handler->uart_handler = uart_handler;
     handler->socket_ctx = socket_ctx;
     handler->uart_change_conf = uart_change_conf;
+    handler->uart_get_conf = uart_get_conf;
     handler->error_handler = error_handler;
     handler->publish_callb = publish_callb;
 }
@@ -506,7 +496,7 @@ mqtt_daemon_code mqtt_deamon_start(
     handler->initialized = true;
 
     /* GPIO RTS, CTS */
-    rts_cts_set_mode(dce, handler->queue);
+    rts_cts_set_mode(handler, dce);
 
     /* Connect to broker */
     err = mqtt_connect(handler, username, password);
@@ -536,7 +526,7 @@ mqtt_daemon_code mqtt_deamon_stop(mqtt_deamon_handler *handler)
     while (handler->handler)
         ;
 
-    close_nb_socket(&handler->ctx);
+    socket_close_nb(&handler->ctx);
     if (handler->ctx.net_ctx.fd == -1)
         return mqtt_daemon_ok;
     else

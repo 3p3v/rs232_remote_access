@@ -54,3 +54,5 @@ int AT_socket_read(AT_socket* socket, void *buf, unsigned int len);
 int AT_socket_write(AT_socket* socket, void *buf, unsigned int len);
 
 AT_socket_code AT_socket_disconnect(AT_socket* socket);
+
+unsigned int AT_socket_buf_check(AT_socket *socket);
