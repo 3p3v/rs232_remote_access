@@ -4,6 +4,8 @@ set(PACKET_CTRL_TESTS packet_ctrl_tests)
 
 # Main code
 add_library(${PROJECT_NAME} STATIC
+    #
+    "./packet_sett/src/Packet_sett_final.cpp"
     # Messages store
     "./packet_container/src/Mqtt_msg_cont_base.cpp"
     "./packet_container/src/Mqtt_msg.cpp"
@@ -18,6 +20,8 @@ add_library(${PROJECT_NAME} STATIC
 
 # Header files
 set(PACKET_CTRL_INCLUDE_DIR 
+    #
+    "./packet_sett/include/"
     # Messages store
     "./packet_container/include/"
     # Packet counter

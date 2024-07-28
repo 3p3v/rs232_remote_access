@@ -1,30 +1,26 @@
 #pragma once
 
-#include <Mqtt_msg_cont_base.hpp>
+// #include <Mqtt_msg_cont_base.hpp>
 #include <Mqtt_msg.hpp>
 #include <algorithm>
+#include <vector>
 #include <stdexcept>
-
-template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename = typename std::enable_if_t<
-        std::is_same_v<Val_t, std::decay_t<Val_t>>>,
-    typename = typename std::enable_if_t<
-        (min_msg_num < max_msg_num)>,
-    typename = typename std::enable_if_t<
-        ((2 * (max_msg_num - min_msg_num)) > max_saved)>>
-class Mqtt_msg_cont : Mqtt_msg_cont_base
+#include <Packet_sett.hpp>
+#include <Packet_val.hpp>
+template <typename Val_t>
+class Mqtt_msg_cont : public Packet_val<Val_t>
 {
 public:
     using Mqtt_msg_t = Mqtt_msg<Val_t>;
 
+    const Packet_sett<Val_t> &ps;
+
 private:
-    std::array<Mqtt_msg_t, max_saved> msgs;
+    std::vector<Mqtt_msg_t> msgs = std::vector<Mqtt_msg_t>(ps.max_saved);
 
 public:
+    Mqtt_msg_cont(const Packet_sett<Val_t> &ps);
+
     /// @brief Get msg with given id, if not found throws an exception
     /// @param id
     /// @return
@@ -53,22 +49,24 @@ public:
     void reload() noexcept;
 };
 
+template <typename Val_t>
+inline Mqtt_msg_cont<Val_t>::Mqtt_msg_cont(const Packet_sett<Val_t> &ps)
+    : ps{ps}
+{
+    if (!(ps.min_msg_num < ps.max_msg_num))
+    {
+        throw std::logic_error{"Maximum value is smaller than minimum!"};
+    }
+    else if (!((2 * (ps.max_msg_num - ps.min_msg_num)) > ps.max_saved))
+    {
+        throw std::logic_error{"Max saved number should be < (2 * (Max message ID - Min message ID))"};
+    }
+}
+
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::operator[](Val_t id)
+    Val_t>::operator[](Val_t id)
 {
     auto msg = std::find_if(
         msgs.begin(),
@@ -91,32 +89,20 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline auto Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::get(Val_t id) noexcept
+    Val_t>::get(Val_t id) noexcept
 {
-    auto max_id = id + max_saved - 1;
+    auto max_id = id + ps.max_saved - 1;
 
-    if (max_id <= max_msg_num)
+    if (max_id <= ps.max_msg_num)
     {
         auto msg_idx = std::vector<Val_t>();
 
         std::for_each(
             msgs.begin(),
             msgs.end(),
-            [this, id, &msg_idx](auto &&c)
+            [this, id, &msg_idx, max_id](auto &&c)
             {
                 if ((c.id_ >= id && c.id_ <= max_id) && c.used == false && c.inited == true)
                 {
@@ -133,8 +119,8 @@ inline auto Mqtt_msg_cont<
     {
         auto msg_idx_end = std::vector<Val_t>();
         auto msg_idx_beg = std::vector<Val_t>();
-        
-        auto end = max_id - max_msg_num;
+
+        auto end = max_id - ps.max_msg_num;
 
         std::for_each(
             msgs.begin(),
@@ -158,10 +144,10 @@ inline auto Mqtt_msg_cont<
 
         std::sort(msg_idx_end.begin(), msg_idx_end.end());
         std::sort(msg_idx_beg.begin(), msg_idx_beg.end());
-        
+
         msg_idx_end.insert(
-            msg_idx_end.end(), 
-            std::make_move_iterator(msg_idx_beg.begin()), 
+            msg_idx_end.end(),
+            std::make_move_iterator(msg_idx_beg.begin()),
             std::make_move_iterator(msg_idx_beg.end()));
 
         return msg_idx_end;
@@ -169,28 +155,17 @@ inline auto Mqtt_msg_cont<
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::first_free(Val_t id)
+    Val_t>::first_free(Val_t id)
 {
-    auto msg = std::find_if(msgs.begin(),
-                            msgs.end(),
-                            [this](auto &&c)
-                            {
-                                return static_cast<bool>(c.freed) & (!static_cast<bool>(c.used));
-                            });
+    auto msg = std::find_if(
+        msgs.begin(),
+        msgs.end(),
+        [this](auto &&c)
+        {
+            return static_cast<bool>(c.freed) & (!static_cast<bool>(c.used));
+        });
 
     if (msg == msgs.end())
         throw std::logic_error{"No more free msgs!"};
@@ -204,21 +179,9 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::oldest(Val_t id)
+    Val_t>::oldest(Val_t id)
 {
     auto msg = std::find_if_not(
         msgs.begin(),
@@ -234,7 +197,7 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
     auto iter = msgs.begin();
 
     /* Normalization */
-    auto offset = max_msg_num - (id - 1);
+    auto offset = ps.max_msg_num - (id - 1);
 
     std::for_each(
         msgs.begin(),
@@ -250,7 +213,7 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
             }
             else
             {
-                o_id = ((c.id_ + offset) % max_msg_num) + min_msg_num;
+                o_id = ((c.id_ + offset) % ps.max_msg_num) + ps.min_msg_num;
             }
 
             if (msg->id_ <= id)
@@ -259,7 +222,7 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
             }
             else
             {
-                u_id = ((msg->id_ + offset) % max_msg_num) + min_msg_num;
+                u_id = ((msg->id_ + offset) % ps.max_msg_num) + ps.min_msg_num;
             }
 
             if (o_id < u_id && c.used == false)
@@ -279,30 +242,18 @@ inline Mqtt_msg<Val_t> &Mqtt_msg_cont<
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline void Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::free_untill(Val_t id) noexcept
+    Val_t>::free_untill(Val_t id) noexcept
 {
-    auto min_id = id - max_saved + 1;
+    auto min_id = id - ps.max_saved + 1;
 
-    if (min_id >= min_msg_num)
+    if (min_id >= ps.min_msg_num)
     {
         std::for_each(
             msgs.begin(),
             msgs.end(),
-            [this, id](auto &&c)
+            [this, id, min_id](auto &&c)
             {
                 if ((c.id_ <= id && c.id_ >= min_id) && c.used == false)
                 {
@@ -312,7 +263,7 @@ inline void Mqtt_msg_cont<
     }
     else
     {
-        auto beg = min_id + max_msg_num;
+        auto beg = min_id + ps.max_msg_num;
 
         std::for_each(
             msgs.begin(),
@@ -328,21 +279,9 @@ inline void Mqtt_msg_cont<
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    std::make_unsigned_t<Val_t> max_saved,
-    typename T1,
-    typename T2,
-    typename T3>
+    typename Val_t>
 inline void Mqtt_msg_cont<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    max_saved,
-    T1,
-    T2,
-    T3>::reload() noexcept
+    Val_t>::reload() noexcept
 {
     std::for_each(
         msgs.begin(),

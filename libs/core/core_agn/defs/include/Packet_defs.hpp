@@ -7,10 +7,13 @@ namespace Logic
     class Packet_defs
     {
     public:
+        using Val_t = char;
+        using UVal_t = std::make_unsigned_t<Val_t>;
+
         /// @brief Minimal message id
-        static constexpr char min_msg_num{' '};
+        static constexpr Val_t min_msg_num{' '};
         /// @brief Maximum message id
-        static constexpr char max_msg_num{'~'};
+        static constexpr Val_t max_msg_num{'~'};
 
         /// @brief Package acknowledge message
         static constexpr std::string_view packet_ack_s{"A"};
@@ -23,11 +26,11 @@ namespace Logic
         static constexpr std::string_view no_number_s{"N_N"};
 
         /// @brief Number of messages after acknowledgement is required
-        static constexpr unsigned char ack_after{8};
+        static constexpr UVal_t ack_after{8};
         /// @brief Maximum number of messages in memory
-        static constexpr unsigned char max_saved{30};
+        static constexpr UVal_t max_saved{15};
         /// @brief Maximum number of mesages that can be not acknowledged before showing warning
-        static constexpr unsigned char max_not_ack{16};
+        static constexpr UVal_t max_not_ack{16};
 
         Packet_defs() = delete;
     };

@@ -1,28 +1,23 @@
 #include <gtest/gtest.h>
 #include <Packet_controller.hpp>
-#include <Packet_defs.hpp>
+#include <Packet_sett_final.hpp>
 
 using namespace Logic;
 
 namespace Defs
 {
-    static constexpr auto min_num{Packet_defs::min_msg_num};
-    static constexpr auto max_num{Packet_defs::max_msg_num};
-    static constexpr auto max_size{30};
-    using Id_t = std::decay_t<decltype(Packet_defs::max_msg_num)>;
+    using Id_t = Packet_sett_final::Val_t;
 
-    using Cont = Packet_controller<
-        Id_t,
-        min_num,
-        max_num,
-        max_size>;
+    using Cont = Packet_controller<Id_t>;
 };
+
+using namespace Defs;
 
 TEST(packet_controller, no_more_free_space)
 {
-    Defs::Cont cont{};
+    Cont cont{Packet_sett_final::get()};
 
-    for (Defs::Id_t i = 0; i < Defs::max_size; i++)
+    for (Id_t i = 0; i < Packet_sett_final::get().max_saved; i++)
     {
         auto &msg = cont.create();
         msg.unused();
@@ -37,9 +32,9 @@ TEST(packet_controller, no_more_free_space)
 
 TEST(packet_controller, no_more_unused_space)
 {
-    Defs::Cont cont{};
+    Cont cont{Packet_sett_final::get()};
 
-    for (Defs::Id_t i = 0; i < Defs::max_size; i++)
+    for (Id_t i = 0; i < Packet_sett_final::get().max_saved; i++)
     {
         cont.create();
     }

@@ -3,17 +3,13 @@
 #include <Packet_flow.hpp>
 
 /// @brief Packet number control
-template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num>
+template <typename Val_t>
 class Packet_slave
-    : public Packet_flow<
-          Val_t,
-          min_msg_num,
-          max_msg_num>
+    : public Packet_flow<Val_t>
 {
-    std::atomic_bool s_reload{true};
+    using Packet_flow<Val_t>::Packet_flow;
+
+    bool s_reload{true};
 
 public:
     /// @brief Set next number as expected
@@ -23,23 +19,10 @@ public:
 
     /// @brief Allow for any number in next turn
     void reload() noexcept;
-
-    Packet_slave() = default;
-    Packet_slave(Packet_slave&&) noexcept;
-    Packet_slave& operator=(Packet_slave&&) noexcept;
-    Packet_slave(const Packet_slave &) = delete;
-    Packet_slave& operator=(const Packet_slave &) = delete;
-    ~Packet_slave() = default;
 };
 
-template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num>
-Val_t Packet_slave<
-    Val_t,
-    min_msg_num,
-    max_msg_num>::num_up(Val_t num)
+template <typename Val_t>
+Val_t Packet_slave<Val_t>::num_up(Val_t num)
 {
     if (s_reload)
     {
@@ -56,27 +39,8 @@ Val_t Packet_slave<
     }
 }
 
-template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num>
-void Packet_slave<
-    Val_t,
-    min_msg_num, 
-    max_msg_num>::reload() noexcept
+template <typename Val_t>
+void Packet_slave<Val_t>::reload() noexcept
 {
     s_reload = true;
-}
-
-template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num>
-inline Packet_slave<Val_t, min_msg_num, max_msg_num>::Packet_slave(Packet_slave &&ps) noexcept
-    : Packet_flow{std::move(ps)}, s_reload{ps.s_reload.load()}
-{
-}
-
-template <typename Val_t, Val_t min_msg_num, Val_t max_msg_num>
-inline Packet_slave<Val_t, min_msg_num, max_msg_num> &Packet_slave<Val_t, min_msg_num, max_msg_num>::operator=(Packet_slave &&ps) noexcept
-    : Packet_slave{std::move(ps)}
-{
-    return *this
 }

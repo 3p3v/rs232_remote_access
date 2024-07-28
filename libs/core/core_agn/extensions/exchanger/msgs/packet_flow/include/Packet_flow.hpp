@@ -1,21 +1,18 @@
 #pragma once
 
 #include <atomic>
+#include <Packet_sett.hpp>
+#include <Packet_val.hpp>
 
 /// @brief Packet number control
-template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename = typename std::enable_if_t<
-        std::is_same_v<Val_t, std::decay_t<Val_t>>>,
-    typename = typename std::enable_if_t<
-        (min_msg_num < max_msg_num)>>
-class Packet_flow
+template <typename Val_t>
+class Packet_flow : public Packet_val<Val_t>
 {
 protected:
-    std::atomic<Val_t> next_num{min_msg_num};
-    std::atomic<std::make_unsigned_t<Val_t>> not_acked{0};
+    const Packet_sett<Val_t> &ps;
+
+    Val_t next_num{ps.min_msg_num};
+    UVal_t not_acked{0};
 
     /// @brief Increment message within range
     /// @param next_n
@@ -37,26 +34,18 @@ public:
     /// @return
     Val_t exp();
 
-    Packet_flow() = default;
+    Packet_flow(const Packet_sett<Val_t> &ps);
     Packet_flow(Packet_flow &&) noexcept;
-    Packet_flow &operator=(Packet_flow &&) noexcept;
+    Packet_flow &operator=(Packet_flow &&) = delete;
     Packet_flow(const Packet_flow &) = delete;
     Packet_flow &operator=(const Packet_flow &) = delete;
-    virtual ~Packet_flow() = default;
+    virtual ~Packet_flow() = 0;
 };
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
+    typename Val_t>
 Val_t Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::num_up_()
+    Val_t>::num_up_()
 {
     Val_t temp = next_num;
 
@@ -64,119 +53,64 @@ Val_t Packet_flow<
     not_acked++;
 
     /*  */
-    if (++next_num > max_msg_num)
+    if (++next_num > ps.max_msg_num)
     {
-        next_num = min_msg_num;
+        next_num = ps.min_msg_num;
     }
 
     return temp;
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
+    typename Val_t>
 inline Val_t Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::num_down_()
+    Val_t>::num_down_()
 {
-    if (--next_num < min_msg_num)
-        next_num = max_msg_num;
+    if (--next_num < ps.min_msg_num)
+        next_num = ps.max_msg_num;
 
     return next_num;
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
+    typename Val_t>
 std::make_unsigned_t<Val_t> Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::get_not_acked()
+    Val_t>::get_not_acked()
 {
     return not_acked;
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
+    typename Val_t>
 void Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::ack(Val_t id)
+    Val_t>::ack(Val_t id)
 {
     not_acked = next_num - id - 1;
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
+    typename Val_t>
 Val_t Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::exp()
+    Val_t>::exp()
 {
     return next_num;
 }
 
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
-inline Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::Packet_flow(Packet_flow &&pf) noexcept
-    : next_num{pf.next_num.load()}, 
-      not_acked{pf.not_acked.load()}
+    typename Val_t>
+inline Packet_flow<Val_t>::Packet_flow(const Packet_sett<Val_t> &ps)
+    : ps{ps}
 {
 }
 
+template <typename Val_t>
+inline Packet_flow<Val_t>::~Packet_flow() = default;
+
 template <
-    typename Val_t,
-    Val_t min_msg_num,
-    Val_t max_msg_num,
-    typename T1,
-    typename T2>
-inline Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2> &
-Packet_flow<
-    Val_t,
-    min_msg_num,
-    max_msg_num,
-    T1,
-    T2>::operator=(Packet_flow &&pf) noexcept
+    typename Val_t>
+inline Packet_flow<Val_t>::Packet_flow(Packet_flow &&pf) noexcept
+    : ps{pf.ps},
+      next_num{pf.next_num},
+      not_acked{pf.not_acked}
 {
-    next_num = pf.next_num.load();
-    not_acked = pf.not_acked.load();
-    
-    return *this;
 }

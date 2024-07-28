@@ -12,6 +12,7 @@
 #include <Mqtt_msg_cont.hpp>
 #include <Packet_slave.hpp>
 #include <Packet_controller.hpp>
+#include <Packet_sett_final.hpp>
 /* Jobs */
 #include <Param_change_notify_job.hpp>
 #include <Param_ready_notify_job.hpp>
@@ -20,7 +21,7 @@
 /**/
 #include <Remote_conf_port_rec.hpp>
 /**/
-#include <atomic>
+#include <mutex>
 #include <functional>
 /**/
 #include <Mqtt_except.hpp>
@@ -48,8 +49,11 @@ namespace Logic
 
     private:
         using Msg_num_type = std::decay_t<decltype(Packet_defs::max_msg_num)>;
-        using Packet_m = Packet_controller<Msg_num_type, Packet_defs::min_msg_num, Packet_defs::max_msg_num, 15>;
-        using Packet_s = Packet_slave<Msg_num_type, Packet_defs::min_msg_num, Packet_defs::max_msg_num>;
+        using Packet_settings = Packet_sett<Msg_num_type>;
+        using Packet_m = Packet_controller<Msg_num_type>;
+        using Packet_s = Packet_slave<Msg_num_type>;
+        using Lock_guard = std::lock_guard<std::mutex>;
+        using Unique_guard = std::unique_lock<std::mutex>;
 
         ////////////////////////////////
         /* Data handled inside object */
@@ -66,9 +70,11 @@ namespace Logic
         Remote_conf_port_rec &remote_rec;
 
         /// @brief Message counter for master
-        Packet_m count_m{};
+        Packet_m count_m{Packet_sett_final::get()};
         /// @brief Message counter for slave
-        Packet_s count_s{};
+        Packet_s count_s{Packet_sett_final::get()};
+        std::mutex count_mutex{};
+        /// @brief Temporary variable
         Msg_num_type msg_id;
 
         std::atomic_bool comm_unlock{false};
@@ -182,6 +188,8 @@ namespace Logic
             Job_policies<>::make_job_handler<Restart_job>(
                 [this](auto &job)
                 {
+                    Lock_guard lock{count_mutex};
+                    
                     /* Clear all timers */
                     timers.clear();
 
@@ -223,12 +231,16 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline void Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::ack(Msg_num_type id)
     {
+        Lock_guard lock{count_mutex};
+        
         count_m.ack(id);
     }
 
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline void Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::send_ack(Msg_num_type id)
     {
+        Lock_guard lock{count_mutex};
+        
         count_s.ack(id);
         remote_s.write_i(
             Packet_defs::packet_ack_s.data(), id,
@@ -254,6 +266,8 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
     inline void Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::resend(Msg_num_type id)
     {
+        Lock_guard lock{count_mutex};
+        
         auto msgs_ids = count_m.get(id);
 
         if (msgs_ids.size() == 0)
@@ -273,7 +287,7 @@ namespace Logic
                     remote_d.write(
                         id,
                         msg.begin(),
-                        msg.begin() + msg.data_len,
+                        msg.begin() + msg.get_len(),
                         [ptr = shared_from_this(),
                         this,
                         id](char, size_t)
@@ -339,6 +353,8 @@ namespace Logic
             {
                 try
                 {
+                    Unique_guard lock{count_mutex};
+                    
                     /* Check number */
                     count_s.num_up(num);
 
@@ -346,6 +362,8 @@ namespace Logic
                     {
                         send_ack(count_s.exp());
                     }
+
+                    lock.unlock();
 
                     /* Write to serial, save callback */
                     serial_d.write(
@@ -364,6 +382,8 @@ namespace Logic
                 catch (const std::logic_error &)
                 {
                     notyfier.debug("Received wrong packet number: " + std::to_string(num) + "...");
+
+                    Lock_guard lock{count_mutex};
 
                     /* Ask for packet with expected number */
                     ask_to_resend(count_s.exp());
@@ -416,10 +436,14 @@ namespace Logic
         {
             if (auto p = ptr.lock() && serial_to_remote())
             {
+                Unique_guard lock{count_mutex};
+                
                 /* Retrive buffers of newly created message */
                 auto &old_msg = count_m[msg_id];
                 /* Set message length */
-                old_msg.data_len = msg_end - msg_begin;
+                old_msg.set_len(msg_end - msg_begin);
+
+                lock.unlock();
 
                 /* Send MQTT message */
                 remote_d.write(
@@ -430,6 +454,8 @@ namespace Logic
                      this,
                      callb = std::forward<decltype(callb)>(callb)](char, size_t)
                     {
+                        Lock_guard lock{count_mutex};
+                        
                         /* Mark last message as unused */
                         count_m[msg_id].unused();
 
@@ -495,27 +521,6 @@ namespace Logic
 
         return std::make_tuple(msg_begin, msg_end, std::move(ok_callb), std::move(ec_callb));
     }
-
-    // template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
-    // inline Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::Exchanger(Exchanger &&e) noexcept
-    //     : Common_ext{std::move(e)},
-    //       remote_s{std::move(e.remote_s)},
-    //       remote_d{std::move(e.remote_d)},
-    //       serial_d{std::move(e.serial_d)},
-    //       remote_rec{e.remote_rec},
-    //       count_m{std::move(e.count_m)},
-    //       count_s{std::move(e.count_s)},
-    //       comm_unlock{e.comm_unlock.load()}
-    // {
-    // }
-
-    // template <typename Timer_t, typename Remote_sett_impl, typename Remote_side_impl, typename Serial_side_impl>
-    // inline Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl> &
-    // Exchanger<Timer_t, Remote_sett_impl, Remote_side_impl, Serial_side_impl>::operator=(Exchanger &&e) noexcept
-    //     : Exchanger{std::move(e)}
-    // {
-    //     return *this;
-    // }
 
     template <
         typename Timer_t,

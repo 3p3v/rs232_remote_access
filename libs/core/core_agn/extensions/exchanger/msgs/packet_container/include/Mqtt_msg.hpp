@@ -4,36 +4,44 @@
 #include <atomic>
 #include <cstddef>
 
-class Mqtt_msg_cont_base;
-
+template <typename Val_t>
+class Mqtt_msg_cont;
 template <typename Val_t = unsigned char>
 class Mqtt_msg
 {
+    friend Mqtt_msg_cont<Val_t>;
+
 public:
     static constexpr size_t max_size{1300};
 
     using Cont_t = std::array<unsigned char, max_size>;
 
-public:
-    friend Mqtt_msg_cont_base;
-
+private:
     Cont_t data;
     size_t data_len;
     Val_t id_;
     /// @brief If data is safe to be freed 
-    std::atomic_bool freed{true};
+    bool freed{true};
     /// @brief If data is being changed now 
-    std::atomic_bool used{false};
+    bool used{false};
     /// @brief If contains information that is not garbage
-    std::atomic_bool inited{false};
+    bool inited{false};
 
 public:
+    /* Getters */
     typename Cont_t::iterator begin() noexcept;
     typename Cont_t::iterator end() noexcept;
-    void len(size_t len) noexcept;
+    Val_t id() const noexcept;
+    bool if_freed();
+    bool if_used();
+    bool if_inited();
+    size_t get_len();
+
+    /* Setters */
+    void set_len(size_t len) noexcept;
     void unused() noexcept;
     void uninit() noexcept;
-    Val_t id() const noexcept;
+
     bool operator==(const Mqtt_msg<Val_t>& msg) const noexcept;
     bool operator==(const Val_t& id) const noexcept;
 
@@ -58,7 +66,7 @@ typename Mqtt_msg<Val_t>::Cont_t::iterator Mqtt_msg<Val_t>::end() noexcept
 }
 
 template <typename Val_t>
-void Mqtt_msg<Val_t>::len(size_t len) noexcept
+void Mqtt_msg<Val_t>::set_len(size_t len) noexcept
 {
     data_len = len;
 }
@@ -82,6 +90,30 @@ Val_t Mqtt_msg<Val_t>::id() const noexcept
 }
 
 template <typename Val_t>
+inline bool Mqtt_msg<Val_t>::if_freed()
+{
+    return freed;
+}
+
+template <typename Val_t>
+inline bool Mqtt_msg<Val_t>::if_inited()
+{
+    return inited;
+}
+
+template <typename Val_t>
+inline size_t Mqtt_msg<Val_t>::get_len()
+{
+    return data_len;
+}
+
+template <typename Val_t>
+inline bool Mqtt_msg<Val_t>::if_used()
+{
+    return used;
+}
+
+template <typename Val_t>
 bool Mqtt_msg<Val_t>::operator==(const Mqtt_msg<Val_t> & msg) const noexcept
 {
     return id_ == msg.id_;
@@ -98,9 +130,9 @@ inline Mqtt_msg<Val_t>::Mqtt_msg(Mqtt_msg &&m) noexcept
     : data{std::move(m.data)}, 
       data_len{m.data_len}, 
       id_{m.id_}, 
-      freed{m.freed.load()},
-      used{m.used.load()},
-      inited{m.inited.load()}
+      freed{m.freed},
+      used{m.used},
+      inited{m.inited}
 {
 }
 
