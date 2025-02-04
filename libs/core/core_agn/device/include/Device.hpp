@@ -1,72 +1,56 @@
 #pragma once
 
 #include <memory>
-/*  */
-#include <Device_prereq.hpp>
-/* Dummy interface objects */
-#include <Mqtt_settings_connect.hpp>
-#include <Mqtt_side_connect.hpp>
-#include <Serial_side_connect.hpp>
-/* Extensions */
-#include <Logic.hpp>
-#include <Setter.hpp>
-#include <Exchanger.hpp>
 
+#include <Device_prereq.hpp>
+#include <Timer_cont.hpp>
 
 namespace Logic
 {
     /// @brief Representation of class contains all extensions and other objects
     ///        needed to communicate between serial and remote device in respect to protocol
-    /// @tparam Timer_impl_t Timer implementation
+    /// @tparam Timer_factory_t Timer implementation
     /// @tparam Remote_impl_t Remote implementation
     /// @tparam Serial_impl_t Serial implementation
     template <
-        typename Timer_impl_t,
+        typename Timer_factory_t,
         typename Remote_impl_t,
         typename Serial_impl_t>
-    class Device : public Device_prereq
+    class Device : public Device_prereq, std::enable_shared_from_this
     {
-        /**************************** Definitions ****************************/
-    private:
-        /* Extensions */
-        using Logic_ext = Logic<
-            Timer_impl_t,
-            Remote_impl_t>;
-        using Setter_ext = Setter<
-            Timer_impl_t,
-            Remote_impl_t,
-            Serial_impl_t>;
-        using Exchanger_ext = Exchanger<
-            Timer_impl_t,
-            Remote_impl_t,
+        using Device_type = Device<
+            Timer_factory_t,
             Remote_impl_t,
             Serial_impl_t>;
 
-    private:
+    public:
         Remote_impl_t remote;
         Serial_impl_t serial;
 
-        /// @brief Forwarding commands from remote to interpreter
-        Mqtt_settings_connect<Remote_impl_t> remote_sc;
+        void start();
+        void restart();
 
-    public:
+        std::shared_ptr<Device_prereq> get_shared();
+        std::weak_ptr<Device_prereq> get_weak();
+
+        Timer_factory_t make_timer() noexcept;
+
         /// @brief 
         /// @tparam Device_ptr_t 
         /// @tparam Remote_impl_ptr_t 
         /// @tparam Serial_impl_ptr_t 
-        /// @param notyfier 
+        /// @param notifier 
         /// @param dev 
         /// @param rec 
         /// @param remote 
         /// @param serial 
         template <
-            typename Device_ptr_t,
             typename Remote_impl_ptr_t,
             typename Serial_impl_ptr_t>
         Device(
-            Notyfier &&notyfier,
-            Device_ptr_t &&dev,
+            Notifier &&notifier,
             Remote_dev &&rec,
+            std::unique_ptr<Proto_module>&& exchanger,
             Remote_impl_ptr_t &&remote,
             Serial_impl_ptr_t &&serial);
 
@@ -78,61 +62,55 @@ namespace Logic
     };
 
     template <
-        typename Timer_impl_t,
+        typename Timer_factory_t,
         typename Remote_impl_t,
         typename Serial_impl_t>
-    template <
-        typename Device_ptr_t,
-        typename Remote_impl_ptr_t,
-        typename Serial_impl_ptr_t>
-    inline Device<
-        Timer_impl_t,
+    inline std::shared_ptr<Device_prereq> 
+    Device<
+        Timer_factory_t,
         Remote_impl_t,
-        Serial_impl_t>::Device(
-            Notyfier &&notyfier_,
-            Device_ptr_t &&dev_,
-            Remote_dev &&rec__,
-            Remote_impl_ptr_t &&remote_,
-            Serial_impl_ptr_t &&serial_)
-        : Device_prereq{std::move(notyfier_), std::forward<Device_ptr_t>(dev_), std::move(rec__)},
-          remote{std::forward<Remote_impl_ptr_t>(remote_)},
-          serial{std::forward<Serial_impl_ptr_t>(serial_)},
-          remote_sc{remote}
+        Serial_impl_t>::get_shared()
     {
-        /* Add Logic extension */
-        manager.add_ext<Logic_ext>(
-            Forwarder{manager.ext_forwarder}, 
-            Notyfier{notyfier}, 
-            dev, 
-            remote, 
-            rec_);
+        return shared_from_this();
+    }
 
-        /* Add Setter extension */
-        manager.add_ext<Setter_ext>(
-            Forwarder{manager.ext_forwarder}, 
-            Notyfier{notyfier}, 
-            dev, 
-            remote, 
-            serial, 
-            rec_);
+    template <
+        typename Timer_factory_t,
+        typename Remote_impl_t,
+        typename Serial_impl_t>
+    inline std::weak_ptr<Device_prereq> 
+    Device<
+        Timer_factory_t,
+        Remote_impl_t,
+        Serial_impl_t>::get_weak()
+    {
+        return weak_from_this();
+    }
 
-        /* Create Exchanger extension */
-        auto exchanger = Exchanger_ext::make(
-            Forwarder{manager.ext_forwarder},
-            Notyfier{notyfier},
-            dev,
-            remote,
-            remote,
-            remote,
-            serial,
-            serial,
-            rec_);
+    template <
+        typename Timer_factory_t,
+        typename Remote_impl_t,
+        typename Serial_impl_t>
+    inline auto 
+    Device<
+        Timer_factory_t,
+        Remote_impl_t,
+        Serial_impl_t>::make_timer() noexcept
+    {
+        return Timer_factory_t::make_timer();
+    }
 
-        /* Add to manager */
-        manager.add_ext(std::move(exchanger));
-
+    template <
+        typename Timer_factory_t,
+        typename Remote_impl_t,
+        typename Serial_impl_t>
+    inline Device<
+        Timer_factory_t,
+        Remote_impl_t,
+        Serial_impl_t>::start()
+    {
         /* Connect to settings topic */
-        remote_sc.connect(
+        remote.connect(
             /* Callback used when receiving message */
             [this, ptr = dev](auto begin, auto end, auto callb)
             {
@@ -150,5 +128,47 @@ namespace Logic
             {
                 // TODO send error to monitor
             });
+
+        /* Connect to data channels */
+        // TODO
+    }
+
+    template <
+        typename Timer_factory_t,
+        typename Remote_impl_t,
+        typename Serial_impl_t>
+    inline Device<
+        Timer_factory_t,
+        Remote_impl_t,
+        Serial_impl_t>::restart()
+    {
+        timer_man.clear();
+        exchanger->restart();
+        device.rec.status = Remote_status::Disconnected;
+        /* Try to greet the remote */
+        
+    }
+
+    template <
+        typename Timer_factory_t,
+        typename Remote_impl_t,
+        typename Serial_impl_t>
+    template <
+        typename Remote_impl_ptr_t,
+        typename Serial_impl_ptr_t>
+    inline Device<
+        Timer_factory_t,
+        Remote_impl_t,
+        Serial_impl_t>::Device(
+            Notifier &&notifier_,
+            Remote_dev &&rec__,
+            std::unique_ptr<Proto_module>&& exchanger,
+            Remote_impl_ptr_t &&remote_,
+            Serial_impl_ptr_t &&serial_)
+        : Device_prereq{std::move(notifier_), std::move(rec__), std::move(exchanger)},
+          remote{std::forward<Remote_impl_ptr_t>(remote_)},
+          serial{std::forward<Serial_impl_ptr_t>(serial_)}
+    {
+        
     }
 }

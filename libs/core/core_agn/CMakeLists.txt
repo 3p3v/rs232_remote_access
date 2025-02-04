@@ -12,6 +12,7 @@ add_subdirectory("./defs/")
 add_subdirectory("./ext_management/")
 add_subdirectory("./user_controller/")
 add_subdirectory("./device/")
+add_subdirectory("./proto/")
 
 # Link all modules
 target_link_libraries(${PROJECT_NAME} INTERFACE
@@ -23,4 +24,5 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
     ext_management
     device
     notyfier
+    proto
 )

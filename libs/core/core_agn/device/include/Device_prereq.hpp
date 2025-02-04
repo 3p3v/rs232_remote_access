@@ -1,49 +1,50 @@
 #pragma once
 
-/* Device and extension management */
-#include <Process_full.hpp>
-#include <User_controller.hpp>
+#include <Notyfier.hpp>
 #include <Remote_dev.hpp>
-/* Dummy for assurence that object exists as long as operations need it */
-#include <Device_base.hpp>
+#include <Ctrl_console.hpp>
+#include <Proto_module.hpp>
+#include <Greeter.hpp>
+/* Message count */
+#include <Packet_defs.hpp>
+#include <Packet_master.hpp>
+#include <Mqtt_msg_cont.hpp>
+#include <Packet_slave.hpp>
+#include <Packet_controller.hpp>
+#include <Packet_sett_final.hpp>
 
 namespace Logic
 {
     /// @brief Dummy for storing in container
     class Device_prereq
     {
-    public:
-        using Device_weak_ptr = std::weak_ptr<Device_base>;
+    protected:///???? TODO move??
+        /// @brief Exchanger module
+        std::unique_ptr<Proto_module> exchanger; // TODO: make mediator??
 
-    protected:
-        /// @brief User notyfication
-        Notyfier notyfier;
+        std::unique_ptr<Greeter> greeter; // TODO: make mediator??
+
+    public:
+        /// @brief Timer manager
+        Timer_cont timer_man;
+
+        /// @brief User notification
+        Notifier notifier;
 
         /// @brief Device record
-        Remote_dev rec_;
+        Remote_dev rec;
 
-        /// @brief Pointer to device holder (Device_base / Device_initializer)
-        Device_weak_ptr dev;
-
-        /// @brief Extension management
-        Process_full manager{};
-
-    public:
-        /// @brief Control over device connection parameters ect.
-        User_controller cont{manager.ext_forwarder};
-
-        /// @brief Current settings and status
-        const Remote_dev &rec{rec_};
+        /// @brief Container for all commands
+        Cmd_ctrl::Ctrl_console cmds;
 
         /// @brief 
         /// @tparam Device_ptr_t Device_weak_ptr
-        /// @param notyfier User notyfication
+        /// @param notifier User notification
         /// @param dev Pointer to device holder (Device_base / Device_initializer)
         /// @param rec Device record object
         template <typename Device_ptr_t>
         Device_prereq(
-            Notyfier &&notyfier,
-            Device_ptr_t &&dev,
+            Notifier &&notifier,
             Remote_dev &&rec);
 
         Device_prereq(Device_prereq &&) = default;
@@ -53,14 +54,13 @@ namespace Logic
         virtual ~Device_prereq() = default;
     };
 
-    template <typename Device_ptr_t>
     Device_prereq::Device_prereq(
-        Notyfier &&notyfier,
-        Device_ptr_t &&dev,
-        Remote_dev &&rec)
-        : notyfier{std::move(notyfier)},
-          dev(std::forward<Device_ptr_t>(dev)),
-          rec_(std::move(rec))
+        Notifier &&notifier,
+        Remote_dev &&rec,
+        std::unique_ptr<Proto_module>&& exchanger)
+        : notifier{std::move(notifier)},
+          rec_(std::move(rec)),
+          exchanger{std::move(exchanger)}
     {
     }
 }

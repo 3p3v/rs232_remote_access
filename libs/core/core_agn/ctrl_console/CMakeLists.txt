@@ -4,12 +4,10 @@ set(CTRL_CONSOLE_TESTS ctrl_console_tests)
 
 add_library(${PROJECT_NAME} STATIC
             # Ctrl_console
-            # Job_ctrl
-            job_ctrl/src/Job.cpp
-            job_ctrl/src/Worker.cpp
-            job_ctrl/src/Worker_storage.cpp
-            job_ctrl/src/Storage.cpp
-            job_ctrl/src/Ws_ext.cpp
+            ctrl_console/src/Base_ctrl_console.cpp
+            ctrl_console/src/Ctrl_con_exec.cpp
+            ctrl_console/src/Ctrl_con_storage.cpp
+            ctrl_console/src/Ctrl_console.cpp
             # Policies
             policies/src/Numbers_only.cpp
             policies/src/Alpha_only.cpp
@@ -32,11 +30,6 @@ if(${BUILD_TESTING} true)
     add_executable(${CTRL_CONSOLE_TESTS} 
         # base ctrl console
         "./unit_tests/ctrl_console/Base_ctrl_console_test.cpp"
-        # jobs
-        "./unit_tests/job_ctrl/Job_test.cpp"
-        "./unit_tests/job_ctrl/Job_handler_test.cpp"
-        "./unit_tests/job_ctrl/Worker_test.cpp"
-        "./unit_tests/job_ctrl/Manager_test.cpp"
         # policies
         "./unit_tests/policies/Numbers_only_test.cpp"
         "./unit_tests/policies/Alpha_only_test.cpp"

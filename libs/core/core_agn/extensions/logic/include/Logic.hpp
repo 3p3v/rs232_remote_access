@@ -38,7 +38,7 @@ namespace Logic
 
     private:
         // /// @brief For setting action timeouts
-        // using Timers = Timer_cont;
+        // using device.timer_man = Timer_cont;
 
         ////////////////////////////////
         /* Data handled inside object */
@@ -52,10 +52,10 @@ namespace Logic
         Remote_settings remote_s;
 
         /// @brief Remote state
-        Remote_status_record &remote_rec;
+        Remote_status_record &device.rec;
 
         // /// @brief For setting action timeouts
-        // Timers timers;
+        // device.timer_man device.timer_man;
 
         /////////////////
         /* Jobs to add */
@@ -105,7 +105,7 @@ namespace Logic
         //////////////////
     private:
         // /// @brief
-        // void clear_timers();
+        // void clear_device.timer_man();
         /// @brief
         void say_hi_keep_alive_compl();
         /// @brief
@@ -127,10 +127,10 @@ namespace Logic
             typename Remote_settings_t>
         Logic(
             Forwarder &&manager,
-            Notyfier &&notyfier,
+            notifier &&notifier,
             Device_weak_ptr_t &&device_ptr,
             Remote_settings_t &&remote_s,
-            Remote_status_record &remote_rec);
+            Remote_status_record &device.rec);
 
         Logic(Logic &&) = delete;
         Logic &operator=(Logic &&) = delete;
@@ -149,13 +149,13 @@ namespace Logic
         typename Remote_settings_t>
     inline Logic<Timer_t, Remote_sett_impl>::Logic(
         Forwarder &&manager,
-        Notyfier &&notyfier,
+        notifier &&notifier,
         Device_weak_ptr_t &&device_ptr,
         Remote_settings_t &&remote_s,
-        Remote_status_record &remote_rec)
-        : Common_ext{std::move(manager), std::move(notyfier), std::forward<Device_weak_ptr_t>(device_ptr)},
+        Remote_status_record &device.rec)
+        : Common_ext{std::move(manager), std::move(notifier), std::forward<Device_weak_ptr_t>(device_ptr)},
           remote_s{std::forward<Remote_settings_t>(remote_s)},
-          remote_rec{remote_rec}
+          device.rec{device.rec}
     {
         add_restart_job();
         add_start_job();
@@ -173,18 +173,18 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::add_restart_job()
     {
-        // Add job for resetting all timers (used when there was error in communication with device)
+        // Add job for resetting all device.timer_man (used when there was error in communication with device)
         override_handler(
             Job_type::Urgent,
             Job_policies<>::make_job_handler<Restart_job>(
                 [this](auto &job)
                 {
-                    notyfier.debug("Rebooting connection...");
+                    notifier.debug("Rebooting connection...");
 
-                    /* Clear all timers */
-                    timers.clear();
+                    /* Clear all device.timer_man */
+                    device.timer_man.clear();
 
-                    remote_rec.status = Remote_status::Disconnected;
+                    device.rec.status = Remote_status::Disconnected;
 
                     /* Say hi */
                     say_hi_();
@@ -199,10 +199,10 @@ namespace Logic
             Job_policies<>::make_job_handler<Start_job>(
                 [this](auto &&job)
                 {
-                    if (remote_rec.status == Remote_status::Not_connected ||
-                        remote_rec.status == Remote_status::Disconnected)
+                    if (device.rec.status == Remote_status::Not_connected ||
+                        device.rec.status == Remote_status::Disconnected)
                     {
-                        notyfier.debug("Starting connection...");
+                        notifier.debug("Starting connection...");
 
                         /* Say hi */
                         say_hi_();
@@ -222,17 +222,17 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_change_notify_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec.status == Remote_status::Data_exchange ||
-                        remote_rec.status == Remote_status::Establishing_parameters)
+                    if (device.rec.status == Remote_status::Data_exchange ||
+                        device.rec.status == Remote_status::Establishing_parameters)
                     {
-                        notyfier.debug("Forced changing connection parameters...");
+                        notifier.debug("Forced changing connection parameters...");
 
                         /* Reestablishing connection parameters */
-                        remote_rec.status = Remote_status::Establishing_parameters;
+                        device.rec.status = Remote_status::Establishing_parameters;
                     }
                     else
                     {
-                        notyfier.debug("Cannot change connection parameters in this connection stage...");
+                        notifier.debug("Cannot change connection parameters in this connection stage...");
                     }
                 }));
     }
@@ -245,10 +245,10 @@ namespace Logic
             Job_policies<>::make_job_handler<Param_ready_notify_job>(
                 [this](auto &job)
                 {
-                    if (remote_rec.status == Remote_status::Establishing_parameters)
+                    if (device.rec.status == Remote_status::Establishing_parameters)
                     {
                         /* Starting data exchange */
-                        remote_rec.status = Remote_status::Data_exchange;
+                        device.rec.status = Remote_status::Data_exchange;
                     }
                     else
                     {
@@ -272,15 +272,15 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_()
     {
-        notyfier.debug("Welcoming the device...");
+        notifier.debug("Welcoming the device...");
 
-        if (remote_rec.conf_port == Remote_conf_port::Configurable)
+        if (device.rec.conf_port == Remote_conf_port::Configurable)
         {
             remote_s.write_s(
                 Hi_defs::master_hi_s.data(),
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    timers.start_timer(
+                    device.timer_man.start_timer(
                         Hi_defs::slave_hi_s.data(),
                         Timer_t::make_timer(
                             [serial_ctrl = shared_from_this(), this]()
@@ -297,7 +297,7 @@ namespace Logic
                 Hi_defs::master_keep_alive_s.data(),
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    timers.start_timer(
+                    device.timer_man.start_timer(
                         Hi_defs::slave_keep_alive_s.data(),
                         Timer_t::make_timer(
                             [serial_ctrl = shared_from_this(), this]()
@@ -314,7 +314,7 @@ namespace Logic
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_timeout_()
     {
         /* Inform about error */
-        notyfier.error(Timeout_except{"Saying hi timed out..."});
+        notifier.error(Timeout_except{"Saying hi timed out..."});
         
         /* Reset */
         reset_exts_job();
@@ -370,7 +370,7 @@ namespace Logic
                 Command::Policies<No_arg>::Dyn_handle(
                     [this](const std::string &arg)
                     {
-                        notyfier.error(Disconnect_except{"Server sent device disconnected!"});
+                        notifier.error(Disconnect_except{"Server sent device disconnected!"});
                         
                         /* Reset */
                         reset_exts_job();
@@ -382,9 +382,9 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_master_keep_alive()
     {
-        notyfier.debug("Waiting for keep alive from the device...");
+        notifier.debug("Waiting for keep alive from the device...");
 
-        timers.start_timer(
+        device.timer_man.start_timer(
             Hi_defs::slave_keep_alive_s.data(),
             Timer_t::make_timer(
                 [serial_ctrl = shared_from_this(), this]()
@@ -397,18 +397,18 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_master_hi()
     {
-        if (remote_rec.conf_port == Remote_conf_port::Configurable)
+        if (device.rec.conf_port == Remote_conf_port::Configurable)
         {
-            notyfier.error(Logic_except{"Another master operating on the same channel..."});
-            notyfier.error(Logic_except{"Reseting connection..."});
+            notifier.error(Logic_except{"Another master operating on the same channel..."});
+            notifier.error(Logic_except{"Reseting connection..."});
 
             reset_exts_job();
         }
         else
         {
-            notyfier.debug("Master reseted the connection...");
+            notifier.debug("Master reseted the connection...");
 
-            timers.start_timer(
+            device.timer_man.start_timer(
                 Hi_defs::slave_hi_s.data(),
                 Timer_t::make_timer(
                     [serial_ctrl = shared_from_this(), this]()
@@ -422,29 +422,29 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_compl()
     {
-        timers.stop_timer(Hi_defs::slave_hi_s.data());
+        device.timer_man.stop_timer(Hi_defs::slave_hi_s.data());
 
-        if (remote_rec.status == Remote_status::Not_connected || remote_rec.status == Remote_status::Disconnected)
+        if (device.rec.status == Remote_status::Not_connected || device.rec.status == Remote_status::Disconnected)
         {
             /* Change status */
-            remote_rec.status = Remote_status::Establishing_parameters;
+            device.rec.status = Remote_status::Establishing_parameters;
 
             /* Start establishing parameters */
-            if (remote_rec.conf_port == Remote_conf_port::Configurable)
+            if (device.rec.conf_port == Remote_conf_port::Configurable)
             {
-                notyfier.debug("Establishing connection parameters...");
+                notifier.debug("Establishing connection parameters...");
 
                 get_set_param_job();
             }
             else
             {
-                notyfier.debug("Waiting for master to establish connection parameters...");
+                notifier.debug("Waiting for master to establish connection parameters...");
             }
         }
-        else if (remote_rec.conf_port == Remote_conf_port::Configurable)
+        else if (device.rec.conf_port == Remote_conf_port::Configurable)
         {
-            notyfier.debug("Bad sequence...");
-            notyfier.debug("Rebooting...");
+            notifier.debug("Bad sequence...");
+            notifier.debug("Rebooting...");
 
             restart_job();
         }
@@ -453,18 +453,18 @@ namespace Logic
     template <typename Timer_t, typename Remote_sett_impl>
     inline void Logic<Timer_t, Remote_sett_impl>::say_hi_keep_alive_compl()
     {
-        notyfier.debug("Keep alive received...");
+        notifier.debug("Keep alive received...");
 
-        timers.stop_timer(Hi_defs::slave_keep_alive_s.data());
+        device.timer_man.stop_timer(Hi_defs::slave_keep_alive_s.data());
 
-        if (remote_rec.conf_port == Remote_conf_port::Non_configurable &&
-                remote_rec.status == Remote_status::Not_connected ||
-            remote_rec.status == Remote_status::Disconnected)
+        if (device.rec.conf_port == Remote_conf_port::Non_configurable &&
+                device.rec.status == Remote_status::Not_connected ||
+            device.rec.status == Remote_status::Disconnected)
         {
-            notyfier.debug("Reading connection parameters...");
+            notifier.debug("Reading connection parameters...");
 
             /* Change status */
-            remote_rec.status = Remote_status::Establishing_parameters;
+            device.rec.status = Remote_status::Establishing_parameters;
 
             /* Start establishing parameters */
             get_set_param_job();

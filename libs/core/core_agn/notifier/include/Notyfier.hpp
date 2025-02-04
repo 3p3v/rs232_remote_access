@@ -25,4 +25,6 @@ namespace Logic
         Notyfier(Dev_num dev, const Notyfication_forwarder &forwarder);
         Notyfier(Dev_num dev, Worker_storage &ws);
     };
+
+    using Notifier = Notyfier;
 }

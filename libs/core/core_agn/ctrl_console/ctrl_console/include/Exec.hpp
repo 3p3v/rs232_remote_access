@@ -1,64 +1,56 @@
 #pragma once
 
+#include <string>
+
 namespace Cmd_ctrl
 {
-    /// @brief Set parameters used by command type
-    /// @tparam ...Args_t
-    template <typename... Args_t>
-    class Exec
+    class Base_exec
     {
     public:
-        template <typename Arg>
-        class Param
-        {
-        public:
-            class Base_handle_intf
-            {
-            public:
-                virtual bool validate(const Arg &arg) const = 0;
-                virtual void exec(Args_t... args, Arg arg) const = 0;
-            };
+        virtual bool validate(const std::string &arg) const = 0;
+        virtual void exec(std::string &&arg) const = 0;
 
-            /// @brief Set policies checking validity of received argument
-            /// @tparam ...Policies_t Classes implementing "static bool validate_t(const std::string &arg)" method
-            template <typename... Policies_t>
-            class Policies
-            {
-            public:
-                class Base_handle : public Base_handle_intf
-                {
-                public:
-                    /// @brief Argument type for handler
-                    using Arg = Arg;
-
-                    bool validate(const Arg &arg) const override final
-                    {
-                        return (Policies_t::validate_t(arg) && ...);
-                    }
-                };
-
-                /// @brief Defines handler used when command was succesfully validated
-                /// @tparam Handle_f handler
-                template <typename Handle_f>
-                class Dyn_handle final : public Base_handle
-                {
-                    Handle_f handle;
-
-                public:
-                    Dyn_handle(Handle_f &&handle)
-                        : handle{std::move(handle)}
-                    {
-                    }
-
-                    void exec(Args_t... args, Arg arg) const override
-                    {
-                        handle(std::forward<Args_t>(args)..., std::forward<Arg>(arg));
-                    }
-                };
-
-                template <typename Handle_f>
-                Dyn_handle(Handle_f &&) -> Dyn_handle<Handle_f>;
-            };
-        };
+        Base_exec() = default;
+        Base_exec(Base_exec &&) noexcept = default;
+        Base_exec(const Base_exec &) = default;
+        Base_exec &operator=(Base_exec &&) noexcept = default;
+        Base_exec &operator=(const Base_exec &) = default;
+        virtual ~Base_exec() = default;
     };
+
+    template <typename... Policies_t>
+    class Exec : public Base_exec
+    {
+    public:
+        bool validate(const std::string &arg) const override final;
+    };
+
+    template <typename Handle_t, typename... Policies_t>
+    class Exec_d final : public Exec<Policies_t...>
+    {
+        Handle_t handle;
+
+    public:
+        Exec_d(Handle_t &&handle);
+
+        void exec(std::string &&arg) const override;
+    };
+
+    template <typename... Policies_t>
+    bool Exec<Policies_t...>::validate(const std::string &arg) const
+    {
+        return (Policies_t::validate_t(arg) && ...);
+    }
+
+    template <typename Handle_t, typename... Policies_t>
+    Exec_d<Handle_t, Policies_t...>::Exec_d(Handle_t &&handle)
+        : handle{std::move(handle)}
+    {
+    }
+
+    template <typename Handle_t, typename... Policies_t>
+    void Exec_d<Handle_t, Policies_t...>::exec(std::string &&arg) const
+    {
+        handle(std::forward<std::string>(arg));
+    }
 }
