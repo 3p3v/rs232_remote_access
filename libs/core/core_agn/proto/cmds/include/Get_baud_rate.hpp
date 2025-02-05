@@ -29,10 +29,10 @@ namespace Logic
         typename Device_t>
     inline void Get_baud_rate<Device_t>::exec(std::string &&arg) const
     {
-        device.timer_man.stop_timer(std::string{Get_defs::get_baud_rate_s});
+        device.helpers.timer_man.stop_timer(std::string{Get_defs::get_baud_rate_s});
         auto arg_ = Set_defs::baud_rate_trans(arg);
-        device.rec.port_settings.baud_rate = arg_;
-        device.serial_s.set_baud_rate(arg_);
+        device.helpers.rec.port_settings.baud_rate = arg_;
+        device.helpers.serial_s.set_baud_rate(arg_);
         /* Lock commands */
         goto_exchange();
     }

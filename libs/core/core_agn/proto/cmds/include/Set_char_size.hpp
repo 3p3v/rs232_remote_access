@@ -29,7 +29,7 @@ namespace Logic
         typename Device_t>
     inline void Set_char_size<Device_t>::exec(std::string &&arg) const
     {
-        device.notifier.debug("Received request to change char size...");
+        device.helpers.notifier.debug("Received request to change char size...");
         wait(Get_defs::get_char_size_s.data());
     }
 }

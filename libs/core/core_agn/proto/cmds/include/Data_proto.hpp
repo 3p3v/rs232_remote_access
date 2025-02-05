@@ -1,7 +1,8 @@
 #pragma once
 
-#include <Proto.hpp>
+#include <Proto_cmd.hpp>
 #include <Exchanger.hpp>
+#include <Packet_defs.hpp>
 
 namespace Logic
 {
@@ -11,7 +12,7 @@ namespace Logic
         typename Device_t,
         typename... Policies_t>
     class Data_proto
-        : Proto<
+        : Proto_cmd<
               Device_t,
               ... Policies_t>
     {

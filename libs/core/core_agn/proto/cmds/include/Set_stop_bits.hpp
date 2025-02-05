@@ -28,7 +28,7 @@ namespace Logic
         typename Device_t>
     inline void Set_stop_bits<Device_t>::exec(std::string &&arg) const
     {
-        device.notifier.debug("Received request to change stop bits...");
+        device.helpers.notifier.debug("Received request to change stop bits...");
         wait(Get_defs::get_baud_rate_s.data());
     }
 }

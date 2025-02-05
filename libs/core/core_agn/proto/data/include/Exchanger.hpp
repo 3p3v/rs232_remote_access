@@ -11,15 +11,20 @@
 
 namespace Logic
 {
-    template <
-        typename Device_t>
-    class Exchanger final : public Proto_module
+    class Base_exchager : public Base_proto_module
+    {
+    public:
+        virtual void start() = 0;
+        virtual void unlock() = 0;
+    }
+    
+    template <typename Device_t>
+    class Exchanger final : public Proto_module<Device_t>
     {
         using Msg_num_type = Packet_defs::Val_t;
         using Packet_m = Packet_controller<Msg_num_type>;
         using Packet_s = Packet_slave<Msg_num_type>;
 
-    private:
         /// @brief Message counter for master
         Packet_m count_m{Packet_sett_final::get()};
         /// @brief Message counter for slave
@@ -61,20 +66,28 @@ namespace Logic
         /// @brief Delete messages after receiving ack
         void ack(Msg_num_type id);
 
+        /// @brief Start data communication
+        void start() override;
+
+        /// @brief Unlock data communication
+        void unlock() override;
+        
         /// @brief Restart data communication
         void restart() override;
+
+        using Proto_module<Device_t>::Proto_module;
     };
 
     template <typename Device_t>
     inline bool Exchanger<Device_t>::remote_to_serial()
     {
-        return comm_unlock.load();
+        return comm_unlock;
     }
 
     template <typename Device_t>
     inline bool Exchanger<Device_t>::serial_to_remote()
     {
-        return remote_rec.conf_port == Remote_conf_port::Configurable && comm_unlock.load();
+        return device.helpers.rec.conf_port == Remote_conf_port::Configurable && comm_unlock;
     }
 
     template <typename Device_t>
@@ -87,24 +100,24 @@ namespace Logic
     inline void Exchanger<Device_t>::send_ack(Msg_num_type id)
     {
         count_s.ack(id);
-        remote_s.write_i(
+        remote.write_i(
             Packet_defs::packet_ack_s.data(), id,
             []() {},
             [ptr = shared_from_this(), this](const auto &e)
             {
-                device.notifier.error(e);
+                device.helpers.notifier.error(e);
             });
     }
 
     template <typename Device_t>
     inline void Exchanger<Device_t>::ask_to_resend(Msg_num_type id)
     {
-        remote_s.write_i(
+        device.helpers.remote.write_i(
             Packet_defs::invalid_number_s.data(), id,
             []() {},
             [ptr = shared_from_this(), this](const auto &e)
             {
-                device.notifier.error(e);
+                device.helpers.notifier.error(e);
             });
     }
 
@@ -115,7 +128,7 @@ namespace Logic
 
         if (msgs_ids.size() == 0)
         {
-            device.notifier.error(Data_loss_except{"Cannot resend requested packet!"});
+            device.helpers.notifier.error(Data_loss_except{"Cannot resend requested packet!"});
         }
         else
         {
@@ -140,7 +153,7 @@ namespace Logic
                         },
                         [ptr = shared_from_this(), this](const auto &e)
                         {
-                            device.notifier.error(e);
+                            device.helpers.notifier.error(e);
                         });
                 });
         }
@@ -155,9 +168,7 @@ namespace Logic
             if (auto p = ptr.lock() && remote_to_serial())
             {
                 try
-                {
-                    Unique_guard lock{count_mutex};
-                    
+                {                    
                     /* Check number */
                     count_s.num_up(num);
 
@@ -169,7 +180,7 @@ namespace Logic
                     lock.unlock();
 
                     /* Write to serial, save callback */
-                    serial_d.write(
+                    serial.write(
                         begin,
                         end,
                         [ptr = std::move(p), callb = std::forward<decltype(callb)>(callb)](size_t)
@@ -179,12 +190,12 @@ namespace Logic
                         },
                         [ptr = shared_from_this(), this](const auto &e)
                         {
-                            device.notifier.error(e);
+                            device.helpers.notifier.error(e);
                         });
                 }
                 catch (const std::logic_error &)
                 {
-                    device.notifier.debug("Received wrong packet number: " + std::to_string(num) + "...");
+                    device.helpers.notifier.debug("Received wrong packet number: " + std::to_string(num) + "...");
 
                     
 
@@ -199,7 +210,7 @@ namespace Logic
         {
             if (auto p = ptr.lock())
             {
-                device.notifier.error(e);
+                device.helpers.notifier.error(e);
             }
         };
 
@@ -218,7 +229,7 @@ namespace Logic
         }
         catch (const Packet_controller_except &e)
         {
-            device.notifier.debug(e.what());
+            device.helpers.notifier.debug(e.what());
 
             auto &msg = count_m.oldest();
 
@@ -238,9 +249,7 @@ namespace Logic
         auto ok_callb = [ptr = weak_from_this(), this](auto msg_begin, auto msg_end, auto &&callb) mutable
         {
             if (auto p = ptr.lock() && serial_to_remote())
-            {
-                Unique_guard lock{count_mutex};
-                
+            {                
                 /* Retrive buffers of newly created message */
                 auto &old_msg = count_m[msg_id];
                 /* Set message length */
@@ -285,23 +294,23 @@ namespace Logic
                             catch (const std::logic_error &e)
                             {
                                 /* Shutting down connection required */
-                                device.notifier.error(Exchanger_fatal_except{e.what()});
+                                device.helpers.notifier.error(Exchanger_fatal_except{e.what()});
 
                                 return;
                             }
 
-                            device.notifier.debug(e.what());
+                            device.helpers.notifier.debug(e.what());
                         }
 
                         /* Check if messages were ACKed */
                         if (count_m.get_not_acked() > Packet_defs::max_not_ack)
                         {
-                            device.notifier.debug("Exceeded not ACKed messages...");
+                            device.helpers.notifier.debug("Exceeded not ACKed messages...");
                         }
                     },
                     [ptr = shared_from_this(), this](const auto &e)
                     {
-                        device.notifier.error(e);
+                        device.helpers.notifier.error(e);
                     });
             }
         };
@@ -318,48 +327,11 @@ namespace Logic
         {
             if (auto p = ptr.lock())
             {
-                device.notifier.error(e);
+                device.helpers.notifier.error(e);
             }
         };
 
         return std::make_tuple(msg_begin, msg_end, std::move(ok_callb), std::move(ec_callb));
-    }
-
-    template <
-        typename Timer_t,
-        typename Remote_sett_impl,
-        typename Remote_side_impl,
-        typename Serial_side_impl>
-    template <
-        typename Device_weak_ptr_t,
-        typename Remote_settings_ptr_t,
-        typename Remote_side_ptr_t,
-        typename Serial_side_ptr_t,
-        typename Remote_conn_ptr_t,
-        typename Serial_conn_ptr_t>
-    inline Exchanger<Device_t>::Exchanger(
-        Forwarder &&manager,
-        Notyfier &&device.notifier,
-        Device_weak_ptr_t &&device_ptr,
-        Remote_conn_ptr_t &&remote_c_,
-        Remote_settings_ptr_t &&remote_s,
-        Remote_side_ptr_t &&remote_d,
-        Serial_conn_ptr_t &&serial_c_,
-        Serial_side_ptr_t &&serial_d,
-        Remote_conf_port_rec &remote_rec)
-        : Common_ext{std::move(manager), std::move(device.notifier), std::forward<Device_weak_ptr_t>(device_ptr)},
-          remote_s{std::forward<Remote_settings_ptr_t>(remote_s)},
-          remote_d{std::forward<Remote_side_ptr_t>(remote_d)},
-          serial_d{std::forward<Serial_side_ptr_t>(serial_d)},
-          remote_rec{remote_rec}
-    {
-    }
-
-    template <typename Device_t>
-    template <typename... Args_t>
-    inline auto Exchanger<Device_t>::make(Args_t &&...args)
-    {
-        return std::make_unique<Exchanger<Device_t>>(std::forward<Args_t>(args)...);
     }
 
     template <typename Device_t>
@@ -369,17 +341,23 @@ namespace Logic
         std::apply(
             [this](auto &&...args)
             {
-                remote_c.connect(std::forward<decltype(args)>(args)...);
+                device.helpers.remote_c.connect(std::forward<decltype(args)>(args)...);
             },
             get_remote_args());
         std::apply(
             [this](auto &&...args)
             {
-                serial_c.connect(std::forward<decltype(args)>(args)...);
+                device.helpers.serial_c.connect(std::forward<decltype(args)>(args)...);
             },
             get_serial_args());
     }
-    
+
+    template <typename Device_t>
+    inline void Exchanger<Device_t>::unlock()
+    {
+        comm_unlock = true;
+    }
+
     template <typename Device_t>
     inline void Exchanger<Device_t>::restart()
     {

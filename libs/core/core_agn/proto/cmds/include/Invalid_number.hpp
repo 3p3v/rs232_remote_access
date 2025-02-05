@@ -31,7 +31,7 @@ namespace Logic
     {
         /* Delete packet from memory */
         auto &p_num = arg[0];
-        device.notifier.debug("Resending from packet: " + std::string{p_num} + "...");
+        device.helpers.notifier.debug("Resending from packet: " + std::string{p_num} + "...");
         exchanger.resend(p_num);
     }
 }

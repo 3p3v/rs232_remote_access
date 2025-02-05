@@ -1,13 +1,14 @@
 #pragma once
 
-#include <Proto.hpp>
+#include <Proto_cmd.hpp>
+#include <Disconnect_defs.hpp>
 
 namespace Logic
 {
     template<
         typename Device_t>
     class Disconnect_detect final
-        : Proto<
+        : Proto_cmd<
             Device_t
             /* Policies */,
             No_arg>
@@ -16,7 +17,7 @@ namespace Logic
         const char* get_name() const noexcept override final;
         void exec(std::string &&arg) const override;
 
-        using Proto<Device_t, No_arg>::Proto;
+        using Proto_cmd<Device_t, No_arg>::Proto_cmd;
     };
 
     template <typename Device_t>
@@ -29,7 +30,7 @@ namespace Logic
         typename Device_t>
     inline void Disconnect_detect<Device_t>::exec(std::string &&arg) const
     {
-        notifier.error(Disconnect_except{"Server sent device disconnected!"});
+        device.helpers.notifier.error(Disconnect_except{"Server sent device disconnected!"});
         device.reset();
     }
 }

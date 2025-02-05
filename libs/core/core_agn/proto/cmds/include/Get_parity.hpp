@@ -21,10 +21,10 @@ namespace Logic
         typename Device_t>
     inline void Get_parity<Device_t>::exec(std::string &&arg) const
     {
-        device.timer_man.stop_timer(std::string{Get_defs::get_parity_s});
+        device.helpers.timer_man.stop_timer(std::string{Get_defs::get_parity_s});
         auto arg_ = Set_defs::parity_trans(arg);
-        device.rec.port_settings.parity = arg_;
-        device.serial_s.set_parity(arg_);
+        device.helpers.rec.port_settings.parity = arg_;
+        device.helpers.serial_s.set_parity(arg_);
         /* Lock commands */
         goto_exchange();
     }

@@ -300,6 +300,44 @@ namespace Impl
         }
     }
 
+    template <typename Ok_callb, typename Ec_callb, typename Ok_conn_callb, typename Ec_conn_callb>
+    inline void Mqtt_impl::connect_i(Ok_callb &&ok_callb, Ec_callb &&ec_callb, Ok_conn_callb &&ok_conn_callb, Ec_conn_callb &&ec_conn_callb)
+    {
+        try
+        {
+            controller.subscribe(
+                info->info_ch,
+                qos,
+                /* Data receive callback */
+                [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)
+                {
+                    /* Run callback, pass message so it will not get deallocated */
+                    auto begin = c->cbegin();
+                    auto end = c->cend();
+                    ok_callb(begin, end, [c = std::forward<decltype(c)>(c)]() {
+
+                    });
+                },
+                /* Error callback */
+                [ec_callb](int code)
+                {
+                    ec_callb(Mqtt_except{"Exception was thrown while reading from info channel, code: " + std::to_string(code)});
+                },
+                /* Subscribe success */
+                ok_conn_callb(),
+                /* Subscribe fail */
+                [ec_conn_callb](int code)
+                {
+                    ec_conn_callb(Mqtt_except{"Exception was thrown while subscribing to info channel, code: " + std::to_string(code)});
+                });
+        }
+        catch (const mqtt::exception &e)
+        {
+            // throw Mqtt_fatal_except{e.what()};
+            throw;
+        }
+    }
+
     template <typename Iter_t, typename Ok_callb, typename Ec_callb>
     inline void Mqtt_impl::write(char id, Iter_t begin, Iter_t end, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {

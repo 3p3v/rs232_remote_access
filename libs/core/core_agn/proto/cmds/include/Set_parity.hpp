@@ -28,7 +28,7 @@ namespace Logic
         typename Device_t>
     inline void Set_parity<Device_t>::exec(std::string &&arg) const
     {
-        device.notifier.debug("Received request to change parity...");
+        device.helpers.notifier.debug("Received request to change parity...");
         wait(Get_defs::get_parity_s.data());
     }
 }

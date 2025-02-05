@@ -23,10 +23,10 @@ namespace Logic
         typename Device_t>
     inline void Get_char_size<Device_t>::exec(std::string &&arg) const
     {
-        device.timer_man.stop_timer(std::string{Get_defs::get_char_size_s});
+        device.helpers.timer_man.stop_timer(std::string{Get_defs::get_char_size_s});
         auto arg_ = Set_defs::char_size_trans(arg);
-        device.rec.port_settings.char_size = arg_;
-        device.serial_s.set_char_size(arg_);
+        device.helpers.rec.port_settings.char_size = arg_;
+        device.helpers.serial_s.set_char_size(arg_);
         /* Lock commands */
         goto_exchange();
     }

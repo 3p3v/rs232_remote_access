@@ -1,15 +1,16 @@
 #pragma once
 
-#include <Proto.hpp>
+#include <Proto_cmd.hpp>
+#include <Hi_defs.hpp>
 
 namespace Logic
 {
     template <
         typename Device_t>
     class Slave_hi final
-        : Proto<
-              Device_t
-              /* Policies */,
+        : Proto_cmd<
+              Device_t,
+              /* Policies */
               No_arg>
     {
         void set_baud_rate(Port_settings::Baud_rate arg);
@@ -28,14 +29,14 @@ namespace Logic
         const char* get_name() const noexcept override final;
         void exec(std::string &&arg) const override;
 
-        using Proto<Device_t, No_arg>::Proto;
+        using Proto_cmd<Device_t, No_arg>::Proto_cmd;
     };
 
     template <
         typename Device_t>
     inline void Slave_hi<Device_t>::set_baud_rate(const Port_settings::Baud_rate arg)
     {
-        device.remote_s.write_s(
+        device.helpers.remote_s.write_s(
             std::string{Set_defs::set_baud_rate_s},
             Set_defs::baud_rate_trans(arg),
             [serial_ctrl = shared_from_this(), this]()
@@ -49,7 +50,7 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::set_parity(const Port_settings::Parity arg)
     {
-        device.remote_s.write_s(
+        device.helpers.remote_s.write_s(
             std::string{Set_defs::set_parity_s},
             Set_defs::parity_trans(arg),
             [serial_ctrl = shared_from_this(), this]()
@@ -63,7 +64,7 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::set_char_size(const Port_settings::Char_size arg)
     {
-        device.remote_s.write_s(
+        device.helpers.remote_s.write_s(
             std::string{Set_defs::set_char_size_s},
             Set_defs::char_size_trans(arg),
             [serial_ctrl = shared_from_this(), this]()
@@ -77,7 +78,7 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::set_stop_bits(const Port_settings::Stop_bits arg)
     {
-        device.remote_s.write_s(
+        device.helpers.remote_s.write_s(
             std::string{Set_defs::set_stop_bits_s},
             Set_defs::stop_bits_trans(arg),
             [serial_ctrl = shared_from_this(), this]()
@@ -101,13 +102,13 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::get_baud_rate()
     {
-        device.timer_man.start_timer(
+        device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_baud_rate_s},
             Timer_t::make_timer(
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    /* Try to say hi to device again */
-                    device.notifier.error(Timeout_except{"Command timed out!"});
+                    /* Try to say hi to device.helpers again */
+                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
                     device.reset();
                 }));
@@ -117,13 +118,13 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::get_parity()
     {
-        device.timer_man.start_timer(
+        device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_parity_s},
             Timer_t::make_timer(
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    /* Try to say hi to device again */
-                    device.notifier.error(Timeout_except{"Command timed out!"});
+                    /* Try to say hi to device.helpers again */
+                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
                     device.reset();
                 }));
@@ -133,13 +134,13 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::get_char_size()
     {
-        device.timer_man.start_timer(
+        device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_char_size_s},
             Timer_t::make_timer(
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    /* Try to say hi to device again */
-                    device.notifier.error(Timeout_except{"Command timed out!"});
+                    /* Try to say hi to device.helpers again */
+                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
                     device.reset();
                 }));
@@ -149,13 +150,13 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::get_stop_bits()
     {
-        device.timer_man.start_timer(
+        device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_stop_bits_s},
             Timer_t::make_timer(
                 [serial_ctrl = shared_from_this(), this]()
                 {
-                    /* Try to say hi to device again */
-                    device.notifier.error(Timeout_except{"Command timed out!"});
+                    /* Try to say hi to device.helpers again */
+                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
                     device.reset();
                 }));
@@ -171,25 +172,25 @@ namespace Logic
         typename Device_t>
     inline void Slave_hi<Device_t>::exec(std::string &&arg) const
     {
-        device.timer_man.stop_timer(Hi_defs::slave_hi_s.data());
+        device.helpers.timer_man.stop_timer(Hi_defs::slave_hi_s.data());
 
         /* Change status */
-        device.rec.status = Remote_status::Establishing_parameters;
+        device.helpers.rec.status = Remote_status::Establishing_parameters;
 
         /* Enable only config commands */
-        device.cmds.disable_all();
+        device.helpers.cmds.disable_all();
 
         /* Start establishing parameters */
-        if (device.rec.conf_port == Remote_conf_port::Configurable)
+        if (device.helpers.rec.conf_port == Remote_conf_port::Configurable)
         {
-            device.notifier.debug("Establishing connection parameters...");
-            if (device.rec.settings_known)
+            device.helpers.notifier.debug("Establishing connection parameters...");
+            if (device.helpers.rec.settings_known)
             {
                 /* Send parameters */
-                set_baud_rate(device.rec.port_settings.baud_rate);
-                set_parity(device.rec.port_settings.parity);
-                set_char_size(device.rec.port_settings.char_size);
-                set_stop_bits(device.rec.port_settings.stop_bits);
+                set_baud_rate(device.helpers.rec.port_settings.baud_rate);
+                set_parity(device.helpers.rec.port_settings.parity);
+                set_char_size(device.helpers.rec.port_settings.char_size);
+                set_stop_bits(device.helpers.rec.port_settings.stop_bits);
             }
             else
             {
@@ -198,7 +199,7 @@ namespace Logic
         }
         else
         {
-            notifier.debug("Waiting for master to establish connection parameters...");
+            device.helpers.notifier.debug("Waiting for master to establish connection parameters...");
         }
     }
 }

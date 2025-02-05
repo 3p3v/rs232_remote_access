@@ -21,10 +21,10 @@ namespace Logic
         typename Device_t>
     inline void Get_stop_bits<Device_t>::exec(std::string &&arg) const
     {
-        device.timer_man.stop_timer(std::string{Get_defs::get_stop_bits_s});
+        device.helpers.timer_man.stop_timer(std::string{Get_defs::get_stop_bits_s});
         auto arg_ = Set_defs::stop_bits_trans(arg);
-        device.rec.port_settings.stop_bits = arg_;
-        device.serial_s.set_stop_bits(arg_);
+        device.helpers.rec.port_settings.stop_bits = arg_;
+        device.helpers.serial_s.set_stop_bits(arg_);
         /* Lock commands */
         goto_exchange();
     }

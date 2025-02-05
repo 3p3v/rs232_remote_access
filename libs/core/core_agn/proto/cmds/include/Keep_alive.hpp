@@ -1,13 +1,14 @@
 #pragma once
 
-#include <Proto.hpp>
+#include <Proto_cmd.hpp>
+#include <Hi_defs.hpp>
 
 namespace Logic
 {
     template<
         typename Device_t>
     class Keep_alive final
-        : Proto<
+        : Proto_cmd<
             Device_t
             /* Policies */,
             No_arg>
@@ -16,7 +17,7 @@ namespace Logic
         const char* get_name() const noexcept override final;
         void exec(std::string &&arg) const override;
     
-        using Proto<Device_t, No_arg>::Proto;
+        using Proto_cmd<Device_t, No_arg>::Proto_cmd;
     };
 
     template <typename Device_t>
@@ -29,6 +30,6 @@ namespace Logic
         typename Device_t>
     inline void Keep_alive<Device_t>::exec(std::string &&arg) const
     {
-        notifier.debug("Received keep alive.");
+        device.helpers.notifier.debug("Received keep alive.");
     }
 }

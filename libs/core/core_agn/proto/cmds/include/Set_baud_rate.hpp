@@ -29,7 +29,7 @@ namespace Logic
         typename Device_t>
     inline void Set_baud_rate<Device_t>::exec(std::string &&arg) const
     {
-        device.notifier.debug("Received request to change baud rate...");
+        device.helpers.notifier.debug("Received request to change baud rate...");
         wait(Get_defs::get_baud_rate_s.data());
     }
 }
