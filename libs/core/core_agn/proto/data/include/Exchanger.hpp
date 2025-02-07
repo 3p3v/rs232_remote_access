@@ -11,13 +11,13 @@
 
 namespace Logic
 {
-    class Base_exchager : public Base_proto_module
+    class Base_exchanger : public Base_proto_module
     {
     public:
         virtual void start() = 0;
         virtual void unlock() = 0;
     }
-    
+
     template <typename Device_t>
     class Exchanger final : public Proto_module<Device_t>
     {
@@ -43,16 +43,16 @@ namespace Logic
 
     private:
         /// @brief Create callbacks for data channel from remote
-        /// @return 
+        /// @return
         auto get_remote_args();
-    
+
         auto get_serial_args_helper_0();
 
         template <typename Mqtt_msg_t>
         auto get_serial_args_helper_1(Mqtt_msg_t &msg);
 
         /// @brief Create callbacks for data channel from serial
-        /// @return 
+        /// @return
         auto get_serial_args();
 
     public:
@@ -71,7 +71,7 @@ namespace Logic
 
         /// @brief Unlock data communication
         void unlock() override;
-        
+
         /// @brief Restart data communication
         void restart() override;
 
@@ -103,10 +103,11 @@ namespace Logic
         remote.write_i(
             Packet_defs::packet_ack_s.data(), id,
             []() {},
-            [ptr = shared_from_this(), this](const auto &e)
-            {
-                device.helpers.notifier.error(e);
-            });
+            device.make_shared(
+                [this](const auto &e)
+                {
+                    device.helpers.notifier.error(e);
+                }));
     }
 
     template <typename Device_t>
@@ -115,10 +116,11 @@ namespace Logic
         device.helpers.remote.write_i(
             Packet_defs::invalid_number_s.data(), id,
             []() {},
-            [ptr = shared_from_this(), this](const auto &e)
-            {
-                device.helpers.notifier.error(e);
-            });
+            device.make_shared(
+                [ptr = shared_from_this(), this](const auto &e)
+                {
+                    device.helpers.notifier.error(e);
+                }));
     }
 
     template <typename Device_t>
@@ -140,79 +142,75 @@ namespace Logic
                     auto &msg = count_m[id];
 
                     /* Send MQTT message */
-                    remote_d.write(
+                    device.helpers.remote.write(
                         id,
                         msg.begin(),
                         msg.begin() + msg.get_len(),
-                        [ptr = shared_from_this(),
-                        this,
-                        id](char, size_t)
-                        {
-                            /* Mark message as unused */
-                            count_m[id].unused();
-                        },
-                        [ptr = shared_from_this(), this](const auto &e)
-                        {
-                            device.helpers.notifier.error(e);
-                        });
+                        device.make_shared(
+                            [this,
+                             id](char, size_t)
+                            {
+                                /* Mark message as unused */
+                                count_m[id].unused();
+                            }),
+                        device.make_shared(
+                            [this](const auto &e)
+                            {
+                                device.helpers.notifier.error(e);
+                            }));
                 });
         }
     }
 
-
     template <typename Device_t>
     inline auto Exchanger<Device_t>::get_remote_args()
     {
-        auto ok_callb = [ptr = weak_from_this(), this](auto num, auto begin, auto end, auto callb)
-        {
-            if (auto p = ptr.lock() && remote_to_serial())
+        auto ok_callb = device.make_weak(
+            [this](auto num, auto begin, auto end, auto callb)
             {
-                try
-                {                    
-                    /* Check number */
-                    count_s.num_up(num);
-
-                    if (count_s.get_not_acked() > Packet_defs::ack_after)
-                    {
-                        send_ack(count_s.exp());
-                    }
-
-                    lock.unlock();
-
-                    /* Write to serial, save callback */
-                    serial.write(
-                        begin,
-                        end,
-                        [ptr = std::move(p), callb = std::forward<decltype(callb)>(callb)](size_t)
-                        {
-                            /* Run callback */
-                            callb();
-                        },
-                        [ptr = shared_from_this(), this](const auto &e)
-                        {
-                            device.helpers.notifier.error(e);
-                        });
-                }
-                catch (const std::logic_error &)
+                if (remote_to_serial())
                 {
-                    device.helpers.notifier.debug("Received wrong packet number: " + std::to_string(num) + "...");
+                    try
+                    {
+                        /* Check number */
+                        count_s.num_up(num);
 
-                    
+                        if (count_s.get_not_acked() > Packet_defs::ack_after)
+                        {
+                            send_ack(count_s.exp());
+                        }
 
-                    /* Ask for packet with expected number */
-                    ask_to_resend(count_s.exp());
-                    return;
-                }
-            }
-        };
+                        /* Write to serial, save callback */
+                        device.helpers.serial.write(
+                            begin,
+                            end,
+                            device.make_shared(
+                                [callb = std::forward<decltype(callb)>(callb)](size_t) // TODO move shared
+                                {
+                                    /* Run callback */
+                                    callb();
+                                }),
+                            device.make_shared(
+                                [ptr = shared_from_this(), this](const auto &e)
+                                {
+                                    device.helpers.notifier.error(e);
+                                }));
+                    }
+                    catch (const std::logic_error &)
+                    {
+                        device.helpers.notifier.debug("Received wrong packet number: " + std::to_string(num) + "...");
 
-        auto ec_callb = [ptr = weak_from_this(), this](const auto &e)
-        {
-            if (auto p = ptr.lock())
+                        /* Ask for packet with expected number */
+                        ask_to_resend(count_s.exp());
+                        return;
+                    }
+            } });
+
+        auto ec_callb = device.make_weak(
+            [this](const auto &e)
             {
                 device.helpers.notifier.error(e);
-            }
-        };
+            });
 
         return std::make_tuple(std::move(ok_callb), std::move(ec_callb));
     }
@@ -246,90 +244,89 @@ namespace Logic
         msg_id = msg.id();
 
         // auto ok_callb = [ptr = shared_from_this(), this, id = msg_id](auto begin, auto end, auto callb) mutable
-        auto ok_callb = [ptr = weak_from_this(), this](auto msg_begin, auto msg_end, auto &&callb) mutable
-        {
-            if (auto p = ptr.lock() && serial_to_remote())
-            {                
-                /* Retrive buffers of newly created message */
-                auto &old_msg = count_m[msg_id];
-                /* Set message length */
-                old_msg.set_len(msg_end - msg_begin);
+        auto ok_callb = device.make_weak(
+            [this](auto msg_begin, auto msg_end, auto &&callb) mutable
+            {
+                if (serial_to_remote())
+                {
+                    /* Retrive buffers of newly created message */
+                    auto &old_msg = count_m[msg_id];
+                    /* Set message length */
+                    old_msg.set_len(msg_end - msg_begin);
 
-                lock.unlock();
-
-                /* Send MQTT message */
-                remote_d.write(
-                    msg_id,
-                    msg_begin,
-                    msg_end,
-                    [ptr = std::move(p),
-                     this,
-                     callb = std::forward<decltype(callb)>(callb)](char, size_t)
-                    {
-                        
-                        
-                        /* Mark last message as unused */
-                        count_m[msg_id].unused();
-
-                        try
-                        {
-                            /* Create new message, save id */
-                            auto &msg = count_m.create();
-                            msg_id = msg.id();
-
-                            /* Set new buffer */
-                            callb(msg.begin(), msg.end());
-                        }
-                        catch (const Packet_controller_except &e)
-                        {
-                            try
+                    /* Send MQTT message */
+                    device.helpers.remote.write(
+                        msg_id,
+                        msg_begin,
+                        msg_end,
+                        device.make_shared(
+                            [this,
+                             callb = std::forward<decltype(callb)>(callb)](char, size_t) // TODO move shared
                             {
-                                /* Use oldest one */
-                                auto &msg = count_m.oldest();
-                                msg_id = msg.id();
+                                /* Mark last message as unused */
+                                count_m[msg_id].unused();
 
-                                /* Set new buffer */
-                                callb(msg.begin(), msg.end());
-                            }
-                            catch (const std::logic_error &e)
+                                try
+                                {
+                                    /* Create new message, save id */
+                                    auto &msg = count_m.create();
+                                    msg_id = msg.id();
+
+                                    /* Set new buffer */
+                                    callb(msg.begin(), msg.end());
+                                }
+                                catch (const Packet_controller_except &e)
+                                {
+                                    try
+                                    {
+                                        /* Use oldest one */
+                                        auto &msg = count_m.oldest();
+                                        msg_id = msg.id();
+
+                                        /* Set new buffer */
+                                        callb(msg.begin(), msg.end());
+                                    }
+                                    catch (const std::logic_error &e)
+                                    {
+                                        /* Shutting down connection required */
+                                        device.helpers.notifier.error(Exchanger_fatal_except{e.what()});
+
+                                        return;
+                                    }
+
+                                    device.helpers.notifier.debug(e.what());
+                                }
+
+                                /* Check if messages were ACKed */
+                                if (count_m.get_not_acked() > Packet_defs::max_not_ack)
+                                {
+                                    device.helpers.notifier.debug("Exceeded not ACKed messages...");
+                                }
+                            }),
+                        device.make_shared(
+                            [this](const auto &e)
                             {
-                                /* Shutting down connection required */
-                                device.helpers.notifier.error(Exchanger_fatal_except{e.what()});
-
-                                return;
-                            }
-
-                            device.helpers.notifier.debug(e.what());
-                        }
-
-                        /* Check if messages were ACKed */
-                        if (count_m.get_not_acked() > Packet_defs::max_not_ack)
-                        {
-                            device.helpers.notifier.debug("Exceeded not ACKed messages...");
-                        }
-                    },
-                    [ptr = shared_from_this(), this](const auto &e)
-                    {
-                        device.helpers.notifier.error(e);
-                    });
-            }
-        };
+                                device.helpers.notifier.error(e);
+                            }));
+                }
+            });
 
         return std::make_tuple(msg_begin, msg_end, std::move(ok_callb));
     }
 
     template <typename Device_t>
     inline auto Exchanger<Device_t>::get_serial_args()
-    {   
+    {
         auto [msg_begin, msg_end, ok_callb] = get_serial_args_helper_0();
-        
-        auto ec_callb = [ptr = weak_from_this(), this](const Serial_except &e)
-        {
-            if (auto p = ptr.lock())
+
+        auto ec_callb = device.make_weak(
+            [this](const Serial_except &e)
             {
-                device.helpers.notifier.error(e);
-            }
-        };
+                if (auto p = ptr.lock())
+                {
+                    device.helpers.notifier.error(e);
+                }
+            });
 
         return std::make_tuple(msg_begin, msg_end, std::move(ok_callb), std::move(ec_callb));
     }
@@ -361,6 +358,8 @@ namespace Logic
     template <typename Device_t>
     inline void Exchanger<Device_t>::restart()
     {
+        device.helpers.rec.params_established = 0;
+        
         /* Reset packet nums*/
         count_s.reload();
         count_m.reload();

@@ -35,12 +35,13 @@ namespace Logic
             device.helpers.timer_man.start_timer(
                 std::forward<Str_t>(cmd),
                 Timer_t::make_timer(
-                    [serial_ctrl = shared_from_this(), this]()
-                    {
-                        /* Try to say hi to device again */
-                        device.helpers.notifier.error(Timeout_except{"Command timed out!"});
-                        device.restart();
-                    }));
+                    device.make_weak(
+                        [this]()
+                        {
+                            /* Try to say hi to device again */
+                            device.helpers.notifier.error(Timeout_except{"Command timed out!"});
+                            device.restart();
+                        })));
         }
         else
         {

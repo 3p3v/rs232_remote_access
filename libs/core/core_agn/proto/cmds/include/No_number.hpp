@@ -6,7 +6,7 @@ namespace Logic
 {
     template <
         typename Device_t>
-    class Invalid_number final
+    class No_number final
         : Proto_cmd<
               Device_t
               /* Policies */,
@@ -20,14 +20,14 @@ namespace Logic
     };
 
     template <typename Device_t>
-    inline const char *Invalid_number<Device_t>::get_name() const noexcept
+    inline const char *No_number<Device_t>::get_name() const noexcept
     {
         return Packet_defs::no_number_s.data();
     }
 
     template <
         typename Device_t>
-    inline void Invalid_number<Device_t>::exec(std::string &&arg) const
+    inline void No_number<Device_t>::exec(std::string &&arg) const
     {
         device.helpers.notifier.error(Data_loss_except{"Requested packet was not delivered!"});
         device.restart();

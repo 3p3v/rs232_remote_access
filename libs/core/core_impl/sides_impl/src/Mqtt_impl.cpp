@@ -2,12 +2,7 @@
 
 namespace Impl
 {
-    Mqtt_impl::Mqtt_impl(std::shared_ptr<Remote_info> &&info, Mqtt_controller &controller)
-        : info{std::move(info)}, controller{controller}
-    {
-    }
-
-    Mqtt_impl::Mqtt_impl(const std::shared_ptr<Remote_info> &info, Mqtt_controller &controller)
+    Mqtt_impl::Mqtt_impl(Remote_rec &info, Mqtt_controller &controller)
         : info{info}, controller{controller}
     {
     }
@@ -18,23 +13,23 @@ namespace Impl
         mi.moved = true;
     }
 
-    // Mqtt_impl& Mqtt_impl::operator=(Mqtt_impl &&mi) noexcept
-    // {
-    //     info = std::move(mi.info);
-    //     controller = mi.controller;
-    //     moved = false;
-        
-    //     mi.moved = true;
-
-    //     return *this;
-    // }
-
     Mqtt_impl::~Mqtt_impl()
     {
+        /* Do not call unsubscribe if destructed due to move operation */
         if (!moved)
         {
-            controller.unsubscribe(info->data_ch);
-            controller.unsubscribe(info->info_ch);
+            controller.unsubscribe(info.data_ch);
+            controller.unsubscribe(info.info_ch);
         }
+    }
+
+    Mqtt_impl_factory::Mqtt_impl_factory(Mqtt_controller &controller)
+        : controller{controller}
+    {
+    }
+
+    Mqtt_impl Mqtt_impl_factory::create(Remote_rec &info)
+    {
+        return Mqtt_impl{info, controller};
     }
 }

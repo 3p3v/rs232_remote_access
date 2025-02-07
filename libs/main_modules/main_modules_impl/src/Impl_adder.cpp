@@ -10,7 +10,8 @@ Impl::Impl_adder::Impl_adder(Impl_cont &devs, Worker_storage &notyfier, Mqtt_con
 {
 }
 
-void Impl::Impl_adder::add(Port_settings_storage &&sett, Remote_conf_port write_access, Dev_info &&info)
+void Impl::Impl_adder::add(
+    Port_settings_storage &&sett, Remote_conf_port write_access, Remote_rec &&remote_rec, Serial_rec &&serial_rec)
 {
     std::lock_guard<std::mutex> lock(devs.dev_mutex);
 

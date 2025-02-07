@@ -29,7 +29,7 @@ namespace Logic
         device.helpers.rec.params_established++;
         if (device.helpers.rec.params_established == device.helpers.rec.all_established)
         {
-            device.helpers.cmds.disable_all_but(
+            device.cmds.disable_all_but(
                 {Packet_defs::packet_ack_s.data(),
                  Packet_defs::invalid_number_s.data(),
                  Packet_defs::no_number_s.data()});
@@ -40,7 +40,7 @@ namespace Logic
         }
         else
         {
-            device.helpers.cmds.disable_cmd(get_name());
+            device.cmds.disable_cmd(get_name());
         }
     }
 }

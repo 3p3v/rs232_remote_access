@@ -8,7 +8,7 @@
 #include <Mqtt_fatal_except.hpp>
 #include <Protocol_except.hpp>
 #include <impl/Controller.hpp>
-#include <Remote_info.hpp>
+#include <Remote_rec.hpp>
 
 using namespace Logic;
 
@@ -31,16 +31,13 @@ namespace Impl
         Mqtt_controller &controller;
 
         /// @brief Device MQTT related information
-        std::shared_ptr<Remote_info> info;
+        Remote_rec &info;
 
         bool moved{false};
 
     public:
         Mqtt_impl(
-            std::shared_ptr<Remote_info> &&info,
-            Mqtt_controller &controller);
-        Mqtt_impl(
-            const std::shared_ptr<Remote_info> &info,
+            Remote_rec &info,
             Mqtt_controller &controller);
         Mqtt_impl(Mqtt_impl &&) noexcept;
         Mqtt_impl &operator=(Mqtt_impl &&) = delete;
@@ -125,6 +122,20 @@ namespace Impl
         void connect(Ok_callb &&ok_callb, Ec_callb &&ec_callb);
     };
 
+    class Mqtt_impl_factory
+    {
+    public:
+        using Mqtt_controller = Mqtt_impl::Mqtt_controller;
+        
+    private:
+        Mqtt_controller &controller;
+
+    public:
+        Mqtt_impl_factory(Mqtt_controller &controller);
+
+        Mqtt_impl create(Remote_rec &info);
+    };
+
     template <typename Cont_t, typename Ok_callb, typename Ec_callb>
     inline void Mqtt_impl::write_i(Cont_t &&msg, Ok_callb &&ok_callb, Ec_callb &&ec_callb)
     {
@@ -136,7 +147,7 @@ namespace Impl
         try
         {
             controller.write(
-                info->info_ch,
+                info.info_ch,
                 qos,
                 beg,
                 end,
@@ -169,7 +180,7 @@ namespace Impl
         try
         {
             controller.write(
-                info->info_ch,
+                info.info_ch,
                 qos,
                 beg,
                 end,
@@ -203,7 +214,7 @@ namespace Impl
         try
         {
             controller.write(
-                info->set_ch,
+                info.set_ch,
                 qos,
                 beg,
                 end,
@@ -236,14 +247,12 @@ namespace Impl
         try
         {
             controller.write(
-                info->set_ch,
-                qos,
-                beg,
+                info.set_ch,
+                qos, Remote_rec beg,
                 end,
                 [ok_callb = std::forward<Ok_callb>(ok_callb),
                  msg_ptr = std::forward<decltype(msg_ptr)>(msg_ptr),
-                 msg = std::string{msg},
-                 this](size_t size)
+                 msg = std::string{msg}, Remote_rec this](size_t size)
                 {
                     ok_callb();
                 },
@@ -256,7 +265,6 @@ namespace Impl
         {
             // throw Mqtt_fatal_except{e.what()};
             throw;
-            
         }
     }
 
@@ -266,7 +274,7 @@ namespace Impl
         try
         {
             controller.subscribe(
-                info->info_ch,
+                info.info_ch,
                 qos,
                 /* Data receive callback */
                 [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)
@@ -306,7 +314,7 @@ namespace Impl
         try
         {
             controller.subscribe(
-                info->info_ch,
+                info.info_ch,
                 qos,
                 /* Data receive callback */
                 [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)
@@ -344,7 +352,7 @@ namespace Impl
         try
         {
             controller.write(
-                info->data_ch,
+                info.data_ch,
                 qos,
                 std::string{packet_num_s},
                 std::to_string(id),
@@ -372,7 +380,7 @@ namespace Impl
         try
         {
             controller.subscribe(
-                info->data_ch,
+                info.data_ch,
                 qos,
                 /* Data receive callback */
                 [ok_callb = std::forward<Ok_callb>(ok_callb), ec_callb](auto &&c)

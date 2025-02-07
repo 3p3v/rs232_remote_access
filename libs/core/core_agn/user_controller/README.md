@@ -1,1 +1,0 @@
-Module used as UI - it allows user to change connection parameters.

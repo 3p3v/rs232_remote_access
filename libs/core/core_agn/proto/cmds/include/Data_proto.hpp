@@ -20,12 +20,14 @@ namespace Logic
         Exchanger<Device_t> &exchanger;
 
     public:
-        Data_proto(Exchanger<Device_t> &exchanger);
+        Data_proto(Device_t &device, Exchanger<Device_t> &exchanger);
     };
 
     template <typename Device_t, typename... Policies_t>
-    inline Data_proto<Device_t, Policies_t...>::Data_proto(Exchanger<Device_t> &exchanger)
-        : exchanger{exchanger}
+    inline Data_proto<Device_t, Policies_t...>::Data_proto(Device_t &device, Exchanger<Device_t> &exchanger)
+        : Proto_cmd<Device_t, ... Policies_t>{
+              device},
+          exchanger{exchanger}
     {
     }
 }

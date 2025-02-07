@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Dyn_serial.hpp>
-#include <Serial_info.hpp>
+#include <Serial_rec.hpp>
 #include <Port_settings.hpp>
 #include <Ctrl_interface.hpp>
 #include <memory>
@@ -21,7 +21,7 @@ namespace Impl
         Dyn_serial serial;
 
         /// @brief Information required to connect to serial port
-        std::shared_ptr<Serial_info> info;
+        Serial_rec &info;
 
         template <typename Callb_t>
         friend class Serial_callb;
@@ -78,8 +78,7 @@ namespace Impl
         };
 
     public:
-        Serial_impl(std::shared_ptr<Serial_info> &&info);
-        Serial_impl(const std::shared_ptr<Serial_info> &info);
+        Serial_impl(Serial_rec &info);
         inline Serial_impl(Serial_impl &&si) = default;
         Serial_impl &operator=(Serial_impl &&) = default;
         Serial_impl(const Serial_impl &) = delete;
@@ -125,6 +124,12 @@ namespace Impl
                      Iter_t end,
                      Ok_callb &&ok_callb,
                      Ec_callb &&ec_callb);
+    };
+
+    class Serial_impl_factory
+    {
+    public:
+        Serial_impl create(Serial_rec &info);
     };
 
     template <typename Iter_t, typename Ok_callb, typename Ec_callb>

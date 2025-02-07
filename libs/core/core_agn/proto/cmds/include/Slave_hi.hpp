@@ -26,7 +26,7 @@ namespace Logic
         void get_parameters();
 
     public:
-        const char* get_name() const noexcept override final;
+        const char *get_name() const noexcept override final;
         void exec(std::string &&arg) const override;
 
         using Proto_cmd<Device_t, No_arg>::Proto_cmd;
@@ -39,10 +39,11 @@ namespace Logic
         device.helpers.remote_s.write_s(
             std::string{Set_defs::set_baud_rate_s},
             Set_defs::baud_rate_trans(arg),
-            [serial_ctrl = shared_from_this(), this]()
-            {
-                get_baud_rate();
-            },
+            device.make_shared(
+                [this]()
+                {
+                    get_baud_rate();
+                }),
             def_ec_callb());
     }
 
@@ -53,10 +54,11 @@ namespace Logic
         device.helpers.remote_s.write_s(
             std::string{Set_defs::set_parity_s},
             Set_defs::parity_trans(arg),
-            [serial_ctrl = shared_from_this(), this]()
-            {
-                get_parity();
-            },
+            device.make_shared(
+                [this]()
+                {
+                    get_parity();
+                }),
             def_ec_callb());
     }
 
@@ -67,10 +69,11 @@ namespace Logic
         device.helpers.remote_s.write_s(
             std::string{Set_defs::set_char_size_s},
             Set_defs::char_size_trans(arg),
-            [serial_ctrl = shared_from_this(), this]()
-            {
-                get_char_size();
-            },
+            device.make_shared(
+                [this]()
+                {
+                    get_char_size();
+                }),
             def_ec_callb());
     }
 
@@ -81,10 +84,11 @@ namespace Logic
         device.helpers.remote_s.write_s(
             std::string{Set_defs::set_stop_bits_s},
             Set_defs::stop_bits_trans(arg),
-            [serial_ctrl = shared_from_this(), this]()
-            {
-                get_stop_bits();
-            },
+            device.make_shared(
+                [this]()
+                {
+                    get_stop_bits();
+                }),
             def_ec_callb());
     }
 
@@ -105,13 +109,14 @@ namespace Logic
         device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_baud_rate_s},
             Timer_t::make_timer(
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device.helpers again */
-                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
+                device.make_weak(
+                    [this]()
+                    {
+                        /* Try to say hi to device.helpers again */
+                        device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
-                    device.reset();
-                }));
+                        device.reset();
+                    })));
     }
 
     template <
@@ -121,13 +126,14 @@ namespace Logic
         device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_parity_s},
             Timer_t::make_timer(
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device.helpers again */
-                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
+                device.make_weak(
+                    [this]()
+                    {
+                        /* Try to say hi to device.helpers again */
+                        device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
-                    device.reset();
-                }));
+                        device.reset();
+                    })));
     }
 
     template <
@@ -137,13 +143,14 @@ namespace Logic
         device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_char_size_s},
             Timer_t::make_timer(
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device.helpers again */
-                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
+                device.make_weak(
+                    [this]()
+                    {
+                        /* Try to say hi to device.helpers again */
+                        device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
-                    device.reset();
-                }));
+                        device.reset();
+                    })));
     }
 
     template <
@@ -153,13 +160,14 @@ namespace Logic
         device.helpers.timer_man.start_timer(
             std::string{Get_defs::get_stop_bits_s},
             Timer_t::make_timer(
-                [serial_ctrl = shared_from_this(), this]()
-                {
-                    /* Try to say hi to device.helpers again */
-                    device.helpers.notifier.error(Timeout_except{"Command timed out!"});
+                device.make_weak(
+                    [this]()
+                    {
+                        /* Try to say hi to device.helpers again */
+                        device.helpers.notifier.error(Timeout_except{"Command timed out!"});
 
-                    device.reset();
-                }));
+                        device.reset();
+                    })));
     }
 
     template <typename Device_t>
@@ -178,7 +186,7 @@ namespace Logic
         device.helpers.rec.status = Remote_status::Establishing_parameters;
 
         /* Enable only config commands */
-        device.helpers.cmds.disable_all();
+        device.cmds.disable_all();
 
         /* Start establishing parameters */
         if (device.helpers.rec.conf_port == Remote_conf_port::Configurable)

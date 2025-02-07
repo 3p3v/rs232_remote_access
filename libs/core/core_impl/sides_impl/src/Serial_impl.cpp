@@ -5,15 +5,9 @@ using namespace Logic;
 
 namespace Impl
 {
-    Serial_impl::Serial_impl(std::shared_ptr<Serial_info> &&info)
-        : serial{info->port},
+    Serial_impl::Serial_impl(Serial_rec &info)
+        : serial{info.port},
           info{std::move(info)}
-    {
-    }
-
-    Serial_impl::Serial_impl(const std::shared_ptr<Serial_info> &info)
-        : serial{info->port},
-          info{info}
     {
     }
 
@@ -95,5 +89,10 @@ namespace Impl
     void Serial_impl::set_stop_bits(Port_settings::Stop_bits stop_bits)
     {
         serial.set_stop_bits(stop_bits_trans(stop_bits));
+    }
+
+    Serial_impl Serial_impl_factory::create(Serial_rec &info)
+    {
+        return Serial_impl{info};
     }
 }
