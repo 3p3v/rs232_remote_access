@@ -1,11 +1,17 @@
 #include <Impl_starter.hpp>
 #include <Serial_context.hpp>
+#include <Device_init.hpp>
+#include <Mqtt_impl.hpp>
+#include <Serial_impl.hpp>
 #include <thread>
 #include <optional>
 
-Impl::Impl_adder_ref Impl::Impl_starter::get_adder() &
+Base_device_init Impl::Impl_starter::get_device_factory() &
 {
-    return Impl_adder_ref{controller};
+    return Impl::Device_init{
+        Mqtt_impl_factory{controller},
+        Serial_impl_factory{}
+    }
 }
 
 Impl::Impl_starter::Future_and_thread Impl::Impl_starter::connect() &

@@ -157,3 +157,5 @@ void Logic::Exception_handler::handle_exception(Dev_num num, const std::exceptio
         throw;
     }
 }
+
+

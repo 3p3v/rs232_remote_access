@@ -3,7 +3,7 @@
 #include <Controller.hpp>
 #include <Server.hpp>
 #include <User.hpp>
-#include <Impl_adder_ref.hpp>
+#include <Base_device_init.hpp>
 #include <optional>
 #include <thread>
 #include <future>
@@ -29,7 +29,7 @@ namespace Impl
 
         /// @brief Get initialized device adder
         /// @return Device adder
-        Impl_adder_ref get_adder() &;
+        Base_device_init get_device_factory() &;
 
         /// @brief Run underlying drivers, connect to broker
         /// @return Pair for optional error thrown by the serial driver and thread running the driver

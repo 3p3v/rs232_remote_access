@@ -1,8 +1,16 @@
 #include <Collective_general.hpp>
+
 #include <Serial_context.hpp>
 #include <Cl_loader.hpp>
 #include <memory>
 #include <Impl_starter.hpp>
+#include <Device_init.hpp>
+#include <Device_collection.hpp>
+#include <Notifier.hpp>
+#include <Notification_handler.hpp>
+
+using namespace Logic;
+using namespace Impl;
 
 int main(unsigned int argc, char **argv)
 {
@@ -15,20 +23,24 @@ int main(unsigned int argc, char **argv)
         Impl::Impl_starter starter{
             std::move(data_pack->server),
             std::move(data_pack->user)};
-        
+
         /* Connect to broker */
         auto [future, serial_thread] = starter.connect();
 
         /* Initialize core */
-        auto core = ::Impl::Collective_general{
-            starter.get_adder(),
+        auto devices = Device_collection{starter.get_device_factory()};
+
+        auto notification_manager = Notification_handler{
             data_pack->app_opts.close_on_timeout,
             data_pack->app_opts.close_on_data_loss,
             data_pack->app_opts.close_on_protocol_error,
             data_pack->app_opts.debug};
 
         /* Add devices */
-        core.add_devces(data_pack->devices.begin(), data_pack->devices.end());
+        devices.add_devices(
+            Notifier{notification_manager}, 
+            data_pack->devices.begin(), 
+            data_pack->devices.end());
 
         /* Release loaded data */
         data_pack.release();

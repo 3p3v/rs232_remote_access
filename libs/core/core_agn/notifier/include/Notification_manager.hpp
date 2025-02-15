@@ -21,5 +21,13 @@ namespace Logic
         /// @brief Forward debug information
         /// @param info 
         virtual void debug(Dev_num dev_num, const std::string &info) const = 0;
+
+        Notification_manager() = default;
+        Notification_manager(Notification_manager &&) = delete;
+        Notification_manager(Notification_manager &&) = delete;
+        Notification_manager(const Notification_manager &) = delete;
+        Notification_manager& operator=(Notification_manager &&) = delete;
+        Notification_manager& operator=(const Notification_manager &) = delete;
+        virtual ~Notification_manager() = default;
     };
 }

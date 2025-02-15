@@ -7,11 +7,11 @@ namespace Logic
     class Notifier final
     {
     private:
-        Notification_manager::Dev_num dev_num;
-
         const Notification_manager &manager;
 
     public:
+        const Notification_manager::Dev_num dev_num;
+    
         /// @brief Forward error 
         /// @param exc 
         void error(const std::exception &exc) const;

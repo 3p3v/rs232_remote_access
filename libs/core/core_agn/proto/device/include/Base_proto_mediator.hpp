@@ -20,6 +20,8 @@ namespace Logic
         virtual Remote_rec& get_remote_rec() const noexcept = 0; // TODO move helpers to proto_mediator and change to non-virtual
         /// @brief Get serial startup information
         virtual Serial_rec& get_serial_rec() const noexcept = 0; // TODO move helpers to proto_mediator and change to non-virtual
+        /// @brief Get id used by a notifier
+        virtual Notification_manager::Dev_num get_notifier_id() const noexcept = 0;
 
         Base_proto_mediator() = default;
         Base_proto_mediator(Base_proto_mediator &&) = delete;

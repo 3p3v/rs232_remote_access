@@ -41,12 +41,13 @@ namespace Logic
         /// @brief Common objects
         Helpers_t helpers; // TODO delete
 
-        void start() override final;
-        void restart() override final;
+        void start() override;
+        void restart() override;
 
         Proto_rec& get_rec() const noexcept override;
         Proto_rec& get_rec() const noexcept override;
         Serial_rec& get_serial_rec() const noexcept override;
+        Notification_manager::Dev_num get_notifier_id() const noexcept override;
 
         std::shared_ptr<Base_proto_mediator> get_shared();
         std::weak_ptr<Base_proto_mediator> get_weak();
@@ -198,6 +199,12 @@ namespace Logic
     inline Serial_rec& Proto_mediator<Helpers_t, Wrapper_t>::get_serial_rec() const noexcept
     {
         return serial_rec;
+    }
+
+    template <typename Helpers_t, typename Wrapper_t>
+    inline Notification_manager::Dev_num Proto_mediator<Helpers_t, Wrapper_t>::get_notifier_id() const noexcept
+    {
+        return helpers.notifier.dev_num;
     }
 
     template <typename Helpers_t, typename Wrapper_t>

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <Base_proto_mediator.hpp>
+#include <Notifier.hpp>
 #include <Proto_rec.hpp>
 #include <Remote_rec.hpp>
 #include <Serial_rec.hpp>
@@ -14,9 +15,10 @@ namespace Impl
     {
     public:
         virtual std::shared_ptr<Base_proto_mediator> create(
+            Notifier &&notifier,
             Proto_rec &&rec,
-            Remote_rec &remote_rec,
-            Serial_rec &serial_rec) = 0;
+            Remote_rec &&remote_rec,
+            Serial_rec &&serial_rec) = 0;
 
         Base_device_init() = default;
         Base_device_init(Base_device_init &&) = default;

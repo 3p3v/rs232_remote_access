@@ -1,21 +1,30 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(main_modules VERSION 0.1.0 LANGUAGES CXX)
+project(main_modules_agn VERSION 0.1.0 LANGUAGES CXX)
 
-add_subdirectory("./main_modules_agn/")
-add_subdirectory("./main_modules_impl/")
+# Main code
+add_library(${PROJECT_NAME} STATIC
+    ./src/Dev_cont.cpp
+    ./src/Dev_ext.cpp
+    ./src/Dev_getter.cpp
+    ./src/Dev_unsafe_getter.cpp
+    ./src/Exception_handler.cpp
+)
 
-add_library(${PROJECT_NAME} INTERFACE)
+# Header files
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    ./include/
+)
 
 # notyfier
-target_link_libraries(${PROJECT_NAME} INTERFACE main_modules_agn)
-target_link_libraries(${PROJECT_NAME} INTERFACE main_modules_impl)
+target_link_libraries(${PROJECT_NAME} PUBLIC notyfier)
+target_link_libraries(${PROJECT_NAME} PUBLIC device)
+
+if(${BUILD_TESTING} true)
+    add_subdirectory("./unit_tests/")
+endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
-
-if(${BUILD_TESTING} true)
-    add_subdirectory("./unit_tests/")
-endif()
