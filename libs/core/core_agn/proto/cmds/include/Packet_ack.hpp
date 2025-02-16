@@ -15,7 +15,7 @@ namespace Logic
     {
     public:
         const char *get_name() const noexcept override final;
-        void exec(std::string &&arg) const override;
+        void usr_exec(std::string &&arg) const noexcept override;
 
         using Data_proto<Device_t, Numbers_only>::Data_proto;
     };
@@ -28,7 +28,7 @@ namespace Logic
 
     template <
         typename Device_t>
-    inline void Packet_ack<Device_t>::exec(std::string &&arg) const
+    inline void Packet_ack<Device_t>::usr_exec(std::string &&arg) const noexcept
     {
         exchanger.ack(arg[0])
     }

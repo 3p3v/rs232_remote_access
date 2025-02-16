@@ -14,7 +14,7 @@ namespace Logic
     {
     public:
         const char *get_name() const noexcept override final;
-        void exec(std::string &&arg) const override;
+        void usr_exec(std::string &&arg) const noexcept override;
 
         using Data_proto<Device_t, No_arg>::Data_proto;
     };
@@ -27,7 +27,7 @@ namespace Logic
 
     template <
         typename Device_t>
-    inline void Invalid_number<Device_t>::exec(std::string &&arg) const
+    inline void Invalid_number<Device_t>::usr_exec(std::string &&arg) const noexcept
     {
         /* Delete packet from memory */
         auto &p_num = arg[0];

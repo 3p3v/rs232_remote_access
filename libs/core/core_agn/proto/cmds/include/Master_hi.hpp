@@ -17,7 +17,7 @@ namespace Logic
 
     public:
         const char *get_name() const noexcept override final;
-        void exec(std::string &&arg) const override;
+        void usr_exec(std::string &&arg) const noexcept override;
 
         using Proto_cmd<Device_t, No_arg>::Proto_cmd;
     };
@@ -40,7 +40,7 @@ namespace Logic
 
     template <
         typename Device_t>
-    inline void Master_hi<Device_t>::exec(std::string &&arg) const
+    inline void Master_hi<Device_t>::usr_exec(std::string &&arg) const noexcept
     {
         if (remote_rec.conf_port == Remote_conf_port::Configurable)
         {

@@ -12,14 +12,14 @@ namespace Logic
     {
     public:
         const char* get_name() const noexcept override final;
-        void exec(std::string &&arg) const override;
+        void usr_exec(std::string &&arg) const noexcept override;
 
         using Get_param<Device_t>::Get_param;
     };
 
     template <
         typename Device_t>
-    inline void Get_stop_bits<Device_t>::exec(std::string &&arg) const
+    inline void Get_stop_bits<Device_t>::usr_exec(std::string &&arg) const noexcept
     {
         device.helpers.timer_man.stop_timer(std::string{Get_defs::get_stop_bits_s});
         auto arg_ = Set_defs::stop_bits_trans(arg);

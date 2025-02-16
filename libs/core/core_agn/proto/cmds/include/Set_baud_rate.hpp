@@ -14,7 +14,7 @@ namespace Logic
     {
     public:
         const char* get_name() const noexcept override final;
-        void exec(std::string &&arg) const override;
+        void usr_exec(std::string &&arg) const noexcept override;
 
         using Set_param<Device_t, Numbers_only>::Set_param;
     };
@@ -27,7 +27,7 @@ namespace Logic
 
     template <
         typename Device_t>
-    inline void Set_baud_rate<Device_t>::exec(std::string &&arg) const
+    inline void Set_baud_rate<Device_t>::usr_exec(std::string &&arg) const noexcept
     {
         device.helpers.notifier.debug("Received request to change baud rate...");
         wait(Get_defs::get_baud_rate_s.data());
